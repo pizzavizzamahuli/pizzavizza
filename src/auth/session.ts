@@ -8,13 +8,16 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 async function getAuthSecret() {
   const { env } = await import('@/src/config/env');
   if (!env.AUTH_SECRET) {
-    throw new Error('AUTH_SECRET is not configured.');
+    return null;
   }
   return env.AUTH_SECRET;
 }
 
-async function signPayload(payload: string) {
+async function signPayload(payload: string): Promise<string | null> {
   const secret = await getAuthSecret();
+  if (!secret) {
+    return null;
+  }
   return createHmac('sha256', secret).update(payload).digest('hex');
 }
 
@@ -41,6 +44,10 @@ export async function parseSessionToken(token: string) {
 
     const payload = `${userId}:${timestampString}`;
     const expectedSignature = await signPayload(payload);
+    if (!expectedSignature) {
+      return null;
+    }
+
     const signatureBuffer = Buffer.from(signature, 'utf-8');
     const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
 
@@ -82,6 +89,9 @@ export async function createSession(userId: string) {
   const timestamp = Date.now().toString();
   const payload = `${userId}:${timestamp}`;
   const signature = await signPayload(payload);
+  if (!signature) {
+    return '';
+  }
   return createSessionToken(userId, timestamp, signature);
 }
 

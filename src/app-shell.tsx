@@ -11,10 +11,24 @@ const navItems = [
 ];
 
 export async function CustomerShell({ children }: { children: React.ReactNode }) {
-  const user = await getSessionUser();
+  let user = null;
+  let cart = null;
+
+  try {
+    user = await getSessionUser();
+  } catch {
+    user = null;
+  }
+
   const isAdminUser = !!user && ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'].includes(user.role);
   const userId = user?._id?.toHexString() || user?.id || null;
-  const cart = userId ? await getCartForUser(userId).catch(() => null) : null;
+
+  try {
+    cart = userId ? await getCartForUser(userId) : null;
+  } catch {
+    cart = null;
+  }
+
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
 
   return (

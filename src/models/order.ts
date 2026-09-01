@@ -1,0 +1,230 @@
+import { Collection, ObjectId, ClientSession } from 'mongodb';
+import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
+
+export type FulfillmentType = 'DELIVERY' | 'PICKUP';
+
+export type OrderStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PREPARING'
+  | 'READY'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'REJECTED';
+
+export type PaymentMethod = 'COD' | 'ONLINE' | 'MANUAL' | 'WALLET';
+export type PaymentStatus = 'PENDING' | 'AWAITING_VERIFICATION' | 'PAID' | 'FAILED' | 'REFUNDED';
+
+export interface OrderItemOptionSnapshot {
+  groupId: string;
+  groupName: string;
+  optionId: string;
+  optionName: string;
+  price: number;
+}
+
+export interface OrderItemSnapshot {
+  productId: string;
+  name: string;
+  image?: string | null;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  customizationTotal?: number;
+  selectedOptions?: OrderItemOptionSnapshot[];
+}
+
+export interface CustomerSnapshot {
+  userId: string;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+}
+
+export interface AddressSnapshot {
+  fullName: string;
+  mobile: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  landmark?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  googleMapsUrl?: string | null;
+}
+
+export interface OrderDocument {
+  _id?: ObjectId;
+  id?: string;
+  orderNumber: string; // PV-2026-000001
+  userId: string;
+  customerSnapshot: CustomerSnapshot;
+  items: OrderItemSnapshot[];
+  fulfillmentType: FulfillmentType;
+  deliveryAddress?: AddressSnapshot | null;
+  subtotal: number;
+  deliveryCharge: number;
+  additionalCharges: number;
+  discount: number;
+  walletAmount: number;
+  totalAmount: number;
+  couponCode?: string | null;
+  referralCode?: string | null;
+  paymentMethod?: PaymentMethod | null;
+  paymentStatus: PaymentStatus;
+  transactionId?: string | null;
+  paymentProofUrl?: string | null;
+  orderStatus: OrderStatus;
+  customerNote?: string | null;
+  deliveryNote?: string | null;
+  deliveryDistance?: number | null;
+  deliveryRadiusAtOrder?: number | null;
+  deliveryRadiusUnitAtOrder?: 'KM' | 'MILES' | null;
+  statusHistory?: Array<{ previousStatus?: string; newStatus: string; changedBy?: string; note?: string; createdAt: Date }>;
+  idempotencyKey?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ORDERS_COLLECTION = 'orders';
+
+let ordersCollectionPromise: Promise<Collection<OrderDocument>> | null = null;
+
+export async function getOrdersCollection() {
+  if (ordersCollectionPromise) return ordersCollectionPromise;
+
+  ordersCollectionPromise = (async () => {
+    const client = await getDatabaseClient();
+    const db = client.db(await getDatabaseName());
+    const collection = db.collection<OrderDocument>(ORDERS_COLLECTION);
+    await collection.createIndex({ orderNumber: 1 }, { unique: true });
+    // allow optional idempotency key to be unique when present
+    await collection.createIndex({ idempotencyKey: 1 }, { unique: true, partialFilterExpression: { idempotencyKey: { $exists: true } } });
+    await collection.createIndex({ userId: 1 });
+    await collection.createIndex({ createdAt: -1 });
+    return collection;
+  })();
+
+  return ordersCollectionPromise;
+}
+
+export async function createOrder(doc: Partial<OrderDocument>, session?: ClientSession) {
+  const col = await getOrdersCollection();
+  const now = new Date();
+  const toInsert: OrderDocument = {
+    orderNumber: doc.orderNumber || '',
+    userId: doc.userId || '',
+    customerSnapshot: (doc.customerSnapshot as CustomerSnapshot) || { userId: '', name: '' },
+    items: (doc.items as OrderItemSnapshot[]) || [],
+    fulfillmentType: (doc.fulfillmentType as FulfillmentType) || 'DELIVERY',
+    deliveryAddress: doc.deliveryAddress || null,
+    subtotal: doc.subtotal || 0,
+    deliveryCharge: doc.deliveryCharge || 0,
+    additionalCharges: doc.additionalCharges || 0,
+    discount: doc.discount || 0,
+    walletAmount: doc.walletAmount || 0,
+    totalAmount: doc.totalAmount || 0,
+    couponCode: doc.couponCode ?? null,
+    referralCode: doc.referralCode ?? null,
+    paymentMethod: doc.paymentMethod ?? null,
+    paymentStatus: doc.paymentStatus || 'PENDING',
+    transactionId: doc.transactionId ?? null,
+    paymentProofUrl: doc.paymentProofUrl ?? null,
+    orderStatus: doc.orderStatus || 'PENDING',
+    customerNote: doc.customerNote ?? null,
+    deliveryDistance: doc.deliveryDistance ?? null,
+    deliveryRadiusAtOrder: doc.deliveryRadiusAtOrder ?? null,
+    deliveryRadiusUnitAtOrder: doc.deliveryRadiusUnitAtOrder ?? null,
+    statusHistory: doc.statusHistory || [],
+    createdAt: now,
+    updatedAt: now,
+  } as OrderDocument;
+
+  if (doc.idempotencyKey) {
+    toInsert.idempotencyKey = doc.idempotencyKey;
+  }
+
+  const res = await col.insertOne(toInsert as OrderDocument, { session });
+  return { ...toInsert, _id: res.insertedId, id: res.insertedId.toHexString() } as OrderDocument;
+}
+
+export async function findOrderByOrderNumber(orderNumber: string) {
+  const col = await getOrdersCollection();
+  return col.findOne({ orderNumber });
+}
+
+export async function updateOrderByOrderNumber(orderNumber: string, updates: Partial<OrderDocument>) {
+  const col = await getOrdersCollection();
+  const now = new Date();
+  await col.updateOne({ orderNumber }, { $set: { ...updates, updatedAt: now } });
+  return col.findOne({ orderNumber });
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export const validOrderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED', 'REJECTED'],
+  CONFIRMED: ['PREPARING', 'CANCELLED'],
+  PREPARING: ['READY', 'CANCELLED'],
+  READY: ['OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
+  OUT_FOR_DELIVERY: ['DELIVERED'],
+  DELIVERED: ['COMPLETED'],
+  COMPLETED: [],
+  CANCELLED: [],
+  REJECTED: [],
+};
+
+export function canTransitionOrderStatus(current: OrderStatus, next: OrderStatus) {
+  return validOrderStatusTransitions[current]?.includes(next);
+}
+
+export async function searchOrders(term: string) {
+  const col = await getOrdersCollection();
+  const regex = new RegExp(escapeRegex(term.trim()), 'i');
+  return col
+    .find({
+      $or: [
+        { orderNumber: regex },
+        { 'customerSnapshot.mobile': regex },
+        { 'customerSnapshot.name': regex },
+      ],
+    })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .toArray();
+}
+
+export async function updateOrderStatusByOrderNumber(orderNumber: string, status: OrderStatus, changedBy: string, note?: string) {
+  const order = await findOrderByOrderNumber(orderNumber);
+  if (!order) return null;
+
+  const history = [
+    ...(order.statusHistory || []),
+    {
+      previousStatus: order.orderStatus,
+      newStatus: status,
+      changedBy,
+      note: note || `Status updated to ${status}`,
+      createdAt: new Date(),
+    },
+  ];
+
+  return updateOrderByOrderNumber(orderNumber, { orderStatus: status, statusHistory: history });
+}
+
+export async function listOrdersForUser(userId: string) {
+  const col = await getOrdersCollection();
+  return col.find({ userId }).sort({ createdAt: -1 }).toArray();
+}
+
+export async function listOrders(filter: Partial<OrderDocument> = {}, session?: ClientSession) {
+  const col = await getOrdersCollection();
+  return col.find(filter, { session }).sort({ createdAt: -1 }).toArray();
+}

@@ -1,0 +1,99 @@
+/* eslint-disable @next/next/no-img-element */
+import Link from 'next/link';
+import { getAllCategories, getProductsForCustomer } from '@/src/services/menu-service';
+import { ProductDocument } from '@/src/models/product';
+import { CategoryDocument } from '@/src/models/category';
+import AddToCartButton from '@/src/components/add-to-cart-button';
+
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ category?: string }>; 
+}) {
+  const categories: CategoryDocument[] = await getAllCategories();
+  const products: ProductDocument[] = await getProductsForCustomer();
+  const params = searchParams ? await searchParams : {};
+  const selectedCategory = params.category?.trim();
+
+  const visibleProducts = selectedCategory
+    ? products.filter((product) => product.categoryId === selectedCategory)
+    : products;
+
+  return (
+    <div className="space-y-8">
+      <section className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Pizza Vizza</p>
+        <h1 className="mt-3 text-3xl font-semibold text-stone-900">Fresh favourites, made for every craving</h1>
+        <p className="mt-3 max-w-2xl text-sm text-stone-600">Browse our signature pizzas, sides, and comfort favourites designed for quick pickup, express delivery, or a cozy dine-in evening.</p>
+      </section>
+
+      <section>
+        <div className="flex flex-wrap gap-3 overflow-auto py-2">
+          <Link
+            href="/menu"
+            className={`rounded-full border px-3 py-2 text-sm font-semibold ${!selectedCategory ? 'border-amber-600 bg-amber-600 text-white' : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'}`}
+          >
+            All
+          </Link>
+          {categories.map((category) => {
+            const categoryId = category._id?.toHexString() || category.slug;
+            const isActive = selectedCategory === categoryId;
+
+            return (
+              <Link
+                key={categoryId}
+                href={{ pathname: '/menu', query: { category: categoryId } }}
+                className={`rounded-full border px-3 py-2 text-sm font-medium ${isActive ? 'border-amber-600 bg-amber-600 text-white' : 'border-stone-200 bg-white text-stone-700 hover:bg-stone-50'}`}
+              >
+                {category.name}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        {visibleProducts.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-stone-200 bg-white p-8 text-center text-stone-600 shadow-sm">
+            <p className="text-lg font-medium text-stone-800">No items in this category yet.</p>
+            <Link href="/menu" className="mt-3 inline-block text-sm font-semibold text-amber-700">
+              View all menu items
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleProducts.map((p) => (
+              <article key={p._id?.toHexString()} className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                <div className="relative h-64 w-full overflow-hidden bg-stone-100">
+                  <img
+                    src={p.image || '/icon-512.png'}
+                    alt={p.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-lg font-semibold text-stone-900">{p.name}</h3>
+                    {p.discountPrice ? <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Offer</span> : null}
+                  </div>
+                  <p className="mt-2 text-sm text-stone-600">{p.shortDescription || p.description}</p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div>
+                      <div className="text-lg font-semibold text-stone-900">₹{p.discountPrice ?? p.price}</div>
+                      {p.discountPrice ? <div className="text-sm text-stone-500 line-through">₹{p.price}</div> : null}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <AddToCartButton productId={p._id?.toHexString() || p.slug} />
+                    <Link href={`/menu/${p.slug}`} className="rounded-full bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

@@ -1,4 +1,6 @@
 import { requireAdminAccess } from '@/src/auth/guard';
+import { AuthorizationService } from '@/src/config/permissions';
+import Link from 'next/link';
 import CustomerManagementPanel from '@/src/components/admin/customer-management-panel';
 import { getUsersCollection } from '@/src/models/user';
 import { listOrders } from '@/src/models/order';
@@ -6,12 +8,15 @@ import { listDiningBookings } from '@/src/models/dining-booking';
 import { getWalletBalance } from '@/src/models/wallet';
 import { findReferralByUser } from '@/src/models/referral';
 import { getIdString } from '@/src/lib/id';
+import { ensureUserCode } from '@/src/services/user-service';
 
-export default async function AdminCustomersPage() {
-  await requireAdminAccess();
+export default async function AdminCustomersPage({ searchParams }: { searchParams?: Promise<{ userId?: string }> }) {
+  const admin = await requireAdminAccess();
+  if (!AuthorizationService.canAccess(admin.role, 'customers.view')) return null;
+  const params = searchParams ? await searchParams : {};
   const usersCollection = await getUsersCollection();
   const users = await usersCollection
-    .find({ role: { $in: ['CUSTOMER'] } })
+    .find({ ...(admin.role === 'MAIN_ADMIN' ? {} : { role: 'CUSTOMER' }), ...(params.userId ? { userCode: params.userId.trim() } : {}) })
     .sort({ createdAt: -1 })
     .limit(50)
     .toArray();
@@ -29,6 +34,7 @@ export default async function AdminCustomersPage() {
       return {
         ...user,
         id: userId,
+        userCode: await ensureUserCode(user),
         orders,
         bookings,
         walletBalance: wallet,
@@ -47,6 +53,7 @@ export default async function AdminCustomersPage() {
           </div>
           <div className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">{customerSummaries.length} accounts</div>
         </div>
+        <form method="get" className="mt-4 flex max-w-xl gap-2"><input name="userId" defaultValue={params.userId || ''} placeholder="Search by compact User ID" className="min-w-0 flex-1 rounded-xl border border-stone-300 px-3 py-2 text-sm" /><button type="submit" className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white">Search</button></form>
       </section>
 
       <CustomerManagementPanel />
@@ -60,7 +67,7 @@ export default async function AdminCustomersPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-stone-900">{customer.name}</h2>
-                    <span className="rounded-full bg-stone-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-600">User ID: {customerId}</span>
+                    <span className="rounded-full bg-stone-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-600">User ID: {customer.userCode}</span>
                   </div>
                   <p className="mt-1 text-sm text-stone-600">{customer.email}</p>
                   <p className="mt-1 text-sm text-stone-500">{customer.mobile || 'No mobile on file'}</p>
@@ -85,6 +92,7 @@ export default async function AdminCustomersPage() {
                   <p className="mt-1 text-lg font-semibold text-stone-900">{new Date(customer.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
+              <Link href={`/admin/customers/${encodeURIComponent(customer.userCode)}`} className="mt-4 inline-flex rounded-full bg-stone-900 px-4 py-2 text-sm font-semibold text-white">View complete customer details</Link>
             </article>
           );
         })}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 type CustomerUser = {
   id: string;
+  userCode?: string;
   name: string;
   email: string;
   mobile?: string | null;
@@ -54,7 +55,7 @@ export default function CustomerManagementPanel() {
     if (!term) return users;
 
     return users.filter((user) => {
-      const haystack = [user.id, user.name, user.email, user.mobile || '', user.role, user.accountStatus]
+      const haystack = [user.userCode || '', user.id, user.name, user.email, user.mobile || '', user.role, user.accountStatus]
         .join(' ')
         .toLowerCase();
       return haystack.includes(term);
@@ -149,7 +150,7 @@ export default function CustomerManagementPanel() {
             ) : (
               filteredUsers.map((user) => (
                 <tr key={user.id} className="align-top">
-                  <td className="px-4 py-4 font-mono text-xs text-stone-700">{user.id}</td>
+                  <td className="px-4 py-4 font-mono text-xs font-semibold text-stone-700">{user.userCode || '—'}</td>
                   <td className="px-4 py-4">
                     <div className="font-medium text-stone-900">{user.name}</div>
                     <div className="text-xs text-stone-500">{user.role}</div>

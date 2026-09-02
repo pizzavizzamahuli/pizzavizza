@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { createUser, findUserByEmail, setPasswordResetForUser, getUserById, hashPassword, isValidMobile } from '@/src/services/user-service';
+import { createUser, findUserByEmail, setPasswordResetForUser, getUserById, hashPassword, isValidMobile, ensureUserCode } from '@/src/services/user-service';
 import { UserRole } from '@/src/types';
+import type { UserDocument } from '@/src/models/user';
 import { env } from '@/src/config/env';
 import { sendPasswordResetEmail } from '@/src/services/email-service';
 import { randomInt } from 'crypto';
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');
+    const userCode = searchParams.get('userCode')?.trim();
     const allowedRoles: UserRole[] = ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
     const isMainAdmin = user.role === 'MAIN_ADMIN';
     const visibleRoles: UserRole[] = isMainAdmin ? allowedRoles : ['CUSTOMER'];
@@ -30,15 +32,16 @@ export async function GET(request: Request) {
 
     const collection = await (await import('@/src/models/user')).getUsersCollection();
     const users = await collection
-      .find({ role: { $in: selectedRoles } })
+      .find({ role: { $in: selectedRoles }, ...(userCode ? { userCode } : {}) })
       .project({ passwordHash: 0, passwordReset: 0 })
       .sort({ createdAt: -1 })
       .toArray();
 
     return NextResponse.json({
       success: true,
-      data: users.map((item) => ({
+      data: await Promise.all(users.map(async (item) => ({
         id: item._id?.toHexString() || item.id,
+        userCode: await ensureUserCode(item as UserDocument),
         name: item.name,
         email: item.email,
         mobile: item.mobile || null,
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
         accountStatus: item.accountStatus,
         protected: isMainAdmin ? item.protected ?? false : false,
         createdAt: item.createdAt ? item.createdAt.toISOString() : null,
-      })),
+      }))),
       meta: { isMainAdmin, availableRoles: isMainAdmin ? ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'] : ['KITCHEN_STAFF', 'DELIVERY_STAFF'] },
     });
   } catch (error) {

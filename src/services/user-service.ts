@@ -3,6 +3,7 @@ import { getUsersCollection, UserDocument } from '@/src/models/user';
 import { AccountStatus, TemporaryAccessStatus, UserRole } from '@/src/types';
 import { randomBytes, timingSafeEqual, scrypt as _scrypt } from 'crypto';
 import { promisify } from 'util';
+import { getNextSequence } from '@/src/models/counter';
 
 const scrypt = promisify(_scrypt);
 const HASH_KEY_LENGTH = 64;
@@ -40,6 +41,22 @@ export function normalizeMobile(mobile: string) {
   return mobile.trim();
 }
 
+async function createUserCode(collection: Awaited<ReturnType<typeof getUsersCollection>>) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const next = String(await getNextSequence('user_codes')).padStart(6, '0');
+    if (!(await collection.findOne({ userCode: next }, { projection: { _id: 1 } }))) return next;
+  }
+  throw new Error('Unable to generate a unique user ID.');
+}
+
+export async function ensureUserCode(user: UserDocument) {
+  if (user.userCode) return user.userCode;
+  const collection = await getUsersCollection();
+  const userCode = await createUserCode(collection);
+  await collection.updateOne({ _id: user._id }, { $set: { userCode, updatedAt: new Date() } });
+  return userCode;
+}
+
 export async function createUser(input: {
   name: string;
   email: string;
@@ -60,10 +77,12 @@ export async function createUser(input: {
   const now = new Date();
   const normalizedEmail = normalizeEmail(input.email);
   const passwordHash = await hashPassword(input.password);
+  const userCode = await createUserCode(collection);
 
   const document: UserDocument = {
     name: input.name.trim(),
     email: normalizedEmail,
+    userCode,
     mobile: input.mobile?.trim() || null,
     passwordHash,
     role: input.role ?? 'CUSTOMER',

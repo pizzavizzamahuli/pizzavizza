@@ -5,6 +5,7 @@ import { AccountStatus, TemporaryAccessStatus, UserRole } from '@/src/types';
 export interface UserDocument {
   _id?: ObjectId;
   id?: string;
+  userCode?: string;
   name: string;
   email: string;
   mobile?: string | null;
@@ -28,6 +29,11 @@ export interface UserDocument {
   updatedAt: Date;
 }
 
+export async function findUserByUserCode(userCode: string) {
+  const collection = await getUsersCollection();
+  return collection.findOne({ userCode: userCode.trim() });
+}
+
 const USERS_COLLECTION = 'users';
 
 let usersCollectionPromise: Promise<Collection<UserDocument>> | null = null;
@@ -41,6 +47,7 @@ export async function getUsersCollection() {
     const client = await getDatabaseClient();
     const db = client.db(await getDatabaseName());
     const collection = db.collection<UserDocument>(USERS_COLLECTION);
+    await collection.createIndex({ userCode: 1 }, { unique: true, sparse: true });
     const indexes: Array<{ spec: Record<string, number>; options?: { unique?: boolean } }> = [
       { spec: { email: 1 }, options: { unique: true } },
       { spec: { mobile: 1 } },

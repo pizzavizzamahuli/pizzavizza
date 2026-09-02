@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-type UserRow = { id: string; name: string; email: string; mobile?: string | null; role: string; accountStatus: string; protected?: boolean };
+type UserRow = { id: string; userCode?: string; name: string; email: string; mobile?: string | null; role: string; accountStatus: string; protected?: boolean };
 const statuses = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 const mainRoles = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
 const adminRoles = ['KITCHEN_STAFF', 'DELIVERY_STAFF'];

@@ -46,7 +46,7 @@ export async function deleteCloudinaryResource(publicId: string, resourceType = 
     body: formData,
   });
   const json = await response.json();
-  if (!response.ok || json.result !== 'ok') {
+  if (!response.ok || (json.result !== 'ok' && json.result !== 'not found')) {
     throw new Error(json.error?.message || 'Failed to delete Cloudinary resource');
   }
 }

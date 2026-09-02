@@ -146,6 +146,19 @@ export function ProductForm({
     });
   }
 
+  function addFiles(selectedFiles: File[]) {
+    const validFiles = selectedFiles.filter(isImageFile);
+    if (!validFiles.length) {
+      setMessage('Please select image files only.');
+      return;
+    }
+    setFiles((current) => [
+      ...current,
+      ...validFiles.map((file) => ({ id: `${file.name}-${Date.now()}-${Math.random()}`, file, preview: URL.createObjectURL(file), progress: 0 })),
+    ]);
+    setMessage(null);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -357,32 +370,26 @@ export function ProductForm({
           className="relative rounded-3xl border-2 border-dashed border-stone-300 bg-white p-5 text-center transition hover:border-amber-500"
           onDrop={(e) => {
             e.preventDefault();
-            const dropped = Array.from(e.dataTransfer.files || []).filter(isImageFile);
-            if (dropped.length)
-              setFiles((current) => [
-                ...current,
-                ...dropped.map((f) => ({ id: `${f.name}-${Date.now()}-${Math.random()}`, file: f, preview: URL.createObjectURL(f), progress: 0 })),
-              ]);
+            addFiles(Array.from(e.dataTransfer.files || []));
           }}
           onDragOver={(e) => e.preventDefault()}
         >
           <input
+            id="product-image-picker"
             type="file"
             multiple
             accept="image/*"
-            className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+            className="sr-only"
             onChange={(e) => {
-              const selected = Array.from(e.target.files || []).filter(isImageFile);
-              if (selected.length)
-                setFiles((current) => [
-                  ...current,
-                  ...selected.map((f) => ({ id: `${f.name}-${Date.now()}-${Math.random()}`, file: f, preview: URL.createObjectURL(f), progress: 0 })),
-                ]);
+              addFiles(Array.from(e.target.files || []));
               e.target.value = '';
             }}
           />
           <div className="relative">
-            <p className="text-sm text-stone-600">Drag and drop images here, or click to select files.</p>
+            <p className="text-sm text-stone-600">Drag and drop images here</p>
+            <label htmlFor="product-image-picker" className="mt-3 inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700">
+              Choose images from device
+            </label>
             <p className="mt-2 text-xs text-stone-500">You can upload multiple images at once. The first image becomes the main product image.</p>
           </div>
         </div>

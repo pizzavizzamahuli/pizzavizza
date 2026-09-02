@@ -102,7 +102,36 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
   const [showQrModal, setShowQrModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [manualProofPreview, setManualProofPreview] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!manualProofFile) {
+      setManualProofPreview(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(manualProofFile);
+    setManualProofPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [manualProofFile]);
+
+  function selectManualProof(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file for payment proof.');
+      return;
+    }
+    setManualProofFile(file);
+    setUploadProgress(0);
+    setUploadStatus('idle');
+    setError(null);
+  }
+
+  function removeManualProof() {
+    setManualProofFile(null);
+    setUploadProgress(0);
+    setUploadStatus('idle');
+  }
 
   useEffect(() => {
     fetch('/api/cart')
@@ -621,17 +650,22 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
                       <span className="mb-2 block font-medium text-stone-700">Transaction ID</span>
                       <input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2" placeholder="e.g. UPI ref / txn ID" />
                     </label>
-                    <label className="text-sm md:col-span-1">
+                    <div className="text-sm md:col-span-1">
                       <span className="mb-2 block font-medium text-stone-700">Payment Proof</span>
-                      <input type="file" accept="image/*" onChange={(e) => {
-                        setManualProofFile(e.target.files?.[0] ?? null);
-                        setUploadProgress(0);
-                        setUploadStatus('idle');
-                      }} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2" />
-                    </label>
+                      <div
+                        className="rounded-2xl border-2 border-dashed border-stone-300 bg-white p-4 text-center hover:border-amber-500"
+                        onDrop={(event) => { event.preventDefault(); selectManualProof(event.dataTransfer.files?.[0]); }}
+                        onDragOver={(event) => event.preventDefault()}
+                      >
+                        <input id="checkout-payment-proof-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => { selectManualProof(event.target.files?.[0]); event.target.value = ''; }} />
+                        <p className="text-xs text-stone-600">Drop image here</p>
+                        <label htmlFor="checkout-payment-proof-picker" className="mt-2 inline-flex cursor-pointer rounded-full bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-700">Choose from device</label>
+                      </div>
+                    </div>
                   </div>
                   {manualProofFile && (
                     <div className="mt-3 rounded-2xl bg-stone-50 p-4">
+                      {manualProofPreview ? <img src={manualProofPreview} alt="Selected payment proof" className="mb-3 h-40 w-full rounded-xl object-contain bg-white" /> : null}
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm">
                           <p className="font-medium text-stone-900">{manualProofFile.name}</p>
@@ -639,6 +673,7 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
                         </div>
                         {uploadStatus === 'success' && <span className="text-lg text-emerald-600">✓</span>}
                         {uploadStatus === 'error' && <span className="text-lg text-red-600">✗</span>}
+                        <button type="button" onClick={removeManualProof} disabled={loading} className="text-sm font-semibold text-stone-600 hover:text-red-600 disabled:opacity-50">Remove</button>
                       </div>
                       {uploadStatus === 'uploading' && (
                         <div className="mt-3">

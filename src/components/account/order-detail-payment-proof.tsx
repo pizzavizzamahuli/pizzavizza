@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Props {
   orderNumber: string;
@@ -14,6 +14,30 @@ export default function OrderDetailPaymentProof({ orderNumber, paymentStatus, pa
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const proofPreview = proofFile ? URL.createObjectURL(proofFile) : null;
+
+  useEffect(() => () => {
+    if (proofPreview) URL.revokeObjectURL(proofPreview);
+  }, [proofPreview]);
+
+  function selectProof(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage('Please select an image file.');
+      return;
+    }
+    setProofFile(file);
+    setUploadProgress(0);
+    setUploadStatus('idle');
+    setMessage(null);
+  }
+
+  function removeProof() {
+    setProofFile(null);
+    setUploadProgress(0);
+    setUploadStatus('idle');
+    setMessage(null);
+  }
 
   async function uploadProof() {
     if (!proofFile) {
@@ -104,21 +128,21 @@ export default function OrderDetailPaymentProof({ orderNumber, paymentStatus, pa
       <p className="mt-2 text-sm text-stone-600">Upload a clear photo or screenshot of your payment proof.</p>
       <div className="mt-4">
         <label className="block text-sm font-medium text-stone-700">Payment Proof</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            setProofFile(e.target.files?.[0] ?? null);
-            setUploadProgress(0);
-            setUploadStatus('idle');
-            setMessage(null);
-          }}
-          className="mt-2 w-full rounded border px-3 py-2"
-        />
+        <div
+          className="mt-2 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 p-5 text-center hover:border-amber-500"
+          onDrop={(event) => { event.preventDefault(); selectProof(event.dataTransfer.files?.[0]); }}
+          onDragOver={(event) => event.preventDefault()}
+        >
+          <input id="payment-proof-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => { selectProof(event.target.files?.[0]); event.target.value = ''; }} />
+          <p className="text-sm text-stone-600">Drag and drop your proof here</p>
+          <label htmlFor="payment-proof-picker" className="mt-3 inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose image from device</label>
+          <p className="mt-2 text-xs text-stone-500">Use a clear JPG, PNG, or screenshot.</p>
+        </div>
       </div>
 
       {proofFile && (
         <div className="mt-4 rounded-2xl bg-stone-50 p-3">
+          {proofPreview ? <img src={proofPreview} alt="Selected payment proof" className="mb-3 h-40 w-full rounded-xl object-contain bg-white" /> : null}
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-stone-900">{proofFile.name}</p>
@@ -126,6 +150,7 @@ export default function OrderDetailPaymentProof({ orderNumber, paymentStatus, pa
             </div>
             {uploadStatus === 'success' && <span className="text-lg text-emerald-600">✓</span>}
             {uploadStatus === 'error' && <span className="text-lg text-red-600">✗</span>}
+            <button type="button" onClick={removeProof} disabled={saving} className="text-sm font-semibold text-stone-600 hover:text-red-600 disabled:opacity-50">Remove</button>
           </div>
 
           {uploadStatus === 'uploading' && (

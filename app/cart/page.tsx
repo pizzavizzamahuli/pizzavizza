@@ -3,7 +3,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
 import Link from 'next/link';
 
-export default async function CartPage() {
+export default async function CartPage({ searchParams }: { searchParams?: Promise<{ bookingNumber?: string }> }) {
   const user = await getSessionUser();
   if (!user) {
     return (
@@ -16,6 +16,8 @@ export default async function CartPage() {
   }
 
   const cart = await getCartForUser(user._id!.toHexString());
+  const params = searchParams ? await searchParams : {};
+  const bookingQuery = params.bookingNumber ? `?bookingNumber=${encodeURIComponent(params.bookingNumber)}` : '';
 
   if (!cart || !cart.items || cart.items.length === 0) {
     return (
@@ -92,7 +94,7 @@ export default async function CartPage() {
               <span className="text-lg font-semibold text-stone-900">₹{subtotal.toFixed(2)}</span>
             </div>
             <div className="mt-6">
-              <Link href="/checkout" className="inline-flex w-full justify-center rounded-full bg-amber-600 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-700">
+              <Link href={`/checkout${bookingQuery}`} className="inline-flex w-full justify-center rounded-full bg-amber-600 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-700">
                 Proceed to checkout
               </Link>
             </div>

@@ -18,6 +18,7 @@ export function PWAShell() {
   const dragOffset = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

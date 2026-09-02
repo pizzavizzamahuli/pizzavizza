@@ -107,12 +107,13 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
 
   useEffect(() => {
     if (!manualProofFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setManualProofPreview(null);
       return;
     }
     const previewUrl = URL.createObjectURL(manualProofFile);
     setManualProofPreview(previewUrl);
-    return () => URL.revokeObjectURL(previewUrl);
+    return () => { URL.revokeObjectURL(previewUrl); };
   }, [manualProofFile]);
 
   function selectManualProof(file?: File) {

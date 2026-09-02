@@ -18,12 +18,8 @@ export default function ProductImageGallery({ images, title }: ProductImageGalle
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    setActiveIndex(0);
-    setIsOpen(false);
-  }, [gallery]);
-
-  const activeImage = gallery[activeIndex] || PLACEHOLDER;
+  const safeActiveIndex = gallery.length === 0 ? 0 : Math.min(activeIndex, gallery.length - 1);
+  const activeImage = gallery[safeActiveIndex] || PLACEHOLDER;
   const hasMultiple = gallery.length > 1;
 
   const openViewer = () => setIsOpen(true);
@@ -60,7 +56,7 @@ export default function ProductImageGallery({ images, title }: ProductImageGalle
               type="button"
               onClick={() => setActiveIndex(index)}
               className={`shrink-0 overflow-hidden rounded-2xl border transition ${
-                activeIndex === index ? 'border-amber-500 ring-2 ring-amber-200' : 'border-stone-200'
+                safeActiveIndex === index ? 'border-amber-500 ring-2 ring-amber-200' : 'border-stone-200'
               }`}
             >
               <img

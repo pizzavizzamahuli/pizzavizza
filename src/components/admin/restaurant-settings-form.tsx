@@ -9,7 +9,7 @@ export default function RestaurantSettingsForm() {
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -18,22 +18,24 @@ export default function RestaurantSettingsForm() {
 
   useEffect(() => {
     if (!logoFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLogoPreview(null);
       return;
     }
     const preview = URL.createObjectURL(logoFile);
     setLogoPreview(preview);
-    return () => URL.revokeObjectURL(preview);
+    return () => { URL.revokeObjectURL(preview); };
   }, [logoFile]);
 
   useEffect(() => {
     if (!menuFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMenuPreview(null);
       return;
     }
     const preview = URL.createObjectURL(menuFile);
     setMenuPreview(preview);
-    return () => URL.revokeObjectURL(preview);
+    return () => { URL.revokeObjectURL(preview); };
   }, [menuFile]);
 
   useEffect(() => {
@@ -66,15 +68,16 @@ export default function RestaurantSettingsForm() {
         throw new Error('No location found for that address.');
       }
 
-      setSettings((current: any) => ({
+      setSettings((current: Record<string, unknown>) => ({
         ...current,
         latitude: result.latitude,
         longitude: result.longitude,
-        addressLine1: result.formattedAddress || current.addressLine1 || trimmed,
+        addressLine1: result.formattedAddress || (current.addressLine1 as string | undefined) || trimmed,
       }));
       setSearchTerm('');
-    } catch (e: any) {
-      alert(e?.message || 'Address lookup failed');
+    } catch (e: unknown) {
+      const err = e as Record<string, unknown>;
+      alert((err?.message as string) || 'Address lookup failed');
     } finally {
       setSearching(false);
     }
@@ -124,8 +127,9 @@ export default function RestaurantSettingsForm() {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousMenuImage)}`, { method: 'DELETE' });
       }
       alert('Saved');
-    } catch (e: any) {
-      alert('Save failed: ' + (e?.message || String(e)));
+    } catch (e: unknown) {
+      const err = e as Record<string, unknown>;
+      alert('Save failed: ' + ((err?.message as string) || String(e)));
     } finally {
       setUploadingLogo(false);
       setSaving(false);
@@ -183,7 +187,7 @@ export default function RestaurantSettingsForm() {
             ? { latitude: settings.latitude, longitude: settings.longitude }
             : null
         }
-        onChange={(point) => setSettings((current: any) => ({ ...current, latitude: point.latitude, longitude: point.longitude }))}
+        onChange={(point) => setSettings((current: any) => ({ ...current, latitude: point.latitude, longitude: point.longitude }))} // eslint-disable-line @typescript-eslint/no-explicit-any
         height={320}
         center={
           typeof settings.latitude === 'number' && typeof settings.longitude === 'number'

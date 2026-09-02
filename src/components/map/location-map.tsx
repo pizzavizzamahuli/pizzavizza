@@ -3,7 +3,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useState } from 'react';
-import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const markerIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -42,6 +42,7 @@ function MapPicker({ value, onChange, disabled = false }: { value?: MapPoint | n
 
   useEffect(() => {
     if (value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrent(value);
     }
   }, [value]);
@@ -97,6 +98,7 @@ export default function LocationMap({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

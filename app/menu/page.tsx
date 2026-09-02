@@ -86,7 +86,7 @@ export default async function MenuPage({
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <AddToCartButton productId={p._id?.toHexString() || p.slug} />
-                    <Link href={`/menu/${p.slug}`} className="rounded-full bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
+                    <Link href={`/menu/${p._id?.toHexString() || p.slug}`} className="rounded-full bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
                   </div>
                 </div>
               </article>

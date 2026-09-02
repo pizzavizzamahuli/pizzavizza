@@ -10,6 +10,7 @@ import {
   createProduct,
   listProducts,
   updateProduct,
+  findProductById,
   findProductBySlug,
   ProductDocument,
 } from '@/src/models/product';
@@ -121,7 +122,7 @@ export async function adminDeleteCustomizationGroup(id: string) {
 }
 
 export async function getProductBySlug(slug: string) {
-  return findProductBySlug(slug);
+  return (await findProductById(slug)) || findProductBySlug(slug);
 }
 
 export async function getProductsForCustomer() {

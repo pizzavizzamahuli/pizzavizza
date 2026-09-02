@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type ProductImageGalleryProps = {
   images: string[];
@@ -17,6 +17,11 @@ export default function ProductImageGallery({ images, title }: ProductImageGalle
   }, [images]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setIsOpen(false);
+  }, [gallery]);
 
   const activeImage = gallery[activeIndex] || PLACEHOLDER;
   const hasMultiple = gallery.length > 1;

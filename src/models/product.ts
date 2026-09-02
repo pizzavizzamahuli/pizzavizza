@@ -105,6 +105,9 @@ export async function createProduct(doc: Partial<ProductDocument>) {
     updatedAt: now,
   } as ProductDocument;
 
+  const existing = await col.findOne({ slug: toInsert.slug });
+  if (existing) throw new Error('A product with this slug already exists');
+
   const res = await col.insertOne(toInsert as ProductDocument);
   return { ...toInsert, _id: res.insertedId, id: res.insertedId.toHexString() } as ProductDocument;
 }
@@ -113,6 +116,10 @@ export async function updateProduct(id: string, updates: Partial<ProductDocument
   const col = await getProductsCollection();
   const now = new Date();
   const updatePayload = { ...updates, updatedAt: now } as Partial<ProductDocument>;
+  if (updates.slug) {
+    const existing = await col.findOne({ slug: updates.slug, _id: { $ne: new ObjectId(id) } });
+    if (existing) throw new Error('A product with this slug already exists');
+  }
   if (updates.customizationGroupIds === undefined) {
     delete (updatePayload as Partial<ProductDocument>).customizationGroupIds;
   }

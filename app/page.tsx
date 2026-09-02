@@ -51,20 +51,21 @@ export default async function Home() {
         ))}
       </section>
 
-      {restaurantSettings.menuImage ? (
-        <section className="mt-8 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
-              <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
-            </div>
-            <a href={restaurantSettings.menuImage} target="_blank" rel="noreferrer" className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">Open full menu</a>
+      <section className="mt-8 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
+        </div>
+        {restaurantSettings.menuImage ? (
+          <figure className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
+            <img src={restaurantSettings.menuImage} alt={`${restaurantSettings.restaurantName} restaurant menu`} className="block h-auto w-full object-contain" />
+          </figure>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-6 py-12 text-center text-sm text-stone-600">
+            The restaurant menu will appear here soon.
           </div>
-          <div className="mt-5 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
-            <img src={restaurantSettings.menuImage} alt={`${restaurantSettings.restaurantName} restaurant menu`} className="max-h-[720px] w-full object-contain" />
-          </div>
-        </section>
-      ) : null}
+        )}
+      </section>
     </CustomerShell>
   );
 }

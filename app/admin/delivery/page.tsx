@@ -3,6 +3,7 @@ import { listOrders } from '@/src/models/order';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { generateDeliveryWhatsAppMessage } from '@/src/services/delivery-service';
 import DeliveryShareActions from '@/src/components/admin/delivery-share-actions';
+import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 import Link from 'next/link';
 
 export default async function AdminDeliveryPage() {
@@ -43,7 +44,18 @@ export default async function AdminDeliveryPage() {
                   <p>{order.deliveryAddress.addressLine1}</p>
                   {order.deliveryAddress.addressLine2 ? <p>{order.deliveryAddress.addressLine2}</p> : null}
                   <p>{order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.postalCode}</p>
-                  {order.deliveryAddress.googleMapsUrl ? <a href={order.deliveryAddress.googleMapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-amber-700">Open map</a> : null}
+                  <GoogleMapsActions
+                    storeLocation={
+                      typeof settings.latitude === 'number' && typeof settings.longitude === 'number'
+                        ? { latitude: settings.latitude, longitude: settings.longitude }
+                        : null
+                    }
+                    customerLocation={
+                      typeof order.deliveryAddress.latitude === 'number' && typeof order.deliveryAddress.longitude === 'number'
+                        ? { latitude: order.deliveryAddress.latitude, longitude: order.deliveryAddress.longitude }
+                        : null
+                    }
+                  />
                 </div>
               ) : null}
 

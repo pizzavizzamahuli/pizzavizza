@@ -91,7 +91,6 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
             {order.deliveryAddress.addressLine2 ? <div>{order.deliveryAddress.addressLine2}</div> : null}
             {order.deliveryAddress.landmark ? <div>Landmark: {order.deliveryAddress.landmark}</div> : null}
             <div>{order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.postalCode}</div>
-            {order.deliveryAddress.googleMapsUrl ? <a href={order.deliveryAddress.googleMapsUrl} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">Open map</a> : null}
           </div>
           <GoogleMapsActions
             storeLocation={

@@ -26,7 +26,7 @@ export default function GoogleMapsActions({ storeLocation, customerLocation }: G
   const validCustomerLocation = hasCustomerLocation ? customerLocation : null;
   const validStoreLocation = hasStoreLocation ? storeLocation : null;
   const locationUrl = useMemo(
-    () => validCustomerLocation ? `https://www.google.com/maps/search/?api=1&query=${validCustomerLocation.latitude},${validCustomerLocation.longitude}` : null,
+    () => validCustomerLocation ? `https://www.google.com/maps?q=${validCustomerLocation.latitude},${validCustomerLocation.longitude}` : null,
     [validCustomerLocation],
   );
   const directionsUrl = useMemo(

@@ -47,6 +47,7 @@ export default function RestaurantSettingsForm() {
         longitude: result.longitude,
         addressLine1: result.formattedAddress || current.addressLine1 || trimmed,
       }));
+      setSearchTerm('');
     } catch (e: any) {
       alert(e?.message || 'Address lookup failed');
     } finally {
@@ -97,10 +98,15 @@ export default function RestaurantSettingsForm() {
         value={
           typeof settings.latitude === 'number' && typeof settings.longitude === 'number'
             ? { latitude: settings.latitude, longitude: settings.longitude }
-            : { latitude: 28.6139, longitude: 77.209 }
+            : null
         }
         onChange={(point) => setSettings((current: any) => ({ ...current, latitude: point.latitude, longitude: point.longitude }))}
         height={320}
+        center={
+          typeof settings.latitude === 'number' && typeof settings.longitude === 'number'
+            ? { latitude: settings.latitude, longitude: settings.longitude }
+            : null
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

@@ -2,8 +2,8 @@
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import { useEffect, useMemo, useState } from 'react';
+import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 
 const markerIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -15,10 +15,27 @@ const markerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
+const storeIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [24, 38],
+  iconAnchor: [12, 38],
+  shadowSize: [41, 41],
+});
+
 export type MapPoint = {
   latitude: number;
   longitude: number;
 };
+
+function MapCenter({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, Math.max(map.getZoom(), 13));
+  }, [center, map]);
+  return null;
+}
 
 function MapPicker({ value, onChange, disabled = false }: { value?: MapPoint | null; onChange: (next: MapPoint) => void; disabled?: boolean }) {
   const [current, setCurrent] = useState<MapPoint | null>(value ?? null);
@@ -63,11 +80,19 @@ export default function LocationMap({
   onChange,
   height = 320,
   disabled = false,
+  center,
+  storeLocation,
+  customerLocation,
+  routeCoordinates,
 }: {
   value?: MapPoint | null;
-  onChange: (next: MapPoint) => void;
+  onChange?: (next: MapPoint) => void;
   height?: number;
   disabled?: boolean;
+  center?: MapPoint | null;
+  storeLocation?: MapPoint | null;
+  customerLocation?: MapPoint | null;
+  routeCoordinates?: MapPoint[];
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -75,22 +100,44 @@ export default function LocationMap({
     setMounted(true);
   }, []);
 
-  const center: [number, number] = value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)
-    ? [value.latitude, value.longitude]
-    : [28.6139, 77.2090];
+  const mapCenter = useMemo((): [number, number] | null => {
+    if (center && Number.isFinite(center.latitude) && Number.isFinite(center.longitude)) return [center.latitude, center.longitude];
+    if (customerLocation && Number.isFinite(customerLocation.latitude) && Number.isFinite(customerLocation.longitude)) return [customerLocation.latitude, customerLocation.longitude];
+    if (storeLocation && Number.isFinite(storeLocation.latitude) && Number.isFinite(storeLocation.longitude)) return [storeLocation.latitude, storeLocation.longitude];
+    if (value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)) return [value.latitude, value.longitude];
+    return null;
+  }, [center, customerLocation, storeLocation, value]);
 
   if (!mounted) {
     return <div className="rounded-md border border-stone-200 bg-stone-50" style={{ height }} />;
   }
 
+  if (!mapCenter) {
+    return (
+      <div className="flex items-center justify-center rounded-md border border-dashed border-stone-300 bg-stone-50 p-4 text-sm text-stone-600" style={{ height }}>
+        Map is unavailable until the restaurant location is set or a valid delivery point is selected.
+      </div>
+    );
+  }
+
+  const polyline = routeCoordinates && routeCoordinates.length > 1 ? routeCoordinates.map((p) => [p.latitude, p.longitude] as [number, number]) : [];
+
   return (
     <div className="overflow-hidden rounded-md border border-stone-200 bg-stone-50" style={{ height }}>
-      <MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+      <MapContainer center={mapCenter} zoom={13} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+        <MapCenter center={mapCenter} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <MapPicker value={value ?? null} onChange={onChange} disabled={disabled} />
+        {storeLocation && Number.isFinite(storeLocation.latitude) && Number.isFinite(storeLocation.longitude) ? (
+          <Marker position={[storeLocation.latitude, storeLocation.longitude]} icon={storeIcon} />
+        ) : null}
+        {customerLocation && Number.isFinite(customerLocation.latitude) && Number.isFinite(customerLocation.longitude) ? (
+          <Marker position={[customerLocation.latitude, customerLocation.longitude]} icon={markerIcon} />
+        ) : null}
+        {polyline.length > 1 ? <Polyline positions={polyline} pathOptions={{ color: '#f59e0b', weight: 5 }} /> : null}
+        {typeof onChange === 'function' ? <MapPicker value={value ?? null} onChange={onChange} disabled={disabled} /> : null}
       </MapContainer>
     </div>
   );

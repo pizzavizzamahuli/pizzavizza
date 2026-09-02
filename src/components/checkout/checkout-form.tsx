@@ -67,8 +67,8 @@ const defaultNewAddress: NewAddressForm = {
   state: '',
   postalCode: '',
   country: 'India',
-  latitude: 28.6139,
-  longitude: 77.209,
+  latitude: null,
+  longitude: null,
   googleMapsUrl: null,
 };
 
@@ -95,6 +95,7 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
   const [newAddress, setNewAddress] = useState<NewAddressForm>(defaultNewAddress);
   const [newAddressSearch, setNewAddressSearch] = useState('');
   const [savingNewAddress, setSavingNewAddress] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [restaurantSettings, setRestaurantSettings] = useState<Record<string, unknown> | null>(null);
   const [transactionId, setTransactionId] = useState('');
   const [manualProofFile, setManualProofFile] = useState<File | null>(null);
@@ -152,6 +153,37 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
       const message = err instanceof Error ? err.message : 'Address lookup failed';
       setError(message);
     }
+  }
+
+  async function useMyLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setError('Browser geolocation is unavailable on this device.');
+      return;
+    }
+
+    setGeoLoading(true);
+    setError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextPoint = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setNewAddress((current) => ({
+          ...current,
+          latitude: nextPoint.latitude,
+          longitude: nextPoint.longitude,
+          googleMapsUrl: generateMapLink(nextPoint.latitude, nextPoint.longitude, current.label || current.fullName || 'Delivery address'),
+        }));
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoLoading(false);
+        setError('Location access was denied. Please select a location manually on the map.');
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
   }
 
   async function saveNewAddress() {
@@ -491,6 +523,9 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
                         <div className="flex gap-2">
                           <input value={newAddressSearch} onChange={(e) => setNewAddressSearch(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2" placeholder="Search address for map lookup" />
                           <button type="button" onClick={() => geocodeAndSetNewAddress()} className="rounded-xl bg-amber-600 px-4 py-2 font-medium text-white">Find</button>
+                          <button type="button" onClick={useMyLocation} disabled={geoLoading} className="rounded-xl border border-stone-300 bg-white px-3 py-2 font-medium text-stone-700 disabled:opacity-60">
+                            {geoLoading ? 'Locating...' : 'Use My Location'}
+                          </button>
                         </div>
                       </label>
                     </div>
@@ -499,7 +534,12 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
                       value={
                         typeof newAddress.latitude === 'number' && typeof newAddress.longitude === 'number'
                           ? { latitude: newAddress.latitude, longitude: newAddress.longitude }
-                          : { latitude: 28.6139, longitude: 77.209 }
+                          : null
+                      }
+                      center={
+                        typeof restaurantSettings?.latitude === 'number' && typeof restaurantSettings?.longitude === 'number'
+                          ? { latitude: restaurantSettings.latitude, longitude: restaurantSettings.longitude }
+                          : null
                       }
                       onChange={(point) => setNewAddress((current) => ({
                         ...current,

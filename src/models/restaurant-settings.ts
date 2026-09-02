@@ -22,6 +22,7 @@ export interface RestaurantSettingsDocument {
   id?: string;
   restaurantName: string;
   logo?: string | null;
+  menuImage?: string | null;
   phone?: string | null;
   email?: string | null;
   addressLine1?: string | null;
@@ -92,6 +93,7 @@ export async function getRestaurantSettings() {
   const defaultSettings: RestaurantSettingsDocument = {
     restaurantName: 'Pizza Vizza',
     logo: null,
+    menuImage: null,
     phone: null,
     email: null,
     addressLine1: null,

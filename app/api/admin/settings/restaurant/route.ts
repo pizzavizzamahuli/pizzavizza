@@ -18,6 +18,7 @@ export async function GET() {
     id: s.id,
     restaurantName: s.restaurantName,
     logo: s.logo,
+    menuImage: s.menuImage,
     phone: s.phone,
     email: s.email,
     addressLine1: s.addressLine1,
@@ -73,6 +74,7 @@ export async function PUT(request: Request) {
     const sanitized: Partial<RestaurantSettingsDocument> = {
       restaurantName: typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined,
       logo: typeof updates.logo === 'string' ? updates.logo.trim() : undefined,
+      menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,
       email: typeof updates.email === 'string' ? updates.email.trim() : undefined,
       addressLine1: typeof updates.addressLine1 === 'string' ? updates.addressLine1.trim() : undefined,

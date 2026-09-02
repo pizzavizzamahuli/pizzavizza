@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CustomerShell } from '@/src/app-shell';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 const experienceCards = [
   { href: '/menu', title: 'Browse the menu', description: 'Discover pizzas, sides, and chef specials.' },
@@ -7,7 +8,8 @@ const experienceCards = [
   { href: '/account/orders', title: 'Track your orders', description: 'Follow live order status and payment updates.' },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const restaurantSettings = await getRestaurantSettings();
   return (
     <CustomerShell>
       <section className="grid gap-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm lg:grid-cols-[1.3fr_0.7fr] lg:p-10">
@@ -48,6 +50,21 @@ export default function Home() {
           </Link>
         ))}
       </section>
+
+      {restaurantSettings.menuImage ? (
+        <section className="mt-8 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
+              <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
+            </div>
+            <a href={restaurantSettings.menuImage} target="_blank" rel="noreferrer" className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">Open full menu</a>
+          </div>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
+            <img src={restaurantSettings.menuImage} alt={`${restaurantSettings.restaurantName} restaurant menu`} className="max-h-[720px] w-full object-contain" />
+          </div>
+        </section>
+      ) : null}
     </CustomerShell>
   );
 }

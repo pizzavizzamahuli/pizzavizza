@@ -13,6 +13,8 @@ export default function RestaurantSettingsForm() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [menuFile, setMenuFile] = useState<File | null>(null);
+  const [menuPreview, setMenuPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!logoFile) {
@@ -23,6 +25,16 @@ export default function RestaurantSettingsForm() {
     setLogoPreview(preview);
     return () => URL.revokeObjectURL(preview);
   }, [logoFile]);
+
+  useEffect(() => {
+    if (!menuFile) {
+      setMenuPreview(null);
+      return;
+    }
+    const preview = URL.createObjectURL(menuFile);
+    setMenuPreview(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [menuFile]);
 
   useEffect(() => {
     let mounted = true;
@@ -75,7 +87,9 @@ export default function RestaurantSettingsForm() {
     setSaving(true);
     try {
       const previousLogo = settings.logo || null;
+      const previousMenuImage = settings.menuImage || null;
       let nextLogo = settings.logo || null;
+      let nextMenuImage = settings.menuImage || null;
       if (logoFile) {
         setUploadingLogo(true);
         const body = new FormData();
@@ -85,17 +99,29 @@ export default function RestaurantSettingsForm() {
         if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Logo upload failed');
         nextLogo = uploadData.data;
       }
+      if (menuFile) {
+        const body = new FormData();
+        body.append('menuImage', menuFile);
+        const uploadResponse = await fetch('/api/admin/settings/restaurant/menu-image', { method: 'POST', body });
+        const uploadData = await uploadResponse.json();
+        if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Menu upload failed');
+        nextMenuImage = uploadData.data;
+      }
       const res = await fetch('/api/admin/settings/restaurant', {
         method: 'PUT',
-        body: JSON.stringify({ ...settings, logo: nextLogo }),
+        body: JSON.stringify({ ...settings, logo: nextLogo, menuImage: nextMenuImage }),
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
       setSettings(data.data);
       setLogoFile(null);
+      setMenuFile(null);
       if (previousLogo && previousLogo !== nextLogo) {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousLogo)}`, { method: 'DELETE' });
+      }
+      if (previousMenuImage && previousMenuImage !== nextMenuImage) {
+        await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousMenuImage)}`, { method: 'DELETE' });
       }
       alert('Saved');
     } catch (e: any) {
@@ -129,6 +155,17 @@ export default function RestaurantSettingsForm() {
             {(logoFile || settings.logo) ? <button type="button" onClick={() => { setLogoFile(null); setSettings({ ...settings, logo: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove</button> : null}
             <p className="mt-2 text-xs text-stone-500">Use a square image for the best circular result.</p>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <label className="block text-sm font-medium">Restaurant Menu Image</label>
+        <p className="mt-1 text-xs text-stone-500">Upload the menu card customers see on the homepage.</p>
+        {(menuPreview || settings.menuImage) ? <img src={menuPreview || settings.menuImage} alt="Restaurant menu preview" className="mt-3 max-h-64 w-full rounded-xl border border-stone-200 bg-white object-contain" /> : null}
+        <div className="mt-3">
+          <input id="restaurant-menu-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setMenuFile(event.target.files?.[0] || null)} />
+          <label htmlFor="restaurant-menu-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose menu image</label>
+          {(menuFile || settings.menuImage) ? <button type="button" onClick={() => { setMenuFile(null); setSettings({ ...settings, menuImage: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove menu</button> : null}
         </div>
       </div>
 

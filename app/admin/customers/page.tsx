@@ -25,8 +25,8 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
     users.map(async (user) => {
       const userId = getIdString(user._id) || user.id || '';
       const [orders, bookings, wallet, referral] = await Promise.all([
-        listOrders({ userId }),
-        listDiningBookings({ userId }),
+        listOrders({ userId }).catch(() => []),
+        listDiningBookings({ userId }).catch(() => []),
         getWalletBalance(userId).catch(() => 0),
         findReferralByUser(userId).catch(() => null),
       ]);

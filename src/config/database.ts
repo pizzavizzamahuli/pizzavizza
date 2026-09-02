@@ -76,9 +76,25 @@ export async function getDatabaseClient() {
       const resolvedUri = await buildDirectMongoUri(uri);
 
       try {
-        const client = new MongoClient(resolvedUri);
-        await client.connect();
-        return client;
+        const maxAttempts = 3;
+        let lastError: unknown;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          const client = new MongoClient(resolvedUri, {
+            connectTimeoutMS: 10000,
+            serverSelectionTimeoutMS: 10000,
+            socketTimeoutMS: 30000,
+            maxPoolSize: 10,
+          });
+          try {
+            await client.connect();
+            return client;
+          } catch (error) {
+            lastError = error;
+            await client.close().catch(() => undefined);
+            if (attempt < maxAttempts) await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+          }
+        }
+        throw lastError instanceof Error ? lastError : new Error(String(lastError));
       } catch (error) {
         const localLikeUri = /localhost|127\.0\.0\.1/.test(resolvedUri);
         if (!localLikeUri) {
@@ -117,7 +133,11 @@ export async function getDatabaseClient() {
           throw error instanceof Error ? error : new Error(String(error));
         }
       }
-    })();
+    })().catch((error) => {
+      globalWithMongo._mongoPromise = undefined;
+      globalWithMongo._mongoClient = undefined;
+      throw error;
+    });
   }
 
   globalWithMongo._mongoClient = await globalWithMongo._mongoPromise;

@@ -45,7 +45,7 @@ export async function getDiningRoom(slug: string) {
   return findDiningRoomBySlug(slug);
 }
 
-const DiningRoomSchema = z.object({
+const DiningRoomSchemaBase = z.object({
   roomType: z.string().min(1).optional(),
   name: z.string().min(1),
   slug: z.string().min(1),
@@ -65,7 +65,9 @@ const DiningRoomSchema = z.object({
   isBookable: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
   amenities: z.array(z.string()).optional(),
-}).superRefine((data, ctx) => {
+});
+
+function validateDiningRoomCapacity(data: { capacityMin?: number; capacityMax?: number }, ctx: z.RefinementCtx) {
   if (data.capacityMin !== undefined && data.capacityMax !== undefined && data.capacityMax < data.capacityMin) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -73,7 +75,10 @@ const DiningRoomSchema = z.object({
       path: ['capacityMax'],
     });
   }
-});
+}
+
+const DiningRoomSchema = DiningRoomSchemaBase.superRefine(validateDiningRoomCapacity);
+const DiningRoomUpdateSchema = DiningRoomSchemaBase.partial().superRefine(validateDiningRoomCapacity);
 
 export async function adminListDiningRooms() {
   return listDiningRooms();
@@ -85,7 +90,7 @@ export async function adminCreateDiningRoom(input: unknown) {
 }
 
 export async function adminUpdateDiningRoom(id: string, input: unknown) {
-  const data = DiningRoomSchema.partial().parse(input);
+  const data = DiningRoomUpdateSchema.parse(input);
   return updateDiningRoom(id, data as Partial<DiningRoomDocument>);
 }
 

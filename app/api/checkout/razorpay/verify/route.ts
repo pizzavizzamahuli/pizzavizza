@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
 
-    const valid = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+    const valid = await verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
     if (!valid) {
       await updateOrderByOrderNumber(orderNumber, { paymentStatus: 'FAILED' });
       return NextResponse.json({ success: false, error: 'Invalid signature' }, { status: 400 });

@@ -1,9 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import type { DiningRoomDocument } from '@/src/models/dining-room';
 
-export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom?: DiningRoomDocument | null; onSaved?: (room: DiningRoomDocument) => void; onCancel?: () => void }): React.ReactElement {
+export type AdminDiningRoom = Omit<DiningRoomDocument, '_id' | 'createdAt' | 'updatedAt'> & {
+  _id?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom?: AdminDiningRoom | null; onSaved?: (room: AdminDiningRoom) => void; onCancel?: () => void }): React.ReactElement {
   const emptyForm = () => ({
     roomType: 'Private Dining',
     name: '',
@@ -14,6 +21,7 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
     capacityMin: '1',
     capacityMax: '4',
     roomCount: '1',
+    maxRoomsPerCustomer: '1',
     seatsPerRoom: '4',
     pricingType: 'PER_HOUR',
     price: '600',
@@ -24,9 +32,9 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
     isBookable: true,
     displayOrder: '0',
   });
-  const formFromRoom = (room?: DiningRoomDocument | null) => room ? {
+  const formFromRoom = (room?: AdminDiningRoom | null) => room ? {
     roomType: room.roomType, name: room.name, slug: room.slug, description: room.description || '', shortDescription: room.shortDescription || '', images: '',
-    capacityMin: String(room.capacityMin), capacityMax: String(room.capacityMax), roomCount: String(room.roomCount), seatsPerRoom: String(room.seatsPerRoom), pricingType: room.pricingType,
+    capacityMin: String(room.capacityMin), capacityMax: String(room.capacityMax), roomCount: String(room.roomCount), maxRoomsPerCustomer: String(room.maxRoomsPerCustomer ?? 1), seatsPerRoom: String(room.seatsPerRoom), pricingType: room.pricingType,
     price: String(room.price), bookingDurationMinutes: String(room.bookingDurationMinutes), availableTimeSlots: room.availableTimeSlots.join(','), amenities: room.amenities.join(','),
     isActive: room.isActive, isBookable: room.isBookable, displayOrder: String(room.displayOrder),
   } : emptyForm();
@@ -82,6 +90,7 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
         capacityMin: Number(form.capacityMin),
         capacityMax: Number(form.capacityMax),
         roomCount: Number(form.roomCount),
+        maxRoomsPerCustomer: Number(form.maxRoomsPerCustomer),
         seatsPerRoom: Number(form.seatsPerRoom),
         pricingType: form.pricingType,
         price: Number(form.price),
@@ -93,7 +102,7 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
         displayOrder: Number(form.displayOrder),
       };
 
-      const response = await fetch(editingRoom ? `/api/admin/dining/rooms/${editingRoom._id?.toHexString()}` : '/api/admin/dining/rooms', {
+      const response = await fetch(editingRoom ? `/api/admin/dining/rooms/${editingRoom._id}` : '/api/admin/dining/rooms', {
         method: editingRoom ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -155,6 +164,18 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
             min="1"
             value={form.roomCount}
             onChange={(e) => updateField('roomCount', e.target.value)}
+            className="mt-1 w-full rounded border px-3 py-2"
+            required
+          />
+        </label>
+
+        <label className="block text-sm">
+          Max rooms per customer
+          <input
+            type="number"
+            min="1"
+            value={form.maxRoomsPerCustomer}
+            onChange={(e) => updateField('maxRoomsPerCustomer', e.target.value)}
             className="mt-1 w-full rounded border px-3 py-2"
             required
           />
@@ -269,7 +290,7 @@ export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
         <p className="text-sm font-semibold text-stone-900">Room images</p>
-        {existingImages.length ? <div className="mt-3 grid gap-3 sm:grid-cols-3">{existingImages.map((url) => <div key={url} className="relative"><img src={url} alt="Dining room" className="h-28 w-full rounded-xl object-cover" /><button type="button" onClick={() => removeExistingImage(url).catch((error) => setMessage(error.message))} className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-semibold text-red-700">Remove</button></div>)}</div> : <p className="mt-2 text-xs text-stone-500">No room images uploaded yet.</p>}
+        {existingImages.length ? <div className="mt-3 grid gap-3 sm:grid-cols-3">{existingImages.map((url) => <div key={url} className="relative"><Image src={url} alt="Dining room" width={400} height={280} className="h-28 w-full rounded-xl object-cover" /><button type="button" onClick={() => removeExistingImage(url).catch((error) => setMessage(error.message))} className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-semibold text-red-700">Remove</button></div>)}</div> : <p className="mt-2 text-xs text-stone-500">No room images uploaded yet.</p>}
         <div className="mt-4 rounded-2xl border-2 border-dashed border-stone-300 bg-white p-5 text-center" onDrop={(event) => { event.preventDefault(); addImageFiles(Array.from(event.dataTransfer.files)); }} onDragOver={(event) => event.preventDefault()}>
           <input id="dining-room-images" type="file" multiple accept="image/*" className="sr-only" onChange={(event) => { addImageFiles(Array.from(event.target.files || [])); event.target.value = ''; }} />
           <label htmlFor="dining-room-images" className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white">Choose images from device</label>

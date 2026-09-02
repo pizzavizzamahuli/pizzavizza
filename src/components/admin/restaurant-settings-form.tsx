@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -12,7 +13,6 @@ export default function RestaurantSettingsForm() {
   const [settings, setSettings] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [menuFile, setMenuFile] = useState<File | null>(null);
   const [menuPreview, setMenuPreview] = useState<string | null>(null);
 
@@ -94,7 +94,6 @@ export default function RestaurantSettingsForm() {
       let nextLogo = settings.logo || null;
       let nextMenuImage = settings.menuImage || null;
       if (logoFile) {
-        setUploadingLogo(true);
         const body = new FormData();
         body.append('logo', logoFile);
         const uploadResponse = await fetch('/api/admin/settings/restaurant/logo', { method: 'POST', body });
@@ -131,7 +130,6 @@ export default function RestaurantSettingsForm() {
       const err = e as Record<string, unknown>;
       alert('Save failed: ' + ((err?.message as string) || String(e)));
     } finally {
-      setUploadingLogo(false);
       setSaving(false);
     }
   }

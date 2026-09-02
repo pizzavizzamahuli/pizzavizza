@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { CustomerShell } from '@/src/app-shell';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
@@ -52,11 +53,18 @@ export default async function Home() {
       </section>
 
       <section className="mt-8 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
-          <Link href="/menu-image" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50">Open Full Menu</Link>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
+            <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
+          </div>
+          {restaurantSettings.googleMapsUrl ? (
+            <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-200">
+              Open restaurant map
+            </a>
+          ) : null}
         </div>
+        <Link href="/menu-image" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50">Open Full Menu</Link>
         {restaurantSettings.menuImage ? (
           <figure className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">
             <img src={restaurantSettings.menuImage} alt={`${restaurantSettings.restaurantName} restaurant menu`} className="block h-auto w-full object-contain" />

@@ -41,8 +41,13 @@ export interface DiningBookingDocument {
   price: number;
   discount: number;
   finalAmount: number;
-  paymentMethod?: string | null;
+  paymentMethod?: 'ONLINE' | 'COD' | null;
   paymentStatus: DiningBookingPaymentStatus;
+  transactionId?: string | null;
+  paymentProofUrl?: string | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  razorpaySignature?: string | null;
   bookingStatus: DiningBookingStatus;
   customerNote?: string | null;
   adminNote?: string | null;

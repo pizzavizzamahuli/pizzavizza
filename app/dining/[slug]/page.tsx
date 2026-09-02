@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
 import { CustomerShell } from '@/src/app-shell';
 import { getDiningRoom } from '@/src/services/dining-service';

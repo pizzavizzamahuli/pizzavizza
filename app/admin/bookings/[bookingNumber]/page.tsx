@@ -34,17 +34,30 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
             </div>
             <div>
               <dt className="font-medium text-stone-900">Duration</dt>
-              <dd>{booking.roomSnapshot.bookingDurationMinutes} minutes</dd>
+              <dd>{booking.durationMinutes} minutes</dd>
             </div>
             <div>
               <dt className="font-medium text-stone-900">Status</dt>
               <dd>{booking.bookingStatus}</dd>
             </div>
             <div>
+              <dt className="font-medium text-stone-900">Payment method</dt>
+              <dd>{booking.paymentMethod || 'Not selected'}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-stone-900">Payment status</dt>
+              <dd>{booking.paymentStatus}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-stone-900">Transaction ID</dt>
+              <dd>{booking.transactionId || 'Not submitted'}</dd>
+            </div>
+            <div>
               <dt className="font-medium text-stone-900">Total</dt>
               <dd>₹{booking.finalAmount.toFixed(2)}</dd>
             </div>
           </dl>
+          {booking.paymentProofUrl ? <a href={booking.paymentProofUrl} target="_blank" rel="noreferrer" className="mt-5 inline-flex rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white">View payment proof</a> : null}
         </section>
 
         <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -61,7 +74,12 @@ export default async function AdminBookingDetailPage({ params }: { params: Promi
 
       <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-stone-900">Update booking status</h2>
-        <BookingStatusActions bookingNumber={booking.bookingNumber} currentStatus={booking.bookingStatus} />
+        <BookingStatusActions
+          bookingNumber={booking.bookingNumber}
+          currentStatus={booking.bookingStatus}
+          currentPaymentStatus={booking.paymentStatus}
+          currentPaymentMethod={booking.paymentMethod}
+        />
       </div>
     </div>
   );

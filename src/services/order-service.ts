@@ -183,18 +183,6 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
       throw new Error('Pickup is currently unavailable');
     }
 
-    if (requestedPaymentMethod === 'COD' && !settings.codEnabled) {
-      throw new Error('Cash on delivery is currently unavailable');
-    }
-
-    if (requestedPaymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled) {
-      throw new Error('Online payment is currently unavailable');
-    }
-
-    if (requestedPaymentMethod === 'MANUAL' && !settings.manualPaymentEnabled) {
-      throw new Error('Manual payment is currently unavailable');
-    }
-
     const promo = await calculatePromotions(
       {
         userId,
@@ -214,6 +202,16 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
     orderCalc.walletAmount = promo.walletAmountUsed;
     orderCalc.total = orderCalc.subtotal + orderCalc.deliveryCharge + orderCalc.additionalCharges - orderCalc.discount - orderCalc.walletAmount;
 
+    if (orderCalc.total > 0 && requestedPaymentMethod === 'COD' && !settings.codEnabled) {
+      throw new Error('Cash on delivery is currently unavailable');
+    }
+    if (orderCalc.total > 0 && requestedPaymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled) {
+      throw new Error('Online payment is currently unavailable');
+    }
+    if (orderCalc.total > 0 && requestedPaymentMethod === 'MANUAL' && !settings.manualPaymentEnabled) {
+      throw new Error('Manual payment is currently unavailable');
+    }
+
     if (promo.coupon && promo.coupon._id) {
       const reserved = await reserveCouponUsage(promo.coupon._id.toHexString(), activeSession);
       if (!reserved) {
@@ -221,7 +219,10 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
       }
     }
 
-    const paymentState = resolveInitialPaymentState(requestedPaymentMethod, orderCalc.total, promo.walletAmountUsed);
+    const paymentState = resolveInitialPaymentState(
+      orderCalc.total <= 0 && promo.walletAmountUsed > 0 ? 'WALLET' : requestedPaymentMethod,
+      orderCalc.total,
+    );
 
     async function createOrderWithUniqueNumber(orderData: Partial<OrderDocument>) {
       const maxAttempts = 5;

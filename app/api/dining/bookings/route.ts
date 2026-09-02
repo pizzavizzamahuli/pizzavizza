@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = await request.json();
-    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote, idempotencyKey } = payload;
+    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote, paymentMethod, idempotencyKey } = payload;
 
     if (!roomId) return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     if (!bookingDate) return NextResponse.json({ error: 'bookingDate is required' }, { status: 400 });
@@ -16,6 +16,9 @@ export async function POST(request: Request) {
     if (!guestCount || typeof guestCount !== 'number') return NextResponse.json({ error: 'guestCount is required' }, { status: 400 });
     if (typeof roomCount !== 'number' || roomCount < 1) return NextResponse.json({ error: 'roomCount is required' }, { status: 400 });
     if (typeof durationMinutes !== 'number' || durationMinutes < 15) return NextResponse.json({ error: 'durationMinutes must be at least 15' }, { status: 400 });
+    if (paymentMethod !== 'ONLINE' && paymentMethod !== 'COD') {
+      return NextResponse.json({ error: 'paymentMethod must be ONLINE or COD' }, { status: 400 });
+    }
 
     const booking = await createDiningBookingForUser({
       userId: user._id!.toHexString(),
@@ -26,10 +29,11 @@ export async function POST(request: Request) {
       roomCount,
       durationMinutes,
       customerNote,
+      paymentMethod,
       idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey.slice(0, 100) : null,
     });
 
-    return NextResponse.json({ success: true, data: { bookingNumber: booking.bookingNumber, bookingId: booking.id } });
+    return NextResponse.json({ success: true, data: { bookingNumber: booking.bookingNumber, bookingId: booking.id, amount: booking.finalAmount } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to create booking';
     return NextResponse.json({ error: message }, { status: 400 });

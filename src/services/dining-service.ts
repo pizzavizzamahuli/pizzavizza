@@ -53,6 +53,7 @@ const DiningRoomSchema = z.object({
   capacityMin: z.number().int().min(1),
   capacityMax: z.number().int().min(1),
   roomCount: z.number().int().min(1).optional(),
+  maxRoomsPerCustomer: z.number().int().min(1).optional(),
   seatsPerRoom: z.number().int().min(1).optional(),
   pricingType: z.enum(['FIXED', 'PER_HOUR', 'PER_BOOKING']),
   price: z.number().min(0),
@@ -173,6 +174,7 @@ export async function checkDiningRoomAvailability({
   guestCount,
   roomCount,
   durationMinutes,
+  userId,
   session,
 }: {
   roomId: string;
@@ -181,6 +183,7 @@ export async function checkDiningRoomAvailability({
   guestCount: number;
   roomCount?: number;
   durationMinutes?: number;
+  userId?: string;
   session?: import('mongodb').ClientSession;
 }) {
   const room = await findDiningRoomById(roomId, session);
@@ -202,6 +205,16 @@ export async function checkDiningRoomAvailability({
   }
 
   const effectiveDuration = Math.max(15, Number(durationMinutes) || room.bookingDurationMinutes || 60);
+  const maxRoomsPerCustomer = Math.max(1, Number((room as DiningRoomDocument & { maxRoomsPerCustomer?: number }).maxRoomsPerCustomer ?? 1));
+
+  if (userId) {
+    const userBookings = (await findDiningBookingsForRoomOnDate(roomId, bookingDate, session)).filter((booking) => booking.userId === userId && !isDiningSlotAvailable(booking.startTime, booking.endTime, startTime, calculateBookingEndTime(startTime, effectiveDuration)));
+    const userBookedRooms = userBookings.reduce((total, booking) => total + Math.max(1, booking.roomCount || 1), 0);
+    if (userBookedRooms + safeRoomCount > maxRoomsPerCustomer) {
+      return { available: false, reason: `A customer can book at most ${maxRoomsPerCustomer} room(s) for this room in the same slot.` };
+    }
+  }
+
   const block = await findDiningAvailabilityBlockForRoom(roomId, bookingDate, startTime, effectiveDuration, session);
   if (block) {
     return { available: false, reason: 'Booking time is blocked for this room' };
@@ -215,6 +228,15 @@ export async function checkDiningRoomAvailability({
     .reduce((total, booking) => total + Math.max(1, booking.roomCount || 1), 0);
   if (overlappingRooms + safeRoomCount > (room.roomCount ?? 1)) {
     return { available: false, reason: 'Time slot already booked' };
+  }
+
+  if (userId) {
+    const sameCustomerActiveRoomBookings = bookings
+      .filter((booking) => booking.userId === userId && !isDiningSlotAvailable(booking.startTime, booking.endTime, startTime, endTime))
+      .reduce((total, booking) => total + Math.max(1, booking.roomCount || 1), 0);
+    if (sameCustomerActiveRoomBookings + safeRoomCount > maxRoomsPerCustomer) {
+      return { available: false, reason: `A customer can book at most ${maxRoomsPerCustomer} room(s) for this room in the same slot.` };
+    }
   }
 
   return { available: true, room, endTime };
@@ -248,6 +270,7 @@ export async function createDiningBookingForUser({
   roomCount,
   durationMinutes,
   customerNote,
+  paymentMethod,
   idempotencyKey,
 }: {
   userId: string;
@@ -258,6 +281,7 @@ export async function createDiningBookingForUser({
   roomCount?: number;
   durationMinutes?: number;
   customerNote?: string | null;
+  paymentMethod?: 'ONLINE' | 'COD' | null;
   idempotencyKey?: string | null;
 }) {
   const room = await findDiningRoomById(roomId);
@@ -279,6 +303,7 @@ export async function createDiningBookingForUser({
     guestCount,
     roomCount: effectiveRoomCount,
     durationMinutes: effectiveDuration,
+    userId,
   });
   if (!availability.available) {
     throw new Error(availability.reason);
@@ -288,6 +313,7 @@ export async function createDiningBookingForUser({
   const price = calculateDiningBookingPrice({ room, roomCount: effectiveRoomCount, durationMinutes: effectiveDuration });
   const discount = 0;
   const finalAmount = price - discount;
+  const normalizedPaymentMethod = paymentMethod === 'ONLINE' ? 'ONLINE' : 'COD';
   const client = await getDatabaseClient();
   await getCountersCollection();
   const session = client.startSession();
@@ -302,6 +328,7 @@ export async function createDiningBookingForUser({
         guestCount,
         roomCount: effectiveRoomCount,
         durationMinutes: effectiveDuration,
+        userId,
         session,
       });
       if (!finalAvailability.available) throw new Error(finalAvailability.reason);
@@ -322,8 +349,8 @@ export async function createDiningBookingForUser({
         price,
         discount,
         finalAmount,
-        paymentMethod: null,
-        paymentStatus: 'NOT_REQUIRED',
+        paymentMethod: normalizedPaymentMethod,
+        paymentStatus: normalizedPaymentMethod === 'ONLINE' ? 'PENDING' : 'NOT_REQUIRED',
         bookingStatus: 'PENDING',
         customerNote: customerNote ?? null,
         statusHistory: [{ previousStatus: undefined, newStatus: 'PENDING', performedBy: userId, note: 'Booking created', createdAt: new Date() }],

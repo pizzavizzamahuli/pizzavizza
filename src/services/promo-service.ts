@@ -84,20 +84,6 @@ export async function calculatePromotions(input: PromotionCalculationInput, sess
   const availableBalance = await getWalletBalance(input.userId, session);
   const walletAmountUsed = Math.min(requestedWalletAmount, availableBalance, amountAfterCoupon);
 
-  let referralCode: string | null = null;
-  let referralApplied = false;
-  if (input.referralCode) {
-    referralCode = input.referralCode.trim().toUpperCase();
-    const referral = await findReferralByCode(referralCode, session);
-    if (!referral || !referral.isActive || referral.status !== 'PENDING') {
-      throw new Error('Referral code is invalid or already used');
-    }
-    if (referral.referrerUserId?.toString() === input.userId) {
-      throw new Error('You cannot use your own referral code');
-    }
-    referralApplied = true;
-  }
-
   const totalAmount = Math.max(0, amountAfterCoupon - walletAmountUsed);
 
   return {
@@ -106,8 +92,8 @@ export async function calculatePromotions(input: PromotionCalculationInput, sess
     totalAmount: Math.round(totalAmount * 100) / 100,
     couponCode,
     coupon,
-    referralCode,
-    referralApplied,
+    referralCode: null,
+    referralApplied: false,
   };
 }
 

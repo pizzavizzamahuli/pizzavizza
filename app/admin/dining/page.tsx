@@ -5,6 +5,12 @@ import DiningRoomManager from '@/src/components/admin/dining-room-manager';
 export default async function AdminDiningRoomsPage() {
   await requireAdminAccess();
   const rooms = await adminListDiningRooms();
+  const serializableRooms = rooms.map((room) => ({
+    ...room,
+    _id: room._id?.toHexString(),
+    createdAt: room.createdAt.toISOString(),
+    updatedAt: room.updatedAt.toISOString(),
+  }));
 
   return (
     <div className="space-y-6">
@@ -12,7 +18,7 @@ export default async function AdminDiningRoomsPage() {
         <h1 className="text-2xl font-semibold">Dining Rooms</h1>
         <p className="text-sm text-stone-600">Create and manage private dining room experiences.</p>
         <div className="mt-6">
-          <DiningRoomManager initialRooms={rooms} />
+          <DiningRoomManager initialRooms={serializableRooms} />
         </div>
       </section>
 

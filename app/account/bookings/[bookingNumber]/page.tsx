@@ -5,6 +5,7 @@ import { getBookingForUser } from '@/src/services/dining-service';
 import { CustomerShell } from '@/src/app-shell';
 import BookingCancelButton from '@/src/components/dining/booking-cancel-button';
 import BookingSlipActions from '@/src/components/dining/booking-slip-actions';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ bookingNumber: string }> }) {
   const user = await getSessionUser();
@@ -13,6 +14,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const booking = await getBookingForUser(user._id!.toHexString(), bookingNumber);
   if (!booking) notFound();
   const canCancel = booking.bookingStatus === 'PENDING' || booking.bookingStatus === 'CONFIRMED';
+  const restaurantSettings = await getRestaurantSettings();
 
   return (
     <CustomerShell>
@@ -28,7 +30,14 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <div><dt className="font-semibold text-stone-900">Amount</dt><dd>₹{booking.finalAmount.toFixed(2)}</dd></div>
             <div><dt className="font-semibold text-stone-900">Reservation status</dt><dd>{booking.bookingStatus}</dd></div>
             <div><dt className="font-semibold text-stone-900">Payment status</dt><dd>{booking.paymentStatus}</dd></div>
+            <div><dt className="font-semibold text-stone-900">Payment option</dt><dd>{booking.paymentMethod || 'Not selected'}</dd></div>
           </dl>
+          {restaurantSettings?.googleMapsUrl ? (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <p className="font-semibold">Restaurant location</p>
+              <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex font-semibold underline">Open map location</a>
+            </div>
+          ) : null}
           {booking.customerNote ? <p className="mt-6 rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">{booking.customerNote}</p> : null}
           <BookingSlipActions
             bookingNumber={booking.bookingNumber}
@@ -43,6 +52,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             paymentStatus={booking.paymentStatus}
           />
           {booking.bookingStatus !== 'CANCELLED' && booking.bookingStatus !== 'REJECTED' ? <Link href={`/menu?bookingNumber=${encodeURIComponent(booking.bookingNumber)}`} className="mt-6 inline-flex min-h-11 items-center rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white">Order food for this reservation</Link> : null}
+          {booking.paymentMethod === 'ONLINE' && booking.paymentStatus !== 'PAID' && booking.bookingStatus !== 'CANCELLED' && booking.bookingStatus !== 'REJECTED' ? <Link href={`/account/bookings/${encodeURIComponent(booking.bookingNumber)}/pay`} className="mt-3 inline-flex min-h-11 items-center rounded-full border border-amber-600 px-4 py-2.5 text-sm font-semibold text-amber-700">Pay reservation now</Link> : null}
           {canCancel ? <BookingCancelButton bookingNumber={booking.bookingNumber} /> : <p className="mt-6 text-sm text-stone-600">This reservation cannot be cancelled in its current status.</p>}
         </section>
       </div>

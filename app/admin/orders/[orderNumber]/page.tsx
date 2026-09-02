@@ -49,6 +49,8 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
           <p className="text-sm text-stone-500">Payment</p>
           <p className="mt-2 font-medium">{order.paymentMethod || 'COD'}</p>
           <p className="text-sm text-stone-500">Status: {order.paymentStatus}</p>
+          <p className="text-sm text-stone-500">Wallet used: ₹{order.walletAmount.toFixed(2)}</p>
+          {order.couponCode ? <p className="text-sm text-stone-500">Coupon: {order.couponCode}</p> : null}
           {order.paymentProofUrl && (
             <p className="mt-3 text-sm"><a href={order.paymentProofUrl} target="_blank" rel="noreferrer" className="text-amber-600">View proof</a></p>
           )}
@@ -60,6 +62,7 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <p className="text-sm text-stone-500">Total amount</p>
         <p className="mt-2 text-3xl font-semibold">₹{order.totalAmount.toFixed(2)}</p>
+        <p className="mt-2 text-sm text-stone-500">Original subtotal: ₹{order.subtotal.toFixed(2)} • Discount: ₹{order.discount.toFixed(2)}</p>
       </div>
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Items</h2>

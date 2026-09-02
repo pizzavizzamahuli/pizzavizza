@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { getSessionUser } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
@@ -44,13 +45,20 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <header className="border-b border-stone-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border border-amber-100 object-cover sm:h-10 sm:w-10" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white sm:h-10 sm:w-10">PV</div>}
-            <div>
-              <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-amber-600 sm:text-sm sm:tracking-[0.25em]">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
-              <h1 className="truncate text-sm font-semibold sm:text-lg">Order online • Dine • Pickup</h1>
-            </div>
-          </Link>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link href="/" className="flex min-w-0 items-center gap-2.5">
+              {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border border-amber-100 object-cover sm:h-10 sm:w-10" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white sm:h-10 sm:w-10">PV</div>}
+              <div>
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-amber-600 sm:text-sm sm:tracking-[0.25em]">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
+                <h1 className="truncate text-sm font-semibold sm:text-lg">Order online • Dine • Pickup</h1>
+              </div>
+            </Link>
+            {restaurantSettings?.googleMapsUrl ? (
+              <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="hidden rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 transition hover:bg-stone-100 sm:inline-flex">
+                Map
+              </a>
+            ) : null}
+          </div>
           <nav className="hidden items-center gap-1 text-sm font-medium text-stone-700 md:flex">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href} className="rounded-full px-3 py-2 transition hover:bg-stone-100 hover:text-stone-950">

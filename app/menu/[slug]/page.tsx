@@ -39,7 +39,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
               <div className="mt-2">
                 {customizationGroups.length === 0 ? (
-                  <AddToCartButton productId={product._id?.toHexString() || product.slug} />
+                  <AddToCartButton productId={product._id?.toHexString() || product.slug} bookingNumber={bookingNumber || null} />
                 ) : (
                   <div className="rounded-3xl bg-amber-50 p-4 text-sm text-stone-700">
                     Customize this item below before adding it to your cart.

@@ -15,6 +15,7 @@ export interface DiningRoomDocument {
   capacityMin: number;
   capacityMax: number;
   roomCount: number;
+  maxRoomsPerCustomer: number;
   seatsPerRoom: number;
   pricingType: DiningRoomPricingType;
   price: number;
@@ -76,6 +77,7 @@ export async function createDiningRoom(doc: Partial<DiningRoomDocument>) {
     capacityMin: doc.capacityMin ?? 1,
     capacityMax: doc.capacityMax ?? 1,
     roomCount: doc.roomCount ?? 1,
+    maxRoomsPerCustomer: doc.maxRoomsPerCustomer ?? 1,
     seatsPerRoom: doc.seatsPerRoom ?? doc.capacityMax ?? 1,
     pricingType: doc.pricingType || 'FIXED',
     price: doc.price ?? 0,

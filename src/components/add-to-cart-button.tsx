@@ -7,9 +7,10 @@ type AddToCartButtonProps = {
   productId: string;
   selectedOptionIds?: string[];
   disabled?: boolean;
+  bookingNumber?: string | null;
 };
 
-export default function AddToCartButton({ productId, selectedOptionIds = [], disabled }: AddToCartButtonProps) {
+export default function AddToCartButton({ productId, selectedOptionIds = [], disabled, bookingNumber = null }: AddToCartButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
@@ -40,6 +41,10 @@ export default function AddToCartButton({ productId, selectedOptionIds = [], dis
       }
 
       setMessage('Added to cart');
+      if (bookingNumber) {
+        router.push(`/cart?bookingNumber=${encodeURIComponent(bookingNumber)}`);
+        return;
+      }
       router.refresh();
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : 'Unable to add to cart');

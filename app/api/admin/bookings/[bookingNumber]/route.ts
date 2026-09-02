@@ -19,20 +19,42 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
 
   try {
     const payload = await request.json();
-    const { status } = payload;
-    if (!status) return NextResponse.json({ error: 'status is required' }, { status: 400 });
+    const { status, paymentStatus, extendMinutes } = payload;
 
-    const validStatuses: DiningBookingStatus[] = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json({ error: 'Invalid booking status' }, { status: 400 });
+    if (typeof status === 'string') {
+      const validStatuses: DiningBookingStatus[] = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
+      if (!validStatuses.includes(status as DiningBookingStatus)) {
+        return NextResponse.json({ error: 'Invalid booking status' }, { status: 400 });
+      }
+      if (!canTransitionDiningBookingStatus(booking.bookingStatus, status as DiningBookingStatus)) {
+        return NextResponse.json({ error: `Cannot change booking from ${booking.bookingStatus} to ${status}.` }, { status: 409 });
+      }
+
+      const updatedBooking = await updateBookingStatus(booking._id!.toHexString(), status as DiningBookingStatus, user._id!.toHexString(), `Status updated to ${status}`);
+      return NextResponse.json({ success: true, data: updatedBooking });
     }
-    if (!canTransitionDiningBookingStatus(booking.bookingStatus, status as DiningBookingStatus)) {
-      return NextResponse.json({ error: `Cannot change booking from ${booking.bookingStatus} to ${status}.` }, { status: 409 });
+
+    if (typeof paymentStatus === 'string') {
+      const validPaymentStatus = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'REFUNDED', 'NOT_REQUIRED'];
+      if (!validPaymentStatus.includes(paymentStatus)) {
+        return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 });
+      }
+      const { updateDiningBooking } = await import('@/src/models/dining-booking');
+      const result = await updateDiningBooking(booking._id!.toHexString(), { paymentStatus: paymentStatus as (typeof booking.paymentStatus), updatedAt: new Date() });
+      return NextResponse.json({ success: true, data: result });
     }
 
-    const updatedBooking = await updateBookingStatus(booking._id!.toHexString(), status as DiningBookingStatus, user._id!.toHexString(), `Status updated to ${status}`);
+    if (typeof extendMinutes === 'number' && Number.isFinite(extendMinutes) && extendMinutes > 0) {
+      const nextEndMinutes = Number(String(booking.durationMinutes || 60)) + Number(extendMinutes);
+      const updated = await (await import('@/src/models/dining-booking')).updateDiningBooking(booking._id!.toHexString(), {
+        durationMinutes: nextEndMinutes,
+        endTime: (await import('@/src/services/dining-service')).calculateBookingEndTime(booking.startTime, nextEndMinutes),
+        updatedAt: new Date(),
+      });
+      return NextResponse.json({ success: true, data: updated });
+    }
 
-    return NextResponse.json({ success: true, data: updatedBooking });
+    return NextResponse.json({ error: 'No valid booking update provided.' }, { status: 400 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update booking';
     return NextResponse.json({ error: message }, { status: 400 });

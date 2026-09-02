@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LocationMap from '@/src/components/map/location-map';
 import { generateMapLink, geocodeAddress } from '@/src/services/map-provider';
 
 export type CartItem = { productId: string; name?: string; unitPrice?: number; quantity: number };
 export type CartShape = { items: CartItem[] } | null;
-type PaymentMethod = 'COD' | 'ONLINE' | 'MANUAL';
+type PaymentMethod = 'COD' | 'ONLINE' | 'MANUAL' | 'WALLET';
 
 type CheckoutSettings = {
   deliveryEnabled: boolean;
@@ -86,8 +87,8 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
     settings.onlinePaymentEnabled ? 'ONLINE' : settings.manualPaymentEnabled ? 'ONLINE' : 'COD',
   );
   const [couponCode, setCouponCode] = useState('');
-  const [referralCode, setReferralCode] = useState('');
-  const [walletAmount, setWalletAmount] = useState('');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +155,10 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
       .then((r) => r.json())
       .then((j) => setRestaurantSettings(j.success ? j.data : null))
       .catch(() => setRestaurantSettings(null));
+    fetch('/api/account/wallet')
+      .then((r) => r.json())
+      .then((j) => setWalletBalance(Number(j.data?.balance || 0)))
+      .catch(() => setWalletBalance(0));
   }, []);
 
   async function geocodeAndSetNewAddress(searchText?: string) {
@@ -303,8 +308,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
           reservationBookingNumber,
           transactionId: effectivePaymentMethod === 'MANUAL' ? transactionId.trim() : null,
           couponCode: couponCode.trim() || null,
-          walletAmount: walletAmount ? Number(walletAmount) : 0,
-          referralCode: referralCode.trim() || null,
+          walletAmount: useWallet ? walletBalance : 0,
         }),
       });
       const json = await res.json().catch(() => null);
@@ -667,7 +671,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                   </div>
                   {manualProofFile && (
                     <div className="mt-3 rounded-2xl bg-stone-50 p-4">
-                      {manualProofPreview ? <img src={manualProofPreview} alt="Selected payment proof" className="mb-3 h-40 w-full rounded-xl object-contain bg-white" /> : null}
+                      {manualProofPreview ? <Image src={manualProofPreview} alt="Selected payment proof" width={640} height={320} unoptimized className="mb-3 h-40 w-full rounded-xl object-contain bg-white" /> : null}
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm">
                           <p className="font-medium text-stone-900">{manualProofFile.name}</p>
@@ -698,7 +702,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                   <div className="relative w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => setShowQrModal(false)} className="absolute right-3 top-3 rounded-full bg-stone-200 px-2 py-1 text-xs font-medium text-stone-700">Close</button>
                     <p className="mb-4 text-lg font-semibold text-stone-900">Payment QR</p>
-                    <img src={settings.manualPaymentQrUrl} alt="Payment QR code" className="mx-auto h-72 w-72 rounded-2xl border border-stone-200 object-contain" />
+                    <Image src={settings.manualPaymentQrUrl} alt="Payment QR code" width={288} height={288} className="mx-auto h-72 w-72 rounded-2xl border border-stone-200 object-contain" />
                     <a href={settings.manualPaymentQrUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block w-full rounded-xl bg-amber-600 px-4 py-2 text-center font-medium text-white">
                       Open QR in browser
                     </a>
@@ -715,13 +719,12 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                 <span className="mb-2 block font-medium text-stone-700">Coupon code</span>
                 <input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2" placeholder="e.g. WELCOME10" />
               </label>
-              <label className="text-sm">
-                <span className="mb-2 block font-medium text-stone-700">Referral code</span>
-                <input value={referralCode} onChange={(e) => setReferralCode(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2" placeholder="e.g. PZVABC123" />
-              </label>
               <label className="text-sm md:col-span-2">
-                <span className="mb-2 block font-medium text-stone-700">Wallet amount to use</span>
-                <input value={walletAmount} onChange={(e) => setWalletAmount(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2" placeholder="0" />
+                <span className="flex items-center gap-3 font-medium text-stone-700">
+                  <input type="checkbox" checked={useWallet} onChange={(e) => setUseWallet(e.target.checked)} disabled={walletBalance <= 0} className="h-4 w-4 rounded border-stone-300 text-amber-600" />
+                  Use wallet balance
+                </span>
+                <span className="mt-2 block text-xs text-stone-500">Available wallet balance: ₹{walletBalance.toFixed(2)}. Wallet will be used first and only the remaining amount will use the selected payment method.</span>
               </label>
             </div>
           </section>
@@ -743,9 +746,13 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                 <span>Delivery</span>
                 <span>Calculated at checkout</span>
               </div>
+              <div className="flex justify-between">
+                <span>Wallet used</span>
+                <span>₹{(useWallet ? Math.min(walletBalance, subtotal) : 0).toFixed(2)}</span>
+              </div>
               <div className="flex justify-between font-semibold text-stone-900">
                 <span>Total</span>
-                <span>₹{subtotal.toFixed(2)}</span>
+                <span>₹{Math.max(0, subtotal - (useWallet ? Math.min(walletBalance, subtotal) : 0)).toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface BookingFormProps {
   roomId: string;
@@ -22,6 +23,7 @@ type BookingFormState = {
   roomCount: number;
   durationMinutes: number;
   customerNote: string;
+  paymentMethod: 'ONLINE' | 'COD';
   statusMessage: string;
   errorMessage: string;
   isSubmitting: boolean;
@@ -38,6 +40,7 @@ export function DiningBookingForm({
   pricingType,
   bookingDurationMinutes,
 }: BookingFormProps) {
+  const router = useRouter();
   const [form, setForm] = useState<BookingFormState>({
     bookingDate: '',
     startTime: availableTimeSlots[0] || '',
@@ -45,6 +48,7 @@ export function DiningBookingForm({
     roomCount: Math.max(1, roomCount),
     durationMinutes: bookingDurationMinutes,
     customerNote: '',
+    paymentMethod: 'COD',
     statusMessage: '',
     errorMessage: '',
     isSubmitting: false,
@@ -110,6 +114,7 @@ export function DiningBookingForm({
           roomCount: form.roomCount,
           durationMinutes: form.durationMinutes,
           customerNote: form.customerNote,
+          paymentMethod: form.paymentMethod,
           idempotencyKey: requestKey,
         }),
       });
@@ -117,6 +122,12 @@ export function DiningBookingForm({
       const json = await response.json();
       if (!response.ok) {
         throw new Error(json.error || 'Unable to create booking');
+      }
+
+      const bookingNumber = json.data?.bookingNumber as string | undefined;
+      if (form.paymentMethod === 'ONLINE' && bookingNumber) {
+        router.push(`/account/bookings/${encodeURIComponent(bookingNumber)}/pay`);
+        return;
       }
 
       setForm((current) => ({
@@ -211,6 +222,23 @@ export function DiningBookingForm({
           <span className="font-semibold text-stone-700">{form.durationMinutes / 60} hr</span>
           <span>6 hours</span>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-stone-700">Payment option</label>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-3 text-sm text-stone-700">
+            <input type="radio" name="booking-payment" checked={form.paymentMethod === 'COD'} onChange={() => updateField('paymentMethod', 'COD')} />
+            Pay on visit
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 py-3 text-sm text-stone-700">
+            <input type="radio" name="booking-payment" checked={form.paymentMethod === 'ONLINE'} onChange={() => updateField('paymentMethod', 'ONLINE')} />
+            Pay now
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-stone-500">
+          {form.paymentMethod === 'ONLINE' ? 'Secure instant payment can be completed after the booking is created.' : 'Pay when you arrive at the restaurant.'}
+        </p>
       </div>
 
       <div>

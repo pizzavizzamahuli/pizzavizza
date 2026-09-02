@@ -87,7 +87,7 @@ export default async function MenuPage({
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
-                    <AddToCartButton productId={p._id?.toHexString() || p.slug} />
+                    <AddToCartButton productId={p._id?.toHexString() || p.slug} bookingNumber={bookingNumber || null} />
                     <Link href={`/menu/${p._id?.toHexString() || p.slug}${bookingNumber ? `?bookingNumber=${encodeURIComponent(bookingNumber)}` : ''}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-stone-900 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
                   </div>
                 </div>

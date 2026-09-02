@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSessionUser } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import MobileNavigation from '@/src/components/mobile-navigation';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -42,15 +43,15 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <header className="border-b border-stone-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-10 w-10 rounded-full border border-amber-100 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white">PV</div>}
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5">
+            {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border border-amber-100 object-cover sm:h-10 sm:w-10" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white sm:h-10 sm:w-10">PV</div>}
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
-              <h1 className="text-lg font-semibold">Order online • Dine • Pickup</h1>
+              <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-amber-600 sm:text-sm sm:tracking-[0.25em]">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
+              <h1 className="truncate text-sm font-semibold sm:text-lg">Order online • Dine • Pickup</h1>
             </div>
           </Link>
-          <nav className="flex flex-wrap items-center gap-2 text-sm font-medium text-stone-700">
+          <nav className="hidden items-center gap-1 text-sm font-medium text-stone-700 md:flex">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href} className="rounded-full px-3 py-2 transition hover:bg-stone-100 hover:text-stone-950">
                 {item.label}
@@ -65,9 +66,10 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
               Cart {cartCount > 0 ? `(${cartCount})` : ''}
             </Link>
           </nav>
+          <MobileNavigation cartCount={cartCount} isAdminUser={isAdminUser} />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>
       <footer className="border-t border-stone-200 bg-white/80">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">
           <span>Pizza Vizza brings your menu, dining reservations, and orders into one place.</span>

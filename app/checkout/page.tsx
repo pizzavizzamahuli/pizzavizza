@@ -12,7 +12,7 @@ export default async function CheckoutPage() {
   const settings = await getRestaurantSettings();
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
+    <div className="mx-auto max-w-3xl px-0 py-2 sm:p-8">
       <h1 className="text-2xl font-semibold">Checkout</h1>
       <div className="mt-6">
         <CheckoutForm

@@ -549,7 +549,7 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
                       </label>
                       <label className="text-sm md:col-span-2">
                         <span className="mb-2 block font-medium text-stone-700">Search or enter address</span>
-                        <div className="flex gap-2">
+                        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                           <input value={newAddressSearch} onChange={(e) => setNewAddressSearch(e.target.value)} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2" placeholder="Search address for map lookup" />
                           <button type="button" onClick={() => geocodeAndSetNewAddress()} className="rounded-xl bg-amber-600 px-4 py-2 font-medium text-white">Find</button>
                           <button type="button" onClick={useMyLocation} disabled={geoLoading} className="rounded-xl border border-stone-300 bg-white px-3 py-2 font-medium text-stone-700 disabled:opacity-60">

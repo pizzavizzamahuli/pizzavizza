@@ -30,18 +30,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className="w-full border-b border-stone-200 bg-white/90 p-4 lg:w-72 lg:border-b-0 lg:border-r">
-          <div className="mb-6">
+        <aside className="w-full border-b border-stone-200 bg-white/90 p-3 lg:w-72 lg:border-b-0 lg:border-r lg:p-4">
+          <div className="mb-4 lg:mb-6">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Pizza Vizza</p>
-            <h1 className="text-xl font-semibold">Operations Hub</h1>
-            <p className="mt-2 text-sm text-stone-600">Manage menu, orders, service operations, and store settings in one place.</p>
+            <h1 className="text-lg font-semibold lg:text-xl">Operations Hub</h1>
+            <p className="mt-1 hidden text-sm text-stone-600 lg:mt-2 lg:block">Manage menu, orders, service operations, and store settings in one place.</p>
           </div>
-          <nav className="space-y-2">
+          <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="block rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
+                className="block min-h-11 shrink-0 rounded-lg px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950 lg:min-h-0 lg:py-2"
               >
                 {item.label}
               </Link>
@@ -67,7 +67,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </div>
             </div>
           </header>
-          <main className="p-4 sm:p-6">{children}</main>
+          <main className="min-w-0 p-3 sm:p-6">{children}</main>
         </div>
       </div>
     </div>

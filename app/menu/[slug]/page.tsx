@@ -19,13 +19,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const images = [...(product.images ?? []), ...(product.image ? [product.image] : [])].filter(Boolean);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border bg-white p-6">
+    <div className="space-y-4 sm:space-y-6">
+      <section className="rounded-xl border bg-white p-4 sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
           <ProductImageGallery images={images} title={product.name} />
           <div className="space-y-5">
             <div>
-              <h1 className="text-3xl font-semibold text-stone-900">{product.name}</h1>
+              <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">{product.name}</h1>
               <p className="mt-3 text-sm text-stone-600">{product.description}</p>
             </div>
             <div className="rounded-3xl bg-stone-100 p-5 space-y-4">

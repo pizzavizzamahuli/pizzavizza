@@ -30,7 +30,7 @@ export default async function CartPage() {
   const subtotal = cart.items.reduce((s, it) => s + ((it.unitPrice || 0) * it.quantity), 0);
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
+    <div className="mx-auto max-w-4xl px-0 py-2 sm:p-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
         <div className="flex-1">
           <h1 className="text-3xl font-semibold">Your Cart</h1>

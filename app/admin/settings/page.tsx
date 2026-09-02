@@ -9,10 +9,10 @@ export default async function AdminSettingsPage() {
   await requireAdminAccess();
 
   return (
-    <div className="mx-auto max-w-4xl p-8 space-y-6">
+    <div className="mx-auto max-w-4xl px-0 py-2 space-y-5 sm:p-8 sm:space-y-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
       <p className="text-sm text-stone-600">Manage staff access, reset flows, and future restaurant settings from this console.</p>
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
         <AdminUserManagement />
         <div className="rounded-3xl border border-stone-200 bg-white p-6">
           <h2 className="text-lg font-semibold">Restaurant Settings</h2>

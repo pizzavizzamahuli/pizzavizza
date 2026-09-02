@@ -55,6 +55,7 @@ export default async function Home() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
           <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
+          <Link href="/menu-image" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-stone-300 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50">Open Full Menu</Link>
         </div>
         {restaurantSettings.menuImage ? (
           <figure className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50">

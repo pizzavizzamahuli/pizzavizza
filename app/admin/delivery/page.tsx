@@ -6,11 +6,13 @@ import DeliveryShareActions from '@/src/components/admin/delivery-share-actions'
 import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 import Link from 'next/link';
 
-export default async function AdminDeliveryPage() {
+export default async function AdminDeliveryPage({ searchParams }: { searchParams?: Promise<{ date?: string; status?: string }> }) {
   await requireAdminAccess();
   const [orders, settings] = await Promise.all([listOrders(), getRestaurantSettings()]);
+  const params = searchParams ? await searchParams : {};
   const activeOrders = orders.filter((order) =>
-    ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.orderStatus),
+    (!params.date || order.createdAt.toISOString().slice(0, 10) === params.date) &&
+    (params.status ? order.orderStatus === params.status : ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.orderStatus)),
   );
 
   return (

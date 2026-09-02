@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { getUserById, updateUser } from '@/src/services/user-service';
+import { getUserById, updateUser, updateUserPassword, isValidMobile } from '@/src/services/user-service';
 import { recordAudit } from '@/src/models/audit-log';
 import { UserRole, AccountStatus } from '@/src/types';
 
-const editableRoles: UserRole[] = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
+const editableRoles: UserRole[] = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
 const editableStatuses: AccountStatus[] = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 
 export async function PATCH(request: Request, context: unknown) {
@@ -25,10 +25,16 @@ export async function PATCH(request: Request, context: unknown) {
     if (targetUser.role === 'MAIN_ADMIN' || targetUser.protected) {
       return NextResponse.json({ error: 'Main admin account cannot be modified.' }, { status: 403 });
     }
+    if (user.role !== 'MAIN_ADMIN' && targetUser.role !== 'CUSTOMER') {
+      return NextResponse.json({ error: 'Only Main Admin can manage admin and staff accounts.' }, { status: 403 });
+    }
 
     const body = await request.json();
     const role = body?.role ? String(body.role).trim() : undefined;
     const accountStatus = body?.accountStatus ? String(body.accountStatus).trim() : undefined;
+    const newPassword = body?.newPassword ? String(body.newPassword).trim() : undefined;
+    const temporaryPassword = body?.temporaryPassword ? String(body.temporaryPassword).trim() : undefined;
+    const mobile = body?.mobile !== undefined ? String(body.mobile || '').trim() : undefined;
 
     const updates: Partial<Record<string, unknown>> = {};
     const oldValue: Record<string, unknown> = {
@@ -44,8 +50,22 @@ export async function PATCH(request: Request, context: unknown) {
       if (!editableRoles.includes(role as UserRole)) {
         return NextResponse.json({ error: 'Invalid role.' }, { status: 400 });
       }
+      if (user.role !== 'MAIN_ADMIN' && !['CUSTOMER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'].includes(role)) {
+        return NextResponse.json({ error: 'Admins may only promote customers to kitchen or delivery staff.' }, { status: 403 });
+      }
       updates.role = role as UserRole;
       newValue.role = role;
+    }
+
+    if (mobile !== undefined) {
+      if (mobile && !isValidMobile(mobile)) return NextResponse.json({ error: 'Invalid mobile number.' }, { status: 400 });
+      updates.mobile = mobile || null;
+    }
+    if (newPassword !== undefined || temporaryPassword !== undefined) {
+      const password = newPassword || temporaryPassword;
+      if (!password || password.length < 8) return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
+      await updateUserPassword(targetId, password);
+      if (temporaryPassword) updates.temporaryAccess = { enabled: true, forcePasswordChange: true, status: 'ACTIVE', expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24) };
     }
 
     if (accountStatus !== undefined) {
@@ -56,11 +76,15 @@ export async function PATCH(request: Request, context: unknown) {
       newValue.accountStatus = accountStatus;
     }
 
-    if (!Object.keys(updates).length) {
+    if (newPassword !== undefined || temporaryPassword !== undefined) {
+      newValue.passwordChanged = true;
+    }
+
+    if (!Object.keys(updates).length && newPassword === undefined && temporaryPassword === undefined) {
       return NextResponse.json({ error: 'No changes were provided.' }, { status: 400 });
     }
 
-    await updateUser(targetId, updates);
+    if (Object.keys(updates).length) await updateUser(targetId, updates);
     await recordAudit({
       type: 'ADMIN_USER_UPDATED',
       performedBy: user._id?.toHexString() || user.email || null,
@@ -102,6 +126,9 @@ export async function DELETE(_request: Request, context: unknown) {
 
     if (targetUser.role === 'MAIN_ADMIN' || targetUser.protected) {
       return NextResponse.json({ error: 'Main admin account cannot be deleted.' }, { status: 403 });
+    }
+    if (user.role !== 'MAIN_ADMIN' && targetUser.role !== 'CUSTOMER') {
+      return NextResponse.json({ error: 'Only Main Admin can delete admin and staff accounts.' }, { status: 403 });
     }
 
     const collection = await (await import('@/src/models/user')).getUsersCollection();

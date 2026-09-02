@@ -82,6 +82,8 @@ export interface OrderDocument {
   orderStatus: OrderStatus;
   customerNote?: string | null;
   reservationBookingNumber?: string | null;
+  deliveryStaffId?: string | null;
+  deliveryStaffName?: string | null;
   deliveryNote?: string | null;
   deliveryDistance?: number | null;
   deliveryRadiusAtOrder?: number | null;

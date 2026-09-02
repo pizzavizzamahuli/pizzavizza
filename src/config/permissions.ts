@@ -25,7 +25,7 @@ export class AuthorizationService {
 
     // Define role-based permission mapping
     const rolePermissions: Record<string, Array<string>> = {
-      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'admins', 'settings', 'telegram'],
+      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'telegram'],
       // Add telegram to admin privileges if desired; granular control is enforced via permission checks.
       ADMIN_TELEGRAM: ['telegram'],
       MANAGER: ['menu', 'categories', 'products', 'orders', 'bookings'],

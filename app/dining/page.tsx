@@ -18,6 +18,7 @@ export default async function DiningHomePage() {
         <section className="grid gap-6 lg:grid-cols-2">
           {rooms.map((room) => (
             <article key={room._id?.toHexString()} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+              {room.images?.[0] ? <img src={room.images[0]} alt={room.name} className="mb-5 aspect-[16/9] w-full rounded-2xl object-cover" /> : null}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>

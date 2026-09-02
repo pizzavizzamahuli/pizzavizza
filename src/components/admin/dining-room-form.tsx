@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import type { DiningRoomDocument } from '@/src/models/dining-room';
 
-export function DiningRoomForm(): React.ReactElement {
-  const [form, setForm] = useState({
+export function DiningRoomForm({ editingRoom, onSaved, onCancel }: { editingRoom?: DiningRoomDocument | null; onSaved?: (room: DiningRoomDocument) => void; onCancel?: () => void }): React.ReactElement {
+  const emptyForm = () => ({
     roomType: 'Private Dining',
     name: '',
     slug: '',
@@ -23,6 +24,15 @@ export function DiningRoomForm(): React.ReactElement {
     isBookable: true,
     displayOrder: '0',
   });
+  const formFromRoom = (room?: DiningRoomDocument | null) => room ? {
+    roomType: room.roomType, name: room.name, slug: room.slug, description: room.description || '', shortDescription: room.shortDescription || '', images: '',
+    capacityMin: String(room.capacityMin), capacityMax: String(room.capacityMax), roomCount: String(room.roomCount), seatsPerRoom: String(room.seatsPerRoom), pricingType: room.pricingType,
+    price: String(room.price), bookingDurationMinutes: String(room.bookingDurationMinutes), availableTimeSlots: room.availableTimeSlots.join(','), amenities: room.amenities.join(','),
+    isActive: room.isActive, isBookable: room.isBookable, displayOrder: String(room.displayOrder),
+  } : emptyForm();
+  const [form, setForm] = useState(() => formFromRoom(editingRoom));
+  const [existingImages, setExistingImages] = useState<string[]>(editingRoom?.images || []);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -37,19 +47,38 @@ export function DiningRoomForm(): React.ReactElement {
       .filter(Boolean);
   }
 
+  function addImageFiles(files: File[]) {
+    setImageFiles((current) => [...current, ...files.filter((file) => file.type.startsWith('image/'))]);
+  }
+
+  async function removeExistingImage(url: string) {
+    const response = await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(url)}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error('Unable to delete image');
+    setExistingImages((current) => current.filter((image) => image !== url));
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage(null);
 
     try {
+      const uploadedImages: string[] = [];
+      for (const file of imageFiles) {
+        const body = new FormData();
+        body.append('images', file);
+        const uploadResponse = await fetch('/api/admin/dining/upload-images', { method: 'POST', body });
+        const uploadData = await uploadResponse.json();
+        if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Image upload failed');
+        uploadedImages.push(...uploadData.data);
+      }
       const payload = {
         roomType: form.roomType,
         name: form.name,
         slug: form.slug,
         description: form.description || undefined,
         shortDescription: form.shortDescription || undefined,
-        images: parseCommaSeparated(form.images),
+        images: [...existingImages, ...uploadedImages, ...parseCommaSeparated(form.images)],
         capacityMin: Number(form.capacityMin),
         capacityMax: Number(form.capacityMax),
         roomCount: Number(form.roomCount),
@@ -64,34 +93,17 @@ export function DiningRoomForm(): React.ReactElement {
         displayOrder: Number(form.displayOrder),
       };
 
-      const response = await fetch('/api/admin/dining/rooms', {
-        method: 'POST',
+      const response = await fetch(editingRoom ? `/api/admin/dining/rooms/${editingRoom._id?.toHexString()}` : '/api/admin/dining/rooms', {
+        method: editingRoom ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error || 'Failed to create dining room');
-      setMessage('Dining room created successfully');
-      setForm({
-        roomType: 'Private Dining',
-        name: '',
-        slug: '',
-        description: '',
-        shortDescription: '',
-        images: '',
-        capacityMin: '1',
-        capacityMax: '4',
-        roomCount: '1',
-        seatsPerRoom: '4',
-        pricingType: 'PER_HOUR',
-        price: '600',
-        bookingDurationMinutes: '60',
-        availableTimeSlots: '18:00,19:00,20:00',
-        amenities: 'Private seating,Live music',
-        isActive: true,
-        isBookable: true,
-        displayOrder: '0',
-      });
+      if (!response.ok) throw new Error(json.error || 'Failed to save dining room');
+      setMessage(editingRoom ? 'Dining room updated successfully' : 'Dining room created successfully');
+      onSaved?.(json.data);
+      if (!editingRoom) setForm(emptyForm());
+      setImageFiles([]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setMessage(msg || 'Error creating dining room');
@@ -255,6 +267,17 @@ export function DiningRoomForm(): React.ReactElement {
         />
       </label>
 
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <p className="text-sm font-semibold text-stone-900">Room images</p>
+        {existingImages.length ? <div className="mt-3 grid gap-3 sm:grid-cols-3">{existingImages.map((url) => <div key={url} className="relative"><img src={url} alt="Dining room" className="h-28 w-full rounded-xl object-cover" /><button type="button" onClick={() => removeExistingImage(url).catch((error) => setMessage(error.message))} className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-semibold text-red-700">Remove</button></div>)}</div> : <p className="mt-2 text-xs text-stone-500">No room images uploaded yet.</p>}
+        <div className="mt-4 rounded-2xl border-2 border-dashed border-stone-300 bg-white p-5 text-center" onDrop={(event) => { event.preventDefault(); addImageFiles(Array.from(event.dataTransfer.files)); }} onDragOver={(event) => event.preventDefault()}>
+          <input id="dining-room-images" type="file" multiple accept="image/*" className="sr-only" onChange={(event) => { addImageFiles(Array.from(event.target.files || [])); event.target.value = ''; }} />
+          <label htmlFor="dining-room-images" className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white">Choose images from device</label>
+          <p className="mt-2 text-xs text-stone-500">Or drag and drop one or more images here.</p>
+          {imageFiles.length ? <p className="mt-2 text-xs font-semibold text-stone-700">{imageFiles.length} new image(s) selected</p> : null}
+        </div>
+      </div>
+
       <label className="block text-sm">
         Amenities
         <input
@@ -311,8 +334,9 @@ export function DiningRoomForm(): React.ReactElement {
           disabled={isSubmitting}
           className="rounded-full bg-amber-600 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-70"
         >
-          {isSubmitting ? 'Creating...' : 'Create Dining Room'}
+          {isSubmitting ? 'Saving...' : editingRoom ? 'Save Dining Room' : 'Create Dining Room'}
         </button>
+        {editingRoom ? <button type="button" onClick={onCancel} className="rounded-full border border-stone-300 px-5 py-2 text-sm font-semibold text-stone-700">Cancel</button> : null}
         {message ? <p className="text-sm text-stone-600">{message}</p> : null}
       </div>
     </form>

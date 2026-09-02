@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { getProductBySlug } from '@/src/services/menu-service';
 import { findCustomizationGroupsByIds } from '@/src/models/customization-group';
 import ProductImageGallery from '@/src/components/product-image-gallery';
 import AddToCartButton from '@/src/components/add-to-cart-button';
 import ProductCustomizationForm from '@/src/components/product-customization-form';
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ bookingNumber?: string }> }) {
   const { slug } = await params;
+  const bookingNumber = searchParams ? (await searchParams).bookingNumber : null;
   const product = await getProductBySlug(slug);
   if (!product || product.isAvailable === false) {
     notFound();
@@ -43,6 +45,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     Customize this item below before adding it to your cart.
                   </div>
                 )}
+                {bookingNumber ? <Link href={`/cart?bookingNumber=${encodeURIComponent(bookingNumber)}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-amber-700">View food cart for reservation</Link> : null}
               </div>
             </div>
           </div>

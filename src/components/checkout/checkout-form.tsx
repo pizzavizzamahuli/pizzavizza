@@ -72,7 +72,7 @@ const defaultNewAddress: NewAddressForm = {
   googleMapsUrl: null,
 };
 
-export default function CheckoutForm({ settings }: { settings: CheckoutSettings }): React.ReactElement {
+export default function CheckoutForm({ settings, reservationBookingNumber = null }: { settings: CheckoutSettings; reservationBookingNumber?: string | null }): React.ReactElement {
   const enabledPaymentMethods = [
     settings.codEnabled ? 'COD' : null,
     settings.onlinePaymentEnabled || settings.manualPaymentEnabled ? 'ONLINE' : null,
@@ -299,6 +299,7 @@ export default function CheckoutForm({ settings }: { settings: CheckoutSettings 
           fulfillmentType: fulfillment,
           addressId: fulfillment === 'DELIVERY' ? selectedAddress : null,
           paymentMethod: effectivePaymentMethod,
+          reservationBookingNumber,
           transactionId: effectivePaymentMethod === 'MANUAL' ? transactionId.trim() : null,
           couponCode: couponCode.trim() || null,
           walletAmount: walletAmount ? Number(walletAmount) : 0,

@@ -8,6 +8,7 @@ type CheckoutPayload = {
   addressId?: string | null;
   items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>;
   customerNote?: string | null;
+  reservationBookingNumber?: string | null;
   couponCode?: string | null;
   walletAmount?: number | null;
   referralCode?: string | null;
@@ -45,10 +46,10 @@ export async function POST(request: Request) {
   }
   try {
     const payload = (await request.json()) as unknown as CheckoutPayload;
-    const { fulfillmentType, addressId, items, customerNote, couponCode, walletAmount, referralCode, paymentMethod, transactionId, paymentProofUrl } = payload;
+    const { fulfillmentType, addressId, items, customerNote, reservationBookingNumber, couponCode, walletAmount, referralCode, paymentMethod, transactionId, paymentProofUrl } = payload;
     if (!fulfillmentType) return NextResponse.json({ error: 'fulfillmentType is required' }, { status: 400 });
     const idempotencyKey = (request.headers.get('Idempotency-Key') || request.headers.get('idempotency-key') || null) as string | null;
-    const order = await createOrderForUser(user._id!.toHexString(), { items: items || [], fulfillmentType, addressId, customerNote, couponCode, walletAmount, referralCode, paymentMethod, transactionId, paymentProofUrl, idempotencyKey });
+    const order = await createOrderForUser(user._id!.toHexString(), { items: items || [], fulfillmentType, addressId, customerNote, reservationBookingNumber, couponCode, walletAmount, referralCode, paymentMethod, transactionId, paymentProofUrl, idempotencyKey });
     const ord = order as CreatedOrder;
 
     // If online payment requested, create a Razorpay order and return details required by client

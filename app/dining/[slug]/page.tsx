@@ -14,6 +14,7 @@ export default async function DiningRoomPage({ params }: { params: Promise<{ slu
     <CustomerShell>
       <div className="space-y-8">
         <section className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+          {room.images?.length ? <div className="mb-6 grid gap-3 sm:grid-cols-2">{room.images.map((image) => <img key={image} src={image} alt={room.name} className="aspect-[4/3] w-full rounded-2xl object-cover" />)}</div> : null}
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">{room.name}</p>

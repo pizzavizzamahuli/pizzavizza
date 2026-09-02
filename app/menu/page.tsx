@@ -14,6 +14,7 @@ export default async function MenuPage({
   const products: ProductDocument[] = await getProductsForCustomer();
   const params = searchParams ? await searchParams : {};
   const selectedCategory = params.category?.trim();
+  const bookingNumber = (params as { bookingNumber?: string }).bookingNumber?.trim();
 
   const visibleProducts = selectedCategory
     ? products.filter((product) => product.categoryId === selectedCategory)
@@ -28,6 +29,7 @@ export default async function MenuPage({
       </section>
 
       <section>
+        {bookingNumber ? <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Ordering food for reservation <strong>{bookingNumber}</strong>. <Link href={`/cart?bookingNumber=${encodeURIComponent(bookingNumber)}`} className="font-semibold underline">View reservation cart</Link></div> : null}
         <div className="flex gap-3 overflow-x-auto py-2">
           <Link
             href="/menu"
@@ -86,7 +88,7 @@ export default async function MenuPage({
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <AddToCartButton productId={p._id?.toHexString() || p.slug} />
-                    <Link href={`/menu/${p._id?.toHexString() || p.slug}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-stone-900 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
+                    <Link href={`/menu/${p._id?.toHexString() || p.slug}${bookingNumber ? `?bookingNumber=${encodeURIComponent(bookingNumber)}` : ''}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-stone-900 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-700">View details</Link>
                   </div>
                 </div>
               </article>

@@ -199,17 +199,17 @@ export function DiningBookingForm({
         <label className="block text-sm font-medium text-stone-700">Booking duration</label>
         <input
           type="range"
-          min={bookingDurationMinutes}
-          max={bookingDurationMinutes}
-          step={1}
+          min={60}
+          max={360}
+          step={30}
           value={form.durationMinutes}
           onChange={(e) => updateField('durationMinutes', Number(e.target.value))}
           className="mt-3 w-full accent-amber-600"
         />
         <div className="mt-2 flex items-center justify-between text-xs text-stone-500">
-          <span>{bookingDurationMinutes / 60} hour</span>
+          <span>1 hour</span>
           <span className="font-semibold text-stone-700">{form.durationMinutes / 60} hr</span>
-          <span>{bookingDurationMinutes / 60} hour</span>
+          <span>6 hours</span>
         </div>
       </div>
 

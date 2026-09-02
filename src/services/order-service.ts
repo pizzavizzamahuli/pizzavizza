@@ -14,6 +14,7 @@ import { adjustWalletBalance } from '@/src/models/wallet';
 import { reserveCouponUsage } from '@/src/models/coupon';
 import { getDatabaseClient } from '@/src/config/database';
 import { calculateCustomizationForProduct, getEffectiveProductPrice } from '@/src/services/customization-service';
+import { findDiningBookingByBookingNumber } from '@/src/models/dining-booking';
 
 export type OrderItemPayload = {
   productId: string;
@@ -98,11 +99,17 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
   return { subtotal, deliveryCharge, additionalCharges, discount, walletAmount, total, itemSnapshots };
 }
 
-export async function createOrderForUser(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null; transactionId?: string | null; paymentProofUrl?: string | null; idempotencyKey?: string | null }) {
+export async function createOrderForUser(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; reservationBookingNumber?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null; transactionId?: string | null; paymentProofUrl?: string | null; idempotencyKey?: string | null }) {
   const user = await getUserById(userId);
   if (!user) throw new Error('User not found');
 
   const settings = await getRestaurantSettings();
+  if (opts.reservationBookingNumber) {
+    const reservation = await findDiningBookingByBookingNumber(opts.reservationBookingNumber);
+    if (!reservation || reservation.userId !== userId || ['CANCELLED', 'REJECTED', 'COMPLETED', 'NO_SHOW'].includes(reservation.bookingStatus)) {
+      throw new Error('This dining reservation is not available for food orders.');
+    }
+  }
   const requestedPaymentMethod = normalizePaymentMethod(opts.paymentMethod ?? 'COD');
   const client = await getDatabaseClient();
   let order: OrderDocument | null = null;
@@ -259,6 +266,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
       paymentProofUrl: requestedPaymentMethod === 'MANUAL' ? (opts.paymentProofUrl || null) : null,
       orderStatus: 'PENDING',
       customerNote: opts.customerNote ?? null,
+      reservationBookingNumber: opts.reservationBookingNumber ?? null,
       idempotencyKey: effectiveIdempotencyKey,
     });
 

@@ -22,7 +22,7 @@ export function BookingStatusActions({ bookingNumber, currentStatus }: BookingAc
     setIsLoading(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/bookings/${bookingNumber}/status`, {
+      const response = await fetch(`/api/admin/bookings/${bookingNumber}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

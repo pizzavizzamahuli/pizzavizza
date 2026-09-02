@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { createDiningBookingForUser } from '@/src/services/dining-service';
+import { cancelBookingForUser, createDiningBookingForUser } from '@/src/services/dining-service';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = await request.json();
-    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote } = payload;
+    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote, idempotencyKey } = payload;
 
     if (!roomId) return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     if (!bookingDate) return NextResponse.json({ error: 'bookingDate is required' }, { status: 400 });
@@ -26,11 +26,28 @@ export async function POST(request: Request) {
       roomCount,
       durationMinutes,
       customerNote,
+      idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey.slice(0, 100) : null,
     });
 
     return NextResponse.json({ success: true, data: { bookingNumber: booking.bookingNumber, bookingId: booking.id } });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to create booking';
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+
+  try {
+    const payload = await request.json();
+    if (payload.action !== 'CANCEL' || typeof payload.bookingNumber !== 'string' || !payload.bookingNumber.trim()) {
+      return NextResponse.json({ error: 'A valid cancellation request is required.' }, { status: 400 });
+    }
+    const booking = await cancelBookingForUser(user._id!.toHexString(), payload.bookingNumber.trim());
+    return NextResponse.json({ success: true, data: { bookingNumber: booking?.bookingNumber } });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unable to cancel booking' }, { status: 400 });
   }
 }

@@ -50,7 +50,7 @@ export async function createDiningAvailabilityBlock(doc: Partial<DiningAvailabil
   return { ...toInsert, _id: res.insertedId, id: res.insertedId.toHexString() } as DiningAvailabilityBlockDocument;
 }
 
-export async function findDiningAvailabilityBlockForRoom(roomId: string, date: string, startTime: string, durationMinutes: number) {
+export async function findDiningAvailabilityBlockForRoom(roomId: string, date: string, startTime: string, durationMinutes: number, session?: import('mongodb').ClientSession) {
   const endTime = (() => {
     const [hours, mins] = startTime.split(':').map(Number);
     const start = new Date();
@@ -70,7 +70,7 @@ export async function findDiningAvailabilityBlockForRoom(roomId: string, date: s
       { startTime: { $eq: startTime } },
     ],
   };
-  return col.findOne(filter);
+  return col.findOne(filter, { session });
 }
 
 export async function listDiningAvailabilityBlocks(roomId: string) {

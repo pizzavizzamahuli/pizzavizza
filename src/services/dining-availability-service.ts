@@ -1,5 +1,6 @@
 export function parseTimeString(time: string) {
   const [hours, minutes] = time.split(':').map((value) => Number(value));
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return NaN;
   return hours * 60 + minutes;
 }
 

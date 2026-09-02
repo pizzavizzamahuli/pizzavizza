@@ -49,12 +49,32 @@ export function DiningBookingForm({
     errorMessage: '',
     isSubmitting: false,
   });
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+  const [availableSlots, setAvailableSlots] = useState(availableTimeSlots);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
 
   useEffect(() => {
-    if (availableTimeSlots.length && !form.startTime) {
+    setAvailableSlots(availableTimeSlots);
+    if (availableTimeSlots.length && !availableTimeSlots.includes(form.startTime)) {
       setForm((current) => ({ ...current, startTime: availableTimeSlots[0] }));
     }
   }, [availableTimeSlots, form.startTime]);
+
+  useEffect(() => {
+    if (!form.bookingDate) return;
+    const controller = new AbortController();
+    setIsCheckingAvailability(true);
+    fetch(`/api/dining/availability?roomId=${encodeURIComponent(roomId)}&date=${encodeURIComponent(form.bookingDate)}`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((json) => {
+        if (!json.success) throw new Error(json.error || 'Unable to check availability');
+        setAvailableSlots(json.data || []);
+        setForm((current) => ({ ...current, startTime: (json.data || []).includes(current.startTime) ? current.startTime : (json.data || [])[0] || '' }));
+      })
+      .catch((error: unknown) => { if (error instanceof Error && error.name !== 'AbortError') setForm((current) => ({ ...current, errorMessage: error.message })); })
+      .finally(() => setIsCheckingAvailability(false));
+    return () => controller.abort();
+  }, [form.bookingDate, roomId]);
 
   function updateField<K extends keyof BookingFormState>(field: K, value: BookingFormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -77,6 +97,8 @@ export function DiningBookingForm({
     setForm((current) => ({ ...current, isSubmitting: true, errorMessage: '', statusMessage: '' }));
 
     try {
+      const requestKey = idempotencyKey || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+      setIdempotencyKey(requestKey);
       const response = await fetch('/api/dining/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +110,7 @@ export function DiningBookingForm({
           roomCount: form.roomCount,
           durationMinutes: form.durationMinutes,
           customerNote: form.customerNote,
+          idempotencyKey: requestKey,
         }),
       });
 
@@ -102,6 +125,7 @@ export function DiningBookingForm({
         errorMessage: '',
         isSubmitting: false,
       }));
+      setIdempotencyKey(null);
     } catch (error: unknown) {
       setForm((current) => ({
         ...current,
@@ -135,10 +159,12 @@ export function DiningBookingForm({
           required
           className="mt-2 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2"
         >
-          {availableTimeSlots.map((slot) => (
+          {availableSlots.map((slot) => (
             <option key={slot} value={slot}>{slot}</option>
           ))}
         </select>
+        {form.bookingDate && isCheckingAvailability ? <p className="mt-2 text-xs text-stone-500">Checking live availability...</p> : null}
+        {form.bookingDate && !isCheckingAvailability && availableSlots.length === 0 ? <p className="mt-2 text-sm text-amber-700">No available time slots for this date.</p> : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -173,17 +199,17 @@ export function DiningBookingForm({
         <label className="block text-sm font-medium text-stone-700">Booking duration</label>
         <input
           type="range"
-          min={60}
-          max={360}
-          step={30}
+          min={bookingDurationMinutes}
+          max={bookingDurationMinutes}
+          step={1}
           value={form.durationMinutes}
           onChange={(e) => updateField('durationMinutes', Number(e.target.value))}
           className="mt-3 w-full accent-amber-600"
         />
         <div className="mt-2 flex items-center justify-between text-xs text-stone-500">
-          <span>1 hour</span>
+          <span>{bookingDurationMinutes / 60} hour</span>
           <span className="font-semibold text-stone-700">{form.durationMinutes / 60} hr</span>
-          <span>6 hours</span>
+          <span>{bookingDurationMinutes / 60} hour</span>
         </div>
       </div>
 

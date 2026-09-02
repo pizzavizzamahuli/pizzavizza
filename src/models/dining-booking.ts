@@ -1,4 +1,4 @@
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 import { DiningRoomDocument } from '@/src/models/dining-room';
 import { CustomerSnapshot } from '@/src/models/order';
@@ -27,6 +27,7 @@ export interface DiningBookingDocument {
   _id?: ObjectId;
   id?: string;
   bookingNumber: string;
+  idempotencyKey?: string | null;
   userId: string;
   roomId: string;
   roomSnapshot: DiningRoomSnapshot;
@@ -62,6 +63,7 @@ export async function getDiningBookingsCollection() {
     const db = client.db(await getDatabaseName());
     const collection = db.collection<DiningBookingDocument>(DINING_BOOKINGS_COLLECTION);
     await collection.createIndex({ bookingNumber: 1 }, { unique: true });
+    await collection.createIndex({ idempotencyKey: 1 }, { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } });
     await collection.createIndex({ userId: 1 });
     await collection.createIndex({ roomId: 1 });
     await collection.createIndex({ bookingDate: 1, startTime: 1 });
@@ -71,16 +73,17 @@ export async function getDiningBookingsCollection() {
   return diningBookingsCollectionPromise;
 }
 
-export async function findDiningBookingsForRoomOnDate(roomId: string, bookingDate: string) {
+export async function findDiningBookingsForRoomOnDate(roomId: string, bookingDate: string, session?: ClientSession) {
   const col = await getDiningBookingsCollection();
-  return col.find({ roomId, bookingDate }).toArray();
+  return col.find({ roomId, bookingDate, bookingStatus: { $nin: ['REJECTED', 'CANCELLED'] } }, { session }).toArray();
 }
 
-export async function createDiningBooking(doc: Partial<DiningBookingDocument>) {
+export async function createDiningBooking(doc: Partial<DiningBookingDocument>, session?: import('mongodb').ClientSession) {
   const col = await getDiningBookingsCollection();
   const now = new Date();
   const toInsert: DiningBookingDocument = {
     bookingNumber: doc.bookingNumber || '',
+    idempotencyKey: doc.idempotencyKey ?? null,
     userId: doc.userId || '',
     roomId: doc.roomId || '',
     roomSnapshot: (doc.roomSnapshot as DiningRoomSnapshot) || ({} as DiningRoomSnapshot),
@@ -104,13 +107,27 @@ export async function createDiningBooking(doc: Partial<DiningBookingDocument>) {
     updatedAt: now,
   } as DiningBookingDocument;
 
-  const res = await col.insertOne(toInsert as DiningBookingDocument);
+  const res = await col.insertOne(toInsert as DiningBookingDocument, { session });
   return { ...toInsert, _id: res.insertedId, id: res.insertedId.toHexString() } as DiningBookingDocument;
 }
 
 export async function findDiningBookingByBookingNumber(bookingNumber: string) {
   const col = await getDiningBookingsCollection();
   return col.findOne({ bookingNumber });
+}
+
+export async function findDiningBookingById(id: string) {
+  const col = await getDiningBookingsCollection();
+  try {
+    return await col.findOne({ _id: new ObjectId(id) });
+  } catch {
+    return null;
+  }
+}
+
+export async function findDiningBookingByIdempotencyKey(idempotencyKey: string) {
+  const col = await getDiningBookingsCollection();
+  return col.findOne({ idempotencyKey });
 }
 
 export async function listDiningBookingsForUser(userId: string) {

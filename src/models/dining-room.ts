@@ -1,4 +1,4 @@
-import { Collection, ObjectId } from 'mongodb';
+import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 
 export type DiningRoomPricingType = 'FIXED' | 'PER_HOUR' | 'PER_BOOKING';
@@ -58,9 +58,9 @@ export async function findDiningRoomBySlug(slug: string) {
   return col.findOne({ slug });
 }
 
-export async function findDiningRoomById(id: string) {
+export async function findDiningRoomById(id: string, session?: ClientSession) {
   const col = await getDiningRoomsCollection();
-  return col.findOne({ _id: new ObjectId(id) });
+  return col.findOne({ _id: new ObjectId(id) }, { session });
 }
 
 export async function createDiningRoom(doc: Partial<DiningRoomDocument>) {

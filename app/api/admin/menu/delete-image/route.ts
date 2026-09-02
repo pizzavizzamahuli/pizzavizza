@@ -25,7 +25,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    const cloudinaryPublicId = extractCloudinaryPublicId(publicId) || publicId;
+    const cloudinaryPublicId = extractCloudinaryPublicId(publicId) || publicId.trim();
+    if (!cloudinaryPublicId) {
+      return NextResponse.json({ error: 'Invalid image identifier' }, { status: 400 });
+    }
     await deleteCloudinaryResource(cloudinaryPublicId);
     return NextResponse.json({ success: true });
   } catch (error) {

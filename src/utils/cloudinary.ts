@@ -32,7 +32,7 @@ export function extractCloudinaryPublicId(url: string): string | null {
 export async function deleteCloudinaryResource(publicId: string, resourceType = 'image') {
   const { cloudName, apiKey } = await getCloudinaryConfig();
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signature = await createCloudinarySignature({ public_id: publicId, resource_type: resourceType, timestamp });
+  const signature = await createCloudinarySignature({ public_id: publicId, timestamp });
 
   const formData = new FormData();
   formData.append('public_id', publicId);

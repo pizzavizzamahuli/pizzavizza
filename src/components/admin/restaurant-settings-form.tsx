@@ -10,6 +10,19 @@ export default function RestaurantSettingsForm() {
   const [searching, setSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [settings, setSettings] = useState<any>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreview(null);
+      return;
+    }
+    const preview = URL.createObjectURL(logoFile);
+    setLogoPreview(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [logoFile]);
 
   useEffect(() => {
     let mounted = true;
@@ -61,14 +74,34 @@ export default function RestaurantSettingsForm() {
   async function save() {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/settings/restaurant', { method: 'PUT', body: JSON.stringify(settings), headers: { 'Content-Type': 'application/json' } });
+      const previousLogo = settings.logo || null;
+      let nextLogo = settings.logo || null;
+      if (logoFile) {
+        setUploadingLogo(true);
+        const body = new FormData();
+        body.append('logo', logoFile);
+        const uploadResponse = await fetch('/api/admin/settings/restaurant/logo', { method: 'POST', body });
+        const uploadData = await uploadResponse.json();
+        if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Logo upload failed');
+        nextLogo = uploadData.data;
+      }
+      const res = await fetch('/api/admin/settings/restaurant', {
+        method: 'PUT',
+        body: JSON.stringify({ ...settings, logo: nextLogo }),
+        headers: { 'Content-Type': 'application/json' },
+      });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
       setSettings(data.data);
+      setLogoFile(null);
+      if (previousLogo && previousLogo !== nextLogo) {
+        await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousLogo)}`, { method: 'DELETE' });
+      }
       alert('Saved');
     } catch (e: any) {
       alert('Save failed: ' + (e?.message || String(e)));
     } finally {
+      setUploadingLogo(false);
       setSaving(false);
     }
   }
@@ -83,6 +116,19 @@ export default function RestaurantSettingsForm() {
         <div>
           <label className="block text-sm font-medium">Phone</label>
           <input className="input" value={settings.phone || ''} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <label className="block text-sm font-medium">Restaurant Logo</label>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          {(logoPreview || settings.logo) ? <img src={logoPreview || settings.logo} alt="Restaurant logo preview" className="h-20 w-20 rounded-full border-4 border-white object-cover shadow" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-600 text-xl font-bold text-white">PV</div>}
+          <div>
+            <input id="restaurant-logo-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setLogoFile(event.target.files?.[0] || null)} />
+            <label htmlFor="restaurant-logo-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose logo</label>
+            {(logoFile || settings.logo) ? <button type="button" onClick={() => { setLogoFile(null); setSettings({ ...settings, logo: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove</button> : null}
+            <p className="mt-2 text-xs text-stone-500">Use a square image for the best circular result.</p>
+          </div>
         </div>
       </div>
 

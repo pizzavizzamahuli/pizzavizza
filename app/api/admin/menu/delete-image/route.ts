@@ -2,10 +2,16 @@ import { NextResponse } from 'next/server';
 import { extractCloudinaryPublicId, deleteCloudinaryResource } from '@/src/utils/cloudinary';
 import fs from 'fs';
 import path from 'path';
+import { getSessionUser } from '@/src/auth/session';
+import { AuthorizationService } from '@/src/config/permissions';
 
 export const runtime = 'nodejs';
 
 export async function DELETE(request: Request) {
+  const user = await getSessionUser();
+  if (!user || (!AuthorizationService.canAccess(user.role, 'settings.manage') && !AuthorizationService.canAccess(user.role, 'menu.manage'))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const url = new URL(request.url);
   const publicId = url.searchParams.get('publicId');
 

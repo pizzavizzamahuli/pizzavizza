@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSessionUser } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -13,6 +14,7 @@ const navItems = [
 export async function CustomerShell({ children }: { children: React.ReactNode }) {
   let user = null;
   let cart = null;
+  let restaurantSettings = null;
 
   try {
     user = await getSessionUser();
@@ -29,6 +31,12 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
     cart = null;
   }
 
+  try {
+    restaurantSettings = await getRestaurantSettings();
+  } catch {
+    restaurantSettings = null;
+  }
+
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
 
   return (
@@ -36,11 +44,9 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
       <header className="border-b border-stone-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white">
-              PV
-            </div>
+            {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-10 w-10 rounded-full border border-amber-100 object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white">PV</div>}
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Pizza Vizza</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
               <h1 className="text-lg font-semibold">Order online • Dine • Pickup</h1>
             </div>
           </Link>

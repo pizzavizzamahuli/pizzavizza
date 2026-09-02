@@ -44,7 +44,8 @@ function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
 }
 
 export function generateGoogleMapsUrl(latitude: number, longitude: number, label?: string) {
-  return generateMapLink(latitude, longitude, label);
+  void label;
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 export function generateMapLink(latitude: number, longitude: number, label?: string) {
@@ -180,9 +181,7 @@ export function generateDeliveryWhatsAppMessage(order: OrderDocument, settings: 
     lines.push(`${order.deliveryAddress.city}, ${order.deliveryAddress.state} ${order.deliveryAddress.postalCode}`);
     if (typeof order.deliveryAddress.latitude === 'number' && typeof order.deliveryAddress.longitude === 'number') {
       lines.push(`Coordinates: ${order.deliveryAddress.latitude}, ${order.deliveryAddress.longitude}`);
-    }
-    if (order.deliveryAddress.googleMapsUrl) {
-      lines.push(`Map: ${order.deliveryAddress.googleMapsUrl}`);
+      lines.push(`Map: ${generateGoogleMapsUrl(order.deliveryAddress.latitude, order.deliveryAddress.longitude, 'Customer delivery location')}`);
     }
   } else if (order.fulfillmentType === 'PICKUP') {
     lines.push(`Pickup at: ${settings.restaurantName}`);
@@ -192,8 +191,8 @@ export function generateDeliveryWhatsAppMessage(order: OrderDocument, settings: 
     if (settings.city) {
       lines.push(`${settings.city}, ${settings.state} ${settings.postalCode}`);
     }
-    if (settings.googleMapsUrl) {
-      lines.push(`Pickup map: ${settings.googleMapsUrl}`);
+    if (typeof settings.latitude === 'number' && typeof settings.longitude === 'number') {
+      lines.push(`Pickup map: ${generateGoogleMapsUrl(settings.latitude, settings.longitude, settings.restaurantName)}`);
     }
   }
 

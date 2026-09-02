@@ -192,21 +192,25 @@ export default function RestaurantSettingsForm() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium">Latitude</label>
+          <label className="block text-sm font-semibold text-stone-800">Store latitude</label>
+          <p className="mb-2 text-xs text-stone-500">Pizza Vizza location coordinate</p>
           <input className="input" value={settings.latitude ?? ''} onChange={(e) => setSettings({ ...settings, latitude: Number(e.target.value) || null })} />
         </div>
         <div>
-          <label className="block text-sm font-medium">Longitude</label>
+          <label className="block text-sm font-semibold text-stone-800">Store longitude</label>
+          <p className="mb-2 text-xs text-stone-500">Pizza Vizza location coordinate</p>
           <input className="input" value={settings.longitude ?? ''} onChange={(e) => setSettings({ ...settings, longitude: Number(e.target.value) || null })} />
         </div>
         <div>
-          <label className="block text-sm font-medium">Delivery Radius</label>
+          <label className="block text-sm font-semibold text-stone-800">Delivery radius</label>
+          <p className="mb-2 text-xs text-stone-500">Maximum delivery distance</p>
           <input className="input" value={settings.deliveryRadius ?? 0} onChange={(e) => setSettings({ ...settings, deliveryRadius: Number(e.target.value) || 0 })} />
         </div>
         <div>
-          <label className="block text-sm font-medium">Radius Unit</label>
+          <label className="block text-sm font-semibold text-stone-800">Delivery radius unit</label>
+          <p className="mb-2 text-xs text-stone-500">Unit used for delivery validation</p>
           <select className="input" value={settings.deliveryRadiusUnit ?? 'KM'} onChange={(e) => setSettings({ ...settings, deliveryRadiusUnit: e.target.value === 'MILES' ? 'MILES' : 'KM' })}>
             <option value="KM">Kilometers</option>
             <option value="MILES">Miles</option>

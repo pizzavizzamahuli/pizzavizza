@@ -8,6 +8,7 @@ import OrderStatusActions from '@/src/components/admin/order-status-actions';
 import DeliveryShareActions from '@/src/components/admin/delivery-share-actions';
 import PaymentStatusActions from '@/src/components/admin/payment-status-actions';
 import DeliveryRouteMap from '@/src/components/admin/delivery-route-map';
+import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 
 export default async function AdminOrderDetail({ params }: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -92,6 +93,18 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
             <div>{order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.postalCode}</div>
             {order.deliveryAddress.googleMapsUrl ? <a href={order.deliveryAddress.googleMapsUrl} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">Open map</a> : null}
           </div>
+          <GoogleMapsActions
+            storeLocation={
+              typeof settings.latitude === 'number' && typeof settings.longitude === 'number'
+                ? { latitude: settings.latitude, longitude: settings.longitude }
+                : null
+            }
+            customerLocation={
+              typeof order.deliveryAddress.latitude === 'number' && typeof order.deliveryAddress.longitude === 'number'
+                ? { latitude: order.deliveryAddress.latitude, longitude: order.deliveryAddress.longitude }
+                : null
+            }
+          />
           <div className="mt-4">
             <DeliveryRouteMap
               storeLocation={

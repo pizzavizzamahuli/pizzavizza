@@ -15,7 +15,7 @@ export type OrderStatus =
   | 'REJECTED';
 
 export type PaymentMethod = 'COD' | 'ONLINE' | 'MANUAL' | 'WALLET';
-export type PaymentStatus = 'PENDING' | 'AWAITING_VERIFICATION' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type PaymentStatus = 'PENDING' | 'AWAITING_VERIFICATION' | 'PAID' | 'FAILED' | 'SUSPICIOUS' | 'REFUNDED';
 
 export interface OrderItemOptionSnapshot {
   groupId: string;
@@ -71,6 +71,9 @@ export interface OrderDocument {
   deliveryCharge: number;
   additionalCharges: number;
   discount: number;
+  staffDiscountAmount?: number;
+  staffDiscountGiven?: boolean;
+  staffDiscountReason?: string | null;
   walletAmount: number;
   totalAmount: number;
   couponCode?: string | null;
@@ -130,6 +133,9 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     deliveryCharge: doc.deliveryCharge || 0,
     additionalCharges: doc.additionalCharges || 0,
     discount: doc.discount || 0,
+    staffDiscountAmount: doc.staffDiscountAmount ?? 0,
+    staffDiscountGiven: doc.staffDiscountGiven ?? false,
+    staffDiscountReason: doc.staffDiscountReason ?? null,
     walletAmount: doc.walletAmount || 0,
     totalAmount: doc.totalAmount || 0,
     couponCode: doc.couponCode ?? null,

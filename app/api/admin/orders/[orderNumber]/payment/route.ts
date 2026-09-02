@@ -4,7 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, PaymentStatus, updateOrderByOrderNumber } from '@/src/models/order';
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
 
-const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'REFUNDED'];
+const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED'];
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -25,11 +25,17 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 });
     }
 
-    const updated = await updateOrderByOrderNumber(order.orderNumber, { paymentStatus: status as PaymentStatus });
+    const staffDiscountGiven = typeof payload.staffDiscountGiven === 'boolean' ? payload.staffDiscountGiven : undefined;
+    const staffDiscountAmount = typeof payload.staffDiscountAmount === 'number' && Number.isFinite(payload.staffDiscountAmount) ? Math.max(0, payload.staffDiscountAmount) : undefined;
+    const staffDiscountReason = typeof payload.staffDiscountReason === 'string' ? payload.staffDiscountReason.trim().slice(0, 500) : undefined;
+    const updated = await updateOrderByOrderNumber(order.orderNumber, {
+      paymentStatus: status as PaymentStatus,
+      ...(staffDiscountGiven !== undefined ? { staffDiscountGiven, staffDiscountAmount: staffDiscountGiven ? staffDiscountAmount || 0 : 0, staffDiscountReason: staffDiscountGiven ? staffDiscountReason || null : null } : {}),
+    });
     await recordTelegramAudit({
       performedByUserId: user._id?.toHexString() || null,
       telegramUserId: null,
-      action: status === 'PAID' ? 'payment_verified' : status === 'FAILED' ? 'payment_rejected' : 'payment_status_updated',
+      action: status === 'PAID' ? 'payment_verified' : status === 'FAILED' ? 'payment_rejected' : status === 'SUSPICIOUS' ? 'payment_marked_suspicious' : 'payment_status_updated',
       targetType: 'order',
       targetId: order.orderNumber,
       payload: { previousStatus: order.paymentStatus, newStatus: status, source: 'admin_panel' },

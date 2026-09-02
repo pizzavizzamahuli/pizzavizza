@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = await request.json();
-    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote, paymentMethod, idempotencyKey } = payload;
+    const { roomId, bookingDate, startTime, guestCount, roomCount, durationMinutes, customerNote, paymentMethod, couponCode, idempotencyKey } = payload;
 
     if (!roomId) return NextResponse.json({ error: 'roomId is required' }, { status: 400 });
     if (!bookingDate) return NextResponse.json({ error: 'bookingDate is required' }, { status: 400 });
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       durationMinutes,
       customerNote,
       paymentMethod,
+      couponCode: typeof couponCode === 'string' ? couponCode.slice(0, 50) : null,
       idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey.slice(0, 100) : null,
     });
 

@@ -3,6 +3,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { CustomerShell } from '@/src/app-shell';
 import { getWalletBalance, getWalletLedger } from '@/src/models/wallet';
 import { findReferralByUser } from '@/src/models/referral';
+import { ensureUserCode } from '@/src/services/user-service';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -13,6 +14,7 @@ export default async function WalletPage() {
   if (!user) redirect('/login');
 
   const userId = user._id?.toHexString() || user.id || '';
+  const userCode = await ensureUserCode(user);
   const [balance, ledger, referral] = await Promise.all([
     getWalletBalance(userId).catch(() => 0),
     getWalletLedger(userId).catch(() => []),
@@ -26,6 +28,10 @@ export default async function WalletPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Wallet & rewards</p>
           <h1 className="mt-3 text-3xl font-semibold text-stone-900">Your account credits</h1>
           <p className="mt-2 text-sm text-stone-600">Use your wallet balance for future orders and review reward activity.</p>
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Your user ID</p>
+            <p className="mt-1 font-mono text-xl font-semibold tracking-[0.12em] text-stone-900">{userCode}</p>
+          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">

@@ -129,6 +129,7 @@ export async function POST(request: Request) {
       success: true,
       data: {
         id: created?._id?.toHexString() || created?.id,
+        userCode: created ? await ensureUserCode(created) : null,
         name: created?.name,
         email: created?.email,
         role: created?.role,

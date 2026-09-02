@@ -23,6 +23,7 @@ type BookingFormState = {
   roomCount: number;
   durationMinutes: number;
   customerNote: string;
+  couponCode: string;
   paymentMethod: 'ONLINE' | 'COD';
   statusMessage: string;
   errorMessage: string;
@@ -48,6 +49,7 @@ export function DiningBookingForm({
     roomCount: Math.max(1, roomCount),
     durationMinutes: bookingDurationMinutes,
     customerNote: '',
+    couponCode: '',
     paymentMethod: 'COD',
     statusMessage: '',
     errorMessage: '',
@@ -114,6 +116,7 @@ export function DiningBookingForm({
           roomCount: form.roomCount,
           durationMinutes: form.durationMinutes,
           customerNote: form.customerNote,
+          couponCode: form.couponCode.trim() || null,
           paymentMethod: form.paymentMethod,
           idempotencyKey: requestKey,
         }),
@@ -148,6 +151,11 @@ export function DiningBookingForm({
 
   return (
     <form onSubmit={submitBooking} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-stone-700">Coupon code</label>
+        <input value={form.couponCode} onChange={(e) => updateField('couponCode', e.target.value)} placeholder="Optional coupon" className="mt-2 w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2" />
+      </div>
+
       <div>
         <h2 className="text-lg font-semibold">Book {roomName}</h2>
       </div>

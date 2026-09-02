@@ -1,28 +1,9 @@
 'use client';
 
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-
-const markerIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const storeIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [24, 38],
-  iconAnchor: [12, 38],
-  shadowSize: [41, 41],
-});
+import type { Icon } from 'leaflet';
 
 export type MapPoint = {
   latitude: number;
@@ -37,7 +18,7 @@ function MapCenter({ center }: { center: [number, number] }) {
   return null;
 }
 
-function MapPicker({ value, onChange, disabled = false }: { value?: MapPoint | null; onChange: (next: MapPoint) => void; disabled?: boolean }) {
+function MapPicker({ value, onChange, disabled = false, icon }: { value?: MapPoint | null; onChange: (next: MapPoint) => void; disabled?: boolean; icon: Icon }) {
   const [current, setCurrent] = useState<MapPoint | null>(value ?? null);
 
   useEffect(() => {
@@ -61,7 +42,7 @@ function MapPicker({ value, onChange, disabled = false }: { value?: MapPoint | n
   return (
     <Marker
       position={[current.latitude, current.longitude]}
-      icon={markerIcon}
+      icon={icon}
       draggable={!disabled}
       eventHandlers={{
         dragend(event) {
@@ -96,10 +77,32 @@ export default function LocationMap({
   routeCoordinates?: MapPoint[];
 }) {
   const [mounted, setMounted] = useState(false);
+  const [icons, setIcons] = useState<{ marker: Icon; store: Icon } | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    import('leaflet').then(({ default: L }) => {
+      setIcons({
+        marker: L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41],
+        }),
+        store: L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+          iconSize: [24, 38],
+          iconAnchor: [12, 38],
+          shadowSize: [41, 41],
+        }),
+      });
+    });
   }, []);
 
   const mapCenter = useMemo((): [number, number] | null => {
@@ -110,7 +113,7 @@ export default function LocationMap({
     return null;
   }, [center, customerLocation, storeLocation, value]);
 
-  if (!mounted) {
+  if (!mounted || !icons) {
     return <div className="rounded-md border border-stone-200 bg-stone-50" style={{ height }} />;
   }
 
@@ -133,13 +136,13 @@ export default function LocationMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {storeLocation && Number.isFinite(storeLocation.latitude) && Number.isFinite(storeLocation.longitude) ? (
-          <Marker position={[storeLocation.latitude, storeLocation.longitude]} icon={storeIcon} />
+          <Marker position={[storeLocation.latitude, storeLocation.longitude]} icon={icons.store} />
         ) : null}
         {customerLocation && Number.isFinite(customerLocation.latitude) && Number.isFinite(customerLocation.longitude) ? (
-          <Marker position={[customerLocation.latitude, customerLocation.longitude]} icon={markerIcon} />
+          <Marker position={[customerLocation.latitude, customerLocation.longitude]} icon={icons.marker} />
         ) : null}
         {polyline.length > 1 ? <Polyline positions={polyline} pathOptions={{ color: '#f59e0b', weight: 5 }} /> : null}
-        {typeof onChange === 'function' ? <MapPicker value={value ?? null} onChange={onChange} disabled={disabled} /> : null}
+        {typeof onChange === 'function' ? <MapPicker value={value ?? null} onChange={onChange} disabled={disabled} icon={icons.marker} /> : null}
       </MapContainer>
     </div>
   );

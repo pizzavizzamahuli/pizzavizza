@@ -8,7 +8,7 @@ import { updateBookingStatus } from '@/src/services/dining-service';
 export async function PUT(request: Request, context: { params: Promise<{ bookingNumber: string }> }) {
   const { bookingNumber } = await context.params;
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'bookings.manage')) {
+  if (!user || (!AuthorizationService.canAccess(user.role, 'bookings.manage') && !AuthorizationService.canAccess(user.role, 'payments.manage'))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -35,12 +35,18 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
     }
 
     if (typeof paymentStatus === 'string') {
-      const validPaymentStatus = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'REFUNDED', 'NOT_REQUIRED'];
+      const validPaymentStatus = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED', 'NOT_REQUIRED'];
       if (!validPaymentStatus.includes(paymentStatus)) {
         return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 });
       }
       const { updateDiningBooking } = await import('@/src/models/dining-booking');
-      const result = await updateDiningBooking(booking._id!.toHexString(), { paymentStatus: paymentStatus as (typeof booking.paymentStatus), updatedAt: new Date() });
+      const staffDiscountGiven = typeof payload.staffDiscountGiven === 'boolean' ? payload.staffDiscountGiven : undefined;
+      const staffDiscountAmount = typeof payload.staffDiscountAmount === 'number' && Number.isFinite(payload.staffDiscountAmount) ? Math.max(0, payload.staffDiscountAmount) : undefined;
+      const staffDiscountReason = typeof payload.staffDiscountReason === 'string' ? payload.staffDiscountReason.trim().slice(0, 500) : undefined;
+      const result = await updateDiningBooking(booking._id!.toHexString(), {
+        paymentStatus: paymentStatus as (typeof booking.paymentStatus),
+        ...(staffDiscountGiven !== undefined ? { staffDiscountGiven, staffDiscountAmount: staffDiscountGiven ? staffDiscountAmount || 0 : 0, staffDiscountReason: staffDiscountGiven ? staffDiscountReason || null : null } : {}),
+      });
       return NextResponse.json({ success: true, data: result });
     }
 

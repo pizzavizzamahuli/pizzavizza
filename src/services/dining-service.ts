@@ -1,4 +1,6 @@
 import { getNextSequence, getCountersCollection } from '@/src/models/counter';
+import { calculatePromotions } from '@/src/services/promo-service';
+import { reserveCouponUsage } from '@/src/models/coupon';
 import { getDatabaseClient } from '@/src/config/database';
 import { z } from 'zod';
 import {
@@ -271,6 +273,7 @@ export async function createDiningBookingForUser({
   durationMinutes,
   customerNote,
   paymentMethod,
+  couponCode,
   idempotencyKey,
 }: {
   userId: string;
@@ -282,6 +285,7 @@ export async function createDiningBookingForUser({
   durationMinutes?: number;
   customerNote?: string | null;
   paymentMethod?: 'ONLINE' | 'COD' | null;
+  couponCode?: string | null;
   idempotencyKey?: string | null;
 }) {
   const room = await findDiningRoomById(roomId);
@@ -311,8 +315,6 @@ export async function createDiningBookingForUser({
 
   const endTime = availability.endTime || calculateBookingEndTime(startTime, effectiveDuration);
   const price = calculateDiningBookingPrice({ room, roomCount: effectiveRoomCount, durationMinutes: effectiveDuration });
-  const discount = 0;
-  const finalAmount = price - discount;
   const normalizedPaymentMethod = paymentMethod === 'ONLINE' ? 'ONLINE' : 'COD';
   const client = await getDatabaseClient();
   await getCountersCollection();
@@ -332,6 +334,18 @@ export async function createDiningBookingForUser({
         session,
       });
       if (!finalAvailability.available) throw new Error(finalAvailability.reason);
+      const promo = await calculatePromotions({
+        userId,
+        subtotal: price,
+        deliveryCharge: 0,
+        additionalCharges: 0,
+        fulfillmentType: 'PICKUP',
+        couponCode: couponCode || null,
+        paymentMethod: normalizedPaymentMethod,
+      }, session);
+      if (promo.coupon?._id && !(await reserveCouponUsage(promo.coupon._id.toHexString(), session))) {
+        throw new Error('Coupon usage limit reached');
+      }
       const bookingNumber = await formatDiningBookingNumber(session);
       booking = await createDiningBooking({
         bookingNumber,
@@ -347,8 +361,9 @@ export async function createDiningBookingForUser({
         roomCount: effectiveRoomCount,
         durationMinutes: effectiveDuration,
         price,
-        discount,
-        finalAmount,
+        discount: promo.discountAmount,
+        couponCode: promo.couponCode,
+        finalAmount: promo.totalAmount,
         paymentMethod: normalizedPaymentMethod,
         paymentStatus: normalizedPaymentMethod === 'ONLINE' ? 'PENDING' : 'NOT_REQUIRED',
         bookingStatus: 'PENDING',

@@ -4,7 +4,7 @@ import { DiningRoomDocument } from '@/src/models/dining-room';
 import { CustomerSnapshot } from '@/src/models/order';
 
 export type DiningBookingStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type DiningBookingPaymentStatus = 'PENDING' | 'AWAITING_VERIFICATION' | 'PAID' | 'FAILED' | 'REFUNDED' | 'NOT_REQUIRED';
+export type DiningBookingPaymentStatus = 'PENDING' | 'AWAITING_VERIFICATION' | 'PAID' | 'FAILED' | 'SUSPICIOUS' | 'REFUNDED' | 'NOT_REQUIRED';
 
 export interface DiningRoomSnapshot {
   roomId: string;
@@ -40,6 +40,10 @@ export interface DiningBookingDocument {
   durationMinutes: number;
   price: number;
   discount: number;
+  couponCode?: string | null;
+  staffDiscountAmount?: number;
+  staffDiscountGiven?: boolean;
+  staffDiscountReason?: string | null;
   finalAmount: number;
   paymentMethod?: 'ONLINE' | 'COD' | null;
   paymentStatus: DiningBookingPaymentStatus;
@@ -101,6 +105,10 @@ export async function createDiningBooking(doc: Partial<DiningBookingDocument>, s
     durationMinutes: doc.durationMinutes ?? 60,
     price: doc.price ?? 0,
     discount: doc.discount ?? 0,
+    couponCode: doc.couponCode ?? null,
+    staffDiscountAmount: doc.staffDiscountAmount ?? 0,
+    staffDiscountGiven: doc.staffDiscountGiven ?? false,
+    staffDiscountReason: doc.staffDiscountReason ?? null,
     finalAmount: doc.finalAmount ?? 0,
     paymentMethod: doc.paymentMethod ?? null,
     paymentStatus: doc.paymentStatus || 'PENDING',

@@ -219,10 +219,10 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
       }
     }
 
-    const paymentState = resolveInitialPaymentState(
-      promo.totalAmount <= 0 && promo.walletAmountUsed > 0 ? 'WALLET' : requestedPaymentMethod,
-      promo.totalAmount,
-    );
+    const walletOnlyPayment = promo.totalAmount <= 0 && promo.walletAmountUsed > 0;
+    const paymentState = walletOnlyPayment
+      ? { paymentMethod: 'WALLET' as const, paymentStatus: 'PAID' as const, requiresProof: false }
+      : resolveInitialPaymentState(requestedPaymentMethod, promo.totalAmount);
 
     async function createOrderWithUniqueNumber(orderData: Partial<OrderDocument>) {
       const maxAttempts = 5;

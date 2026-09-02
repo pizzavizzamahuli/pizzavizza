@@ -8,6 +8,7 @@ import { listDiningBookingsForUser } from '@/src/models/dining-booking';
 import { listAddressesForUser } from '@/src/models/address';
 import { getWalletBalance } from '@/src/models/wallet';
 import { createReferral, findReferralByUser } from '@/src/models/referral';
+import { ensureUserCode } from '@/src/services/user-service';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -21,6 +22,7 @@ export default async function AccountPage() {
   }
 
   const userId = user._id?.toHexString() || user.id || '';
+  const userCode = await ensureUserCode(user);
   const [orders, bookings, addresses, walletBalance, referral] = await Promise.all([
     listOrdersForUser(userId).catch(() => []),
     listDiningBookingsForUser(userId).catch(() => []),
@@ -49,6 +51,11 @@ export default async function AccountPage() {
               </Link>
               <LogoutButton />
             </div>
+          </div>
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Your user ID</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tracking-[0.12em] text-stone-900">{userCode}</p>
+            <p className="mt-1 text-sm text-stone-600">Use this ID when contacting Pizza Vizza support.</p>
           </div>
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

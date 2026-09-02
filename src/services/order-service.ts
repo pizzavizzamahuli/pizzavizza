@@ -202,13 +202,13 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
     orderCalc.walletAmount = promo.walletAmountUsed;
     orderCalc.total = orderCalc.subtotal + orderCalc.deliveryCharge + orderCalc.additionalCharges - orderCalc.discount - orderCalc.walletAmount;
 
-    if (orderCalc.total > 0 && requestedPaymentMethod === 'COD' && !settings.codEnabled) {
+    if (promo.totalAmount > 0 && requestedPaymentMethod === 'COD' && !settings.codEnabled) {
       throw new Error('Cash on delivery is currently unavailable');
     }
-    if (orderCalc.total > 0 && requestedPaymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled) {
+    if (promo.totalAmount > 0 && requestedPaymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled) {
       throw new Error('Online payment is currently unavailable');
     }
-    if (orderCalc.total > 0 && requestedPaymentMethod === 'MANUAL' && !settings.manualPaymentEnabled) {
+    if (promo.totalAmount > 0 && requestedPaymentMethod === 'MANUAL' && !settings.manualPaymentEnabled) {
       throw new Error('Manual payment is currently unavailable');
     }
 
@@ -220,8 +220,8 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
     }
 
     const paymentState = resolveInitialPaymentState(
-      orderCalc.total <= 0 && promo.walletAmountUsed > 0 ? 'WALLET' : requestedPaymentMethod,
-      orderCalc.total,
+      promo.totalAmount <= 0 && promo.walletAmountUsed > 0 ? 'WALLET' : requestedPaymentMethod,
+      promo.totalAmount,
     );
 
     async function createOrderWithUniqueNumber(orderData: Partial<OrderDocument>) {

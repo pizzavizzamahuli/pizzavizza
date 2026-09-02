@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, data: { orderId: ord.id, orderNumber: ord.orderNumber, subtotal: ord.subtotal, discount: ord.discount, walletAmount: ord.walletAmount, totalAmount: ord.totalAmount } });
+    return NextResponse.json({ success: true, data: { orderId: ord.id, orderNumber: ord.orderNumber, subtotal: ord.subtotal, discount: ord.discount, walletAmount: ord.walletAmount, totalAmount: ord.totalAmount, paymentMethod: ord.paymentMethod, paymentStatus: ord.paymentStatus } });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg || 'Failed to create order' }, { status: 400 });

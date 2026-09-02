@@ -285,7 +285,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
       const shouldUseManualFlow = paymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled && settings.manualPaymentEnabled;
       const effectivePaymentMethod = shouldUseManualFlow ? 'MANUAL' : paymentMethod;
 
-      if (effectivePaymentMethod === 'MANUAL') {
+      if (shouldUseManualFlow && !(useWallet && walletBalance >= subtotal)) {
         if (!transactionId.trim()) {
           throw new Error('Please enter the transaction ID from your payment confirmation.');
         }
@@ -317,7 +317,16 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
         throw new Error(errorMessage);
       }
 
-      if (effectivePaymentMethod === 'MANUAL') {
+      const createdPaymentMethod = json?.data?.paymentMethod || effectivePaymentMethod;
+      const createdPaymentStatus = json?.data?.paymentStatus;
+
+      if (createdPaymentMethod === 'MANUAL' && createdPaymentStatus === 'AWAITING_VERIFICATION') {
+        if (!transactionId.trim()) {
+          throw new Error('Please enter the transaction ID from your payment confirmation.');
+        }
+        if (!manualProofFile) {
+          throw new Error('Please upload a payment proof before placing the order.');
+        }
         if (!json?.data?.orderNumber) {
           throw new Error('Order was created but no order number was returned.');
         }

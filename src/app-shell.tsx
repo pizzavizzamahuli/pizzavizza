@@ -4,6 +4,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import MobileNavigation from '@/src/components/mobile-navigation';
+import { generateMapLink } from '@/src/services/map-provider';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -40,6 +41,9 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
   }
 
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
+  const restaurantMapUrl = restaurantSettings && typeof restaurantSettings.latitude === 'number' && typeof restaurantSettings.longitude === 'number'
+    ? generateMapLink(restaurantSettings.latitude, restaurantSettings.longitude, restaurantSettings.restaurantName)
+    : null;
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
@@ -53,8 +57,8 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
                 <h1 className="truncate text-sm font-semibold sm:text-lg">Order online • Dine • Pickup</h1>
               </div>
             </Link>
-            {restaurantSettings?.googleMapsUrl ? (
-              <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="hidden rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 transition hover:bg-stone-100 sm:inline-flex">
+            {restaurantMapUrl ? (
+              <a href={restaurantMapUrl} target="_blank" rel="noreferrer" className="hidden rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-[11px] font-semibold text-stone-700 transition hover:bg-stone-100 sm:inline-flex">
                 Map
               </a>
             ) : null}

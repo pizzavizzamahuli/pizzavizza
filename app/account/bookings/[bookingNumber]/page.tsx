@@ -6,6 +6,7 @@ import { CustomerShell } from '@/src/app-shell';
 import BookingCancelButton from '@/src/components/dining/booking-cancel-button';
 import BookingSlipActions from '@/src/components/dining/booking-slip-actions';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { generateMapLink } from '@/src/services/map-provider';
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ bookingNumber: string }> }) {
   const user = await getSessionUser();
@@ -15,6 +16,9 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   if (!booking) notFound();
   const canCancel = booking.bookingStatus === 'PENDING' || booking.bookingStatus === 'CONFIRMED';
   const restaurantSettings = await getRestaurantSettings();
+  const restaurantMapUrl = typeof restaurantSettings.latitude === 'number' && typeof restaurantSettings.longitude === 'number'
+    ? generateMapLink(restaurantSettings.latitude, restaurantSettings.longitude, restaurantSettings.restaurantName)
+    : null;
 
   return (
     <CustomerShell>
@@ -32,10 +36,10 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <div><dt className="font-semibold text-stone-900">Payment status</dt><dd>{booking.paymentStatus}</dd></div>
             <div><dt className="font-semibold text-stone-900">Payment option</dt><dd>{booking.paymentMethod || 'Not selected'}</dd></div>
           </dl>
-          {restaurantSettings?.googleMapsUrl ? (
+          {restaurantMapUrl ? (
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <p className="font-semibold">Restaurant location</p>
-              <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex font-semibold underline">Open map location</a>
+              <a href={restaurantMapUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex font-semibold underline">Open map location</a>
             </div>
           ) : null}
           {booking.customerNote ? <p className="mt-6 rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">{booking.customerNote}</p> : null}

@@ -109,10 +109,8 @@ export const osmMapProvider: MapProvider = {
       return null;
     }
   },
-  generateMapLink(latitude, longitude, label) {
-    const query = label ? `${label} @ ${latitude},${longitude}` : `${latitude},${longitude}`;
-    const encoded = encodeURIComponent(query);
-    return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&query=${encoded}#map=16/${latitude}/${longitude}`;
+  generateMapLink(latitude, longitude) {
+    return `https://www.google.com/maps?q=${latitude},${longitude}`;
   },
 };
 

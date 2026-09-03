@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { CustomerShell } from '@/src/app-shell';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { generateMapLink } from '@/src/services/map-provider';
 
 const experienceCards = [
   { href: '/menu', title: 'Browse the menu', description: 'Discover pizzas, sides, and chef specials.' },
@@ -11,6 +12,9 @@ const experienceCards = [
 
 export default async function Home() {
   const restaurantSettings = await getRestaurantSettings();
+  const restaurantMapUrl = typeof restaurantSettings.latitude === 'number' && typeof restaurantSettings.longitude === 'number'
+    ? generateMapLink(restaurantSettings.latitude, restaurantSettings.longitude, restaurantSettings.restaurantName)
+    : null;
   return (
     <CustomerShell>
       <section className="grid gap-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm lg:grid-cols-[1.3fr_0.7fr] lg:p-10">
@@ -58,8 +62,8 @@ export default async function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>
             <h2 className="mt-2 text-2xl font-semibold text-stone-900">See what is cooking today</h2>
           </div>
-          {restaurantSettings.googleMapsUrl ? (
-            <a href={restaurantSettings.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-200">
+          {restaurantMapUrl ? (
+            <a href={restaurantMapUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center rounded-full bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-200">
               Open restaurant map
             </a>
           ) : null}

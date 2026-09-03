@@ -22,12 +22,11 @@ export async function PATCH(request: Request, context: unknown) {
       return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
     }
 
-    if (targetUser.role === 'MAIN_ADMIN' || targetUser.protected) {
+    if (String(targetUser.role) === 'MAIN_ADMIN' || targetUser.protected) {
       return NextResponse.json({ error: 'Main admin account cannot be modified.' }, { status: 403 });
     }
-    if (user.role !== 'MAIN_ADMIN' && targetUser.role !== 'CUSTOMER') {
-      return NextResponse.json({ error: 'Only Main Admin can manage admin and staff accounts.' }, { status: 403 });
-    }
+    const canManageTarget = user.role === 'MAIN_ADMIN' || (user.role === 'ADMIN' && targetUser.role !== 'MAIN_ADMIN');
+    if (!canManageTarget) return NextResponse.json({ error: 'Only Main Admin or Admin can manage this account.' }, { status: 403 });
 
     const body = await request.json();
     const role = body?.role ? String(body.role).trim() : undefined;
@@ -50,8 +49,8 @@ export async function PATCH(request: Request, context: unknown) {
       if (!editableRoles.includes(role as UserRole)) {
         return NextResponse.json({ error: 'Invalid role.' }, { status: 400 });
       }
-      if (user.role !== 'MAIN_ADMIN' && !['CUSTOMER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'].includes(role)) {
-        return NextResponse.json({ error: 'Admins may only promote customers to kitchen or delivery staff.' }, { status: 403 });
+      if (user.role !== 'MAIN_ADMIN' && !editableRoles.includes(role as UserRole)) {
+        return NextResponse.json({ error: 'This role cannot be assigned by your account.' }, { status: 403 });
       }
       updates.role = role as UserRole;
       newValue.role = role;

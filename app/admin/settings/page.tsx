@@ -9,31 +9,48 @@ export default async function AdminSettingsPage() {
   await requireAdminAccess();
 
   return (
-    <div className="mx-auto max-w-4xl px-0 py-2 space-y-5 sm:p-8 sm:space-y-6">
+    <div className="mx-auto max-w-7xl space-y-5 px-0 py-2 sm:p-8 sm:space-y-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
       <p className="text-sm text-stone-600">Manage staff access, reset flows, and future restaurant settings from this console.</p>
+      <div className="space-y-3">
+        <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
+            Audit Logs
+            <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
+            <span className="hidden text-sm font-normal text-stone-500 group-open:inline">Close section</span>
+          </summary>
+          <div className="border-t border-stone-200 p-4 sm:p-5"><AuditLogViewer /></div>
+        </details>
+        <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
+            User, Admin &amp; Staff Management
+            <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
+            <span className="hidden text-sm font-normal text-stone-500 group-open:inline">Close section</span>
+          </summary>
+          <div className="border-t border-stone-200 p-4 sm:p-5"><AdminUserManagement /></div>
+        </details>
+        <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
+            Server Secrets
+            <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
+            <span className="hidden text-sm font-normal text-stone-500 group-open:inline">Close section</span>
+          </summary>
+          <div className="border-t border-stone-200 p-4 sm:p-5"><SecretSettingsForm /></div>
+        </details>
+        <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
+            Legal Pages
+            <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
+            <span className="hidden text-sm font-normal text-stone-500 group-open:inline">Close section</span>
+          </summary>
+          <div className="border-t border-stone-200 p-4 sm:p-5"><LegalPagesPanel /></div>
+        </details>
+      </div>
       <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-        <AdminUserManagement />
         <div className="rounded-3xl border border-stone-200 bg-white p-6">
           <h2 className="text-lg font-semibold">Restaurant Settings</h2>
           <RestaurantSettingsForm />
-          <div className="mt-6">
-            <h3 className="text-sm font-medium">Server Secrets</h3>
-            <p className="text-xs text-stone-500">Manage server-side API keys (values are hidden for security).</p>
-            <div className="mt-3">
-              {/* Lazy-load secret form to keep bundle small */}
-              <SecretSettingsForm />
-            </div>
-            <div className="mt-6">
-              <h3 className="text-sm font-medium">Audit Log</h3>
-              <p className="text-xs text-stone-500">Recent store and secret change events.</p>
-              <div className="mt-3">
-                <AuditLogViewer />
-              </div>
-            </div>
-          </div>
         </div>
-        <LegalPagesPanel />
       </div>
     </div>
   );

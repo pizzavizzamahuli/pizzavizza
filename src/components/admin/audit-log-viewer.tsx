@@ -15,7 +15,7 @@ export default function AuditLogViewer() {
   const [items, setItems] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(50);
+  const [pageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
@@ -59,7 +59,7 @@ export default function AuditLogViewer() {
         <div className="text-sm text-stone-500">{total} entries</div>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 max-h-[28rem] overflow-auto rounded-xl border border-stone-200">
         <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
           <thead className="bg-stone-100 text-stone-500">
             <tr>

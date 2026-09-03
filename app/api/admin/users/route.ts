@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const userCode = searchParams.get('userCode')?.trim();
     const allowedRoles: UserRole[] = ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
     const isMainAdmin = user.role === 'MAIN_ADMIN';
-    const visibleRoles: UserRole[] = isMainAdmin ? allowedRoles : ['CUSTOMER'];
+    const visibleRoles: UserRole[] = isMainAdmin ? allowedRoles : allowedRoles.filter((role) => role !== 'MAIN_ADMIN');
     const selectedRoles: UserRole[] = roleFilter && visibleRoles.includes(roleFilter as UserRole)
       ? [roleFilter as UserRole]
       : visibleRoles;

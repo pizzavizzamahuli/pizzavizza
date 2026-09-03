@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         protected: isMainAdmin ? item.protected ?? false : false,
         createdAt: item.createdAt ? item.createdAt.toISOString() : null,
       }))),
-      meta: { isMainAdmin, availableRoles: isMainAdmin ? ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'] : ['KITCHEN_STAFF', 'DELIVERY_STAFF'] },
+      meta: { isMainAdmin, availableRoles: isMainAdmin ? ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'] : ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'] },
     });
   } catch (error) {
     console.error('List admin users failed', error);

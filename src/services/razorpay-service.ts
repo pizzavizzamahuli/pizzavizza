@@ -47,3 +47,11 @@ export async function verifyRazorpaySignature(razorpayOrderId: string, razorpayP
   const expected = crypto.createHmac('sha256', keySecret).update(payload).digest('hex');
   return expected === razorpaySignature;
 }
+
+export async function getRazorpayOrder(razorpayOrderId: string) {
+  const response = await fetch(`${RAZORPAY_API_BASE}/orders/${encodeURIComponent(razorpayOrderId)}`, {
+    headers: { Authorization: await getAuthHeader() },
+  });
+  if (!response.ok) throw new Error(`Razorpay order lookup failed: ${response.status}`);
+  return response.json() as Promise<{ id?: string; amount?: number; currency?: string }>;
+}

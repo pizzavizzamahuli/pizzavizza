@@ -51,6 +51,10 @@ export async function GET() {
     telegramOrderNotificationsEnabled: s.telegramOrderNotificationsEnabled,
     telegramBookingNotificationsEnabled: s.telegramBookingNotificationsEnabled,
     telegramPaymentNotificationsEnabled: s.telegramPaymentNotificationsEnabled,
+    referralEnabled: s.referralEnabled,
+    referralReferrerRewardAmount: s.referralReferrerRewardAmount,
+    referralReferredRewardAmount: s.referralReferredRewardAmount,
+    referralMinimumOrderAmount: s.referralMinimumOrderAmount,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
   };
@@ -107,6 +111,10 @@ export async function PUT(request: Request) {
       telegramOrderNotificationsEnabled: typeof updates.telegramOrderNotificationsEnabled === 'boolean' ? updates.telegramOrderNotificationsEnabled : undefined,
       telegramBookingNotificationsEnabled: typeof updates.telegramBookingNotificationsEnabled === 'boolean' ? updates.telegramBookingNotificationsEnabled : undefined,
       telegramPaymentNotificationsEnabled: typeof updates.telegramPaymentNotificationsEnabled === 'boolean' ? updates.telegramPaymentNotificationsEnabled : undefined,
+      referralEnabled: typeof updates.referralEnabled === 'boolean' ? updates.referralEnabled : undefined,
+      referralReferrerRewardAmount: typeof updates.referralReferrerRewardAmount === 'number' ? Math.max(0, updates.referralReferrerRewardAmount) : undefined,
+      referralReferredRewardAmount: typeof updates.referralReferredRewardAmount === 'number' ? Math.max(0, updates.referralReferredRewardAmount) : undefined,
+      referralMinimumOrderAmount: typeof updates.referralMinimumOrderAmount === 'number' ? Math.max(0, updates.referralMinimumOrderAmount) : undefined,
     };
 
     const updated = await updateRestaurantSettings(sanitized);

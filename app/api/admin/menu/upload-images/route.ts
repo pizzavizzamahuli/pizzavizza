@@ -2,11 +2,15 @@ import { createCloudinarySignature, getCloudinaryConfig } from '@/src/utils/clou
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { getSessionUser } from '@/src/auth/session';
+import { AuthorizationService } from '@/src/config/permissions';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    const user = await getSessionUser();
+    if (!user || !AuthorizationService.canAccess(user.role, 'menu.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     let cloudinaryConfig: { cloudName: string; apiKey: string } | null = null;
     try {
       const cfg = await getCloudinaryConfig();
@@ -28,13 +32,6 @@ export async function POST(request: Request) {
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const rawSignatureData = {
-      folder: 'pizza-vizza/products',
-      timestamp: String(timestamp),
-    };
-    const signature = await createCloudinarySignature(rawSignatureData);
-    console.debug('Cloudinary upload signature data:', rawSignatureData, { signature });
-
     const uploadPromises = files.map(async (file) => {
       if (cloudinaryConfig) {
         const { cloudName, apiKey } = await getCloudinaryConfig();

@@ -9,13 +9,20 @@ export interface ReferralDocument {
   referredUserId?: ObjectId | string | null;
   rewardType: 'CREDIT' | 'DISCOUNT';
   rewardValue: number;
+  referrerRewardAmount?: number;
+  referredRewardAmount?: number;
+  qualifyingOrderId?: string | null;
+  qualifyingOrderAmount?: number | null;
+  qualifiedAt?: Date | null;
+  referrerRewardCreditedAt?: Date | null;
+  referredRewardCreditedAt?: Date | null;
   rewardCurrency?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   redeemedAt?: Date | null;
   creditedAt?: Date | null;
-  status: 'PENDING' | 'REDEEMED' | 'EXPIRED' | 'DISABLED';
+  status: 'PENDING' | 'QUALIFIED' | 'REWARDED' | 'REDEEMED' | 'EXPIRED' | 'DISABLED';
 }
 
 const REFERRALS_COLLECTION = 'referrals';
@@ -32,6 +39,11 @@ export async function getReferralsCollection() {
     await collection.createIndex({ code: 1 }, { unique: true });
     await collection.createIndex({ referrerUserId: 1 });
     await collection.createIndex({ referredUserId: 1 });
+    try {
+      await collection.createIndex({ referrerUserId: 1 }, { unique: true });
+    } catch (error) {
+      console.warn('Could not create unique referral owner index:', error);
+    }
     return collection;
   })();
 
@@ -64,7 +76,13 @@ export async function createReferral(referrerUserId: string, rewardValue = 50) {
     updatedAt: now,
     status: 'PENDING',
   };
-  await col.insertOne(doc as ReferralDocument);
+  try {
+    await col.insertOne(doc as ReferralDocument);
+  } catch (error: unknown) {
+    if (!/duplicate|E11000/i.test(error instanceof Error ? error.message : String(error))) throw error;
+    const existing = await col.findOne({ referrerUserId });
+    if (existing) return existing;
+  }
   return doc;
 }
 
@@ -85,4 +103,37 @@ export async function markReferralRedeemed(code: string, referredUserId: string,
     { $set: { referredUserId, status: 'REDEEMED', redeemedAt: new Date(), updatedAt: new Date() } },
     { session },
   );
+}
+
+export async function reserveReferralForUser(code: string, referredUserId: string) {
+  const col = await getReferralsCollection();
+  return col.updateOne(
+    { code: code.toUpperCase(), status: 'PENDING', $or: [{ referredUserId: { $exists: false } }, { referredUserId: null }, { referredUserId }] },
+    { $set: { referredUserId, updatedAt: new Date() } },
+  );
+}
+
+export async function creditReferralRewards(code: string, referredUserId: string, session?: ClientSession) {
+  const col = await getReferralsCollection();
+  const referral = await col.findOneAndUpdate(
+    { code: code.toUpperCase(), status: 'PENDING', referrerUserId: { $ne: referredUserId } },
+    { $set: { referredUserId, status: 'REDEEMED', redeemedAt: new Date(), creditedAt: new Date(), updatedAt: new Date() } },
+    { session, returnDocument: 'after' },
+  );
+  if (!referral) return false;
+  return referral;
+}
+
+export async function qualifyReferral(code: string, referredUserId: string, orderNumber: string, orderAmount: number, referrerRewardAmount: number, referredRewardAmount: number, session?: ClientSession) {
+  const col = await getReferralsCollection();
+  return col.findOneAndUpdate(
+    { code: code.toUpperCase(), referredUserId, status: 'PENDING', qualifyingOrderId: { $in: [null, undefined] } },
+    { $set: { status: 'QUALIFIED', qualifyingOrderId: orderNumber, qualifyingOrderAmount: orderAmount, referrerRewardAmount, referredRewardAmount, qualifiedAt: new Date(), updatedAt: new Date() } },
+    { session, returnDocument: 'after' },
+  );
+}
+
+export async function markReferralRewarded(code: string, referredUserId: string, session?: ClientSession) {
+  const col = await getReferralsCollection();
+  return col.updateOne({ code: code.toUpperCase(), referredUserId, status: 'QUALIFIED' }, { $set: { status: 'REWARDED', creditedAt: new Date(), referrerRewardCreditedAt: new Date(), referredRewardCreditedAt: new Date(), updatedAt: new Date() } }, { session });
 }

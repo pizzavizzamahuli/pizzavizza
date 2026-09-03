@@ -1,5 +1,6 @@
 import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
+import { notifyUser } from '@/src/services/notification-service';
 
 export type WalletLedgerEntryType = 'CREDIT' | 'DEBIT' | 'REFUND' | 'REFERRAL_REWARD';
 
@@ -102,23 +103,40 @@ export async function adjustWalletBalance(
     }
   }
 
-  const newBalance = Number(wallet.balance || 0) + amount;
-  if (newBalance < 0) {
-    throw new Error('Insufficient wallet balance');
-  }
+  const updatedWallet = await col.findOneAndUpdate(
+    amount < 0 ? { userId, balance: { $gte: Math.abs(amount) } } : { userId },
+    { $inc: { balance: amount }, $set: { updatedAt: new Date() } },
+    { session, returnDocument: 'after' },
+  );
+  if (!updatedWallet) throw new Error('Insufficient wallet balance');
 
-  await col.updateOne({ userId }, { $set: { balance: newBalance, updatedAt: new Date() } }, { session });
-  await ledgerCol.insertOne({
+  try {
+    await ledgerCol.insertOne({
     userId,
     amount,
     type: entryType || (amount >= 0 ? 'CREDIT' : 'DEBIT'),
     reason,
     referenceId: referenceId || null,
-    balanceAfter: newBalance,
+    balanceAfter: Number(updatedWallet.balance || 0),
     createdAt: new Date(),
-  } as WalletLedgerEntry, { session });
+    } as WalletLedgerEntry, { session });
+  } catch (error: unknown) {
+    if (referenceId && /duplicate|E11000/i.test(error instanceof Error ? error.message : String(error))) {
+      if (!session) {
+        const reverted = await col.findOneAndUpdate(
+          { userId, balance: Number(updatedWallet.balance || 0) },
+          { $inc: { balance: -amount }, $set: { updatedAt: new Date() } },
+          { returnDocument: 'after' },
+        );
+        return { balance: Number(reverted?.balance ?? updatedWallet.balance ?? 0) };
+      }
+      throw error;
+    }
+    throw error;
+  }
 
-  return { balance: newBalance };
+  notifyUser(userId, { type: amount >= 0 ? 'WALLET_CREDIT' : 'WALLET_DEBIT', title: amount >= 0 ? 'Wallet credited' : 'Wallet debited', message: `${amount >= 0 ? 'INR ' + amount + ' was added to' : 'INR ' + Math.abs(amount) + ' was used from'} your wallet.`, href: '/account/wallet', relatedType: 'wallet', relatedId: referenceId || null, eventKey: `wallet:${userId}:${referenceId || `${Date.now()}:${amount}`}` }).catch((error) => console.error('Wallet notification failed', error));
+  return { balance: Number(updatedWallet.balance || 0) };
 }
 
 export async function getWalletBalance(userId: string, session?: ClientSession) {

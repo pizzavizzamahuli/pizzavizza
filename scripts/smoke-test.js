@@ -256,6 +256,11 @@ async function run() {
     console.log('register ->', registerRes.status, regJson);
     if (!registerRes.ok) throw new Error('Register failed');
 
+    // The production flow requires OTP verification before login. For this
+    // isolated smoke database, mark the just-created test user verified so
+    // the remaining checkout journey can continue without exposing an OTP.
+    await db.collection('users').updateOne({ email }, { $set: { emailVerified: true }, $unset: { emailVerification: '' } });
+
     // Use header/cookie fallback: set cookie locally from returned session token
     if (sessionTokenValue) {
       cookie = `pizzavizza_session=${encodeURIComponent(sessionTokenValue)}`;

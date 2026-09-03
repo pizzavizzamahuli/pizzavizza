@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { cancelBookingForUser, createDiningBookingForUser } from '@/src/services/dining-service';
+import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
       couponCode: typeof couponCode === 'string' ? couponCode.slice(0, 50) : null,
       idempotencyKey: typeof idempotencyKey === 'string' ? idempotencyKey.slice(0, 100) : null,
     });
+    notifyUser(user._id!.toHexString(), { type: 'BOOKING_CREATED', title: 'Booking created', message: `Your dining booking ${booking.bookingNumber} has been created.`, href: `/account/bookings/${booking.bookingNumber}`, relatedType: 'booking', relatedId: booking.bookingNumber, eventKey: `booking:${booking.bookingNumber}:created` }).catch((error) => console.error('Booking notification failed', error));
+    notifyAdmins({ type: 'NEW_BOOKING', title: 'New booking', message: `A new dining booking ${booking.bookingNumber} was created.`, href: `/admin/bookings/${booking.bookingNumber}`, relatedType: 'booking', relatedId: booking.bookingNumber, permission: 'bookings.view', eventKey: `booking:${booking.bookingNumber}:admin-new` }).catch((error) => console.error('Admin booking notification failed', error));
 
     return NextResponse.json({ success: true, data: { bookingNumber: booking.bookingNumber, bookingId: booking.id, amount: booking.finalAmount } });
   } catch (err: unknown) {
@@ -51,6 +54,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'A valid cancellation request is required.' }, { status: 400 });
     }
     const booking = await cancelBookingForUser(user._id!.toHexString(), payload.bookingNumber.trim());
+    if (booking) notifyUser(user._id!.toHexString(), { type: 'BOOKING_CANCELLED', title: 'Booking cancelled', message: `Your dining booking ${booking.bookingNumber} has been cancelled.`, href: `/account/bookings/${booking.bookingNumber}`, relatedType: 'booking', relatedId: booking.bookingNumber, eventKey: `booking:${booking.bookingNumber}:cancelled` }).catch((error) => console.error('Booking notification failed', error));
     return NextResponse.json({ success: true, data: { bookingNumber: booking?.bookingNumber } });
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Unable to cancel booking' }, { status: 400 });

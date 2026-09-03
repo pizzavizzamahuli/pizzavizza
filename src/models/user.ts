@@ -13,6 +13,14 @@ export interface UserDocument {
   role: UserRole;
   accountStatus: AccountStatus;
   emailVerified: boolean;
+  referredByReferralCode?: string | null;
+  emailVerification?: {
+    codeHash: string;
+    expiresAt: Date;
+    attempts: number;
+    sentAt: Date;
+    resendCount?: number;
+  } | null;
   temporaryAccess?: {
     enabled: boolean;
     startsAt?: Date | null;

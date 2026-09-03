@@ -8,15 +8,14 @@ import { UserRole, AccountStatus } from '@/src/types';
 const editableRoles: UserRole[] = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
 const editableStatuses: AccountStatus[] = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 
-export async function PATCH(request: Request, context: unknown) {
-  const { params } = context as { params: { id: string } };
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
     if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const targetId = params.id;
+    const { id: targetId } = await context.params;
     const targetUser = await getUserById(targetId);
     if (!targetUser) {
       return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
@@ -109,15 +108,14 @@ export async function PATCH(request: Request, context: unknown) {
   }
 }
 
-export async function DELETE(_request: Request, context: unknown) {
-  const { params } = context as { params: { id: string } };
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
     if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const targetId = params.id;
+    const { id: targetId } = await context.params;
     const targetUser = await getUserById(targetId);
     if (!targetUser) {
       return NextResponse.json({ error: 'User account not found.' }, { status: 404 });

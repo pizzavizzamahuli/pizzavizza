@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { createOrderForUser } from '@/src/services/order-service';
+import { updateOrderByOrderNumber } from '@/src/models/order';
 import { createRazorpayOrder } from '@/src/services/razorpay-service';
 
 type CheckoutPayload = {
@@ -46,10 +47,10 @@ export async function POST(request: Request) {
   }
   try {
     const payload = (await request.json()) as unknown as CheckoutPayload;
-    const { fulfillmentType, addressId, items, customerNote, reservationBookingNumber, couponCode, walletAmount, paymentMethod, transactionId, paymentProofUrl } = payload;
+    const { fulfillmentType, addressId, items, customerNote, reservationBookingNumber, couponCode, walletAmount, referralCode, paymentMethod, transactionId, paymentProofUrl } = payload;
     if (!fulfillmentType) return NextResponse.json({ error: 'fulfillmentType is required' }, { status: 400 });
     const idempotencyKey = (request.headers.get('Idempotency-Key') || request.headers.get('idempotency-key') || null) as string | null;
-    const order = await createOrderForUser(user._id!.toHexString(), { items: items || [], fulfillmentType, addressId, customerNote, reservationBookingNumber, couponCode, walletAmount, paymentMethod, transactionId, paymentProofUrl, idempotencyKey });
+    const order = await createOrderForUser(user._id!.toHexString(), { items: items || [], fulfillmentType, addressId, customerNote, reservationBookingNumber, couponCode, walletAmount, referralCode: referralCode || user.referredByReferralCode || null, paymentMethod, transactionId, paymentProofUrl, idempotencyKey });
     const ord = order as CreatedOrder;
 
     // If online payment requested, create a Razorpay order and return details required by client
@@ -57,6 +58,9 @@ export async function POST(request: Request) {
       try {
         const amountPaise = Math.round((ord.totalAmount || 0) * 100);
         const rpOrder = await createRazorpayOrder(amountPaise, ord.orderNumber || String(ord.id || ''));
+        if (ord.orderNumber && rpOrder?.id) {
+          await updateOrderByOrderNumber(ord.orderNumber, { razorpayOrderId: String(rpOrder.id) });
+        }
         return NextResponse.json({ success: true, data: { orderId: ord.id, orderNumber: ord.orderNumber, subtotal: ord.subtotal, discount: ord.discount, walletAmount: ord.walletAmount, totalAmount: ord.totalAmount, razorpay: { keyId: process.env.RAZORPAY_KEY_ID || null, order: rpOrder } } });
       } catch (e) {
         console.error('createRazorpayOrder failed', e);

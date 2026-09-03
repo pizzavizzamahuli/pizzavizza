@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createSession, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from '@/src/auth/session';
-import { createUser, findUserByEmail, isUserEligibleForSession } from '@/src/services/user-service';
+import { createUser, findUserByEmail, hashPassword, setEmailVerification } from '@/src/services/user-service';
 import { env } from '@/src/config/env';
+import { createReferral, findReferralByCode, reserveReferralForUser } from '@/src/models/referral';
+import { sendEmailVerificationEmail } from '@/src/services/email-service';
+import { randomInt } from 'crypto';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +18,7 @@ export async function POST(request: Request) {
     const mobile = String(body?.mobile || '').trim();
     const password = String(body?.password || '');
     const confirmPassword = String(body?.confirmPassword || '');
+    const referralCode = String(body?.referralCode || '').trim().toUpperCase() || null;
 
     if (!name || !email || !password || !confirmPassword) {
       return NextResponse.json({ error: 'Please complete all required fields.' }, { status: 400 });
@@ -36,6 +40,12 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json({ error: 'An account with that email already exists.' }, { status: 409 });
     }
+    if (referralCode) {
+      const referralSettings = await getRestaurantSettings();
+      if (!referralSettings.referralEnabled) return NextResponse.json({ error: 'Referral programme is currently unavailable.' }, { status: 400 });
+      const referral = await findReferralByCode(referralCode);
+      if (!referral || !referral.isActive || referral.status !== 'PENDING') return NextResponse.json({ error: 'Invalid referral code.' }, { status: 400 });
+    }
 
     const user = await createUser({
       name,
@@ -44,38 +54,20 @@ export async function POST(request: Request) {
       password,
       role: 'CUSTOMER',
       accountStatus: 'ACTIVE',
+      referredByReferralCode: referralCode,
     });
 
-    if (!isUserEligibleForSession(user)) {
-      return NextResponse.json({ error: 'Unable to create account at this time.' }, { status: 403 });
+    if (referralCode) {
+      const reserved = await reserveReferralForUser(referralCode, user.id as string);
+      if (!reserved.modifiedCount) return NextResponse.json({ error: 'Invalid referral code.' }, { status: 400 });
     }
+    await createReferral(user.id as string);
 
-    const token = await createSession(user.id as string);
-    const responseBody: {
-      success: true;
-      user: { id: string | undefined; name: string; email: string; role: string };
-      sessionToken?: string;
-    } = { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
-    // For development and smoke tests include the raw token in the response body so test harnesses can capture it.
-    if (env.NODE_ENV !== 'production') {
-      responseBody.sessionToken = token;
-    }
+    const verificationCode = randomInt(100000, 1000000).toString();
+    await setEmailVerification(user.id as string, await hashPassword(verificationCode), new Date(Date.now() + 15 * 60 * 1000));
+    await sendEmailVerificationEmail(user.email, user.name, verificationCode);
 
-    const response = NextResponse.json(responseBody);
-    response.cookies.set(SESSION_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: SESSION_MAX_AGE_SECONDS,
-    });
-
-    // Expose token via a non-sensitive header in non-production to help smoke-test harnesses
-    if (env.NODE_ENV !== 'production') {
-      response.headers.set('x-pizzavizza-session', token);
-    }
-
-    return response;
+    return NextResponse.json({ success: true, requiresEmailVerification: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
     console.error('Registration failed', error);
     return NextResponse.json({ error: 'Registration failed. Please try again later.' }, { status: 500 });

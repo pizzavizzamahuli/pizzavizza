@@ -8,13 +8,14 @@ import { findAddressById } from '@/src/models/address';
 import type { ClientSession } from 'mongodb';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { checkDeliveryEligibilityAsync } from '@/src/services/delivery-service';
-import { calculatePromotions, finalizeReferralReward } from '@/src/services/promo-service';
+import { calculatePromotions } from '@/src/services/promo-service';
 import { normalizePaymentMethod, resolveInitialPaymentState } from '@/src/services/payment-service';
 import { adjustWalletBalance } from '@/src/models/wallet';
 import { reserveCouponUsage } from '@/src/models/coupon';
 import { getDatabaseClient } from '@/src/config/database';
 import { calculateCustomizationForProduct, getEffectiveProductPrice } from '@/src/services/customization-service';
 import { findDiningBookingByBookingNumber } from '@/src/models/dining-booking';
+import { notifyOrderPlaced } from '@/src/services/notification-service';
 
 export type OrderItemPayload = {
   productId: string;
@@ -104,6 +105,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
   if (!user) throw new Error('User not found');
 
   const settings = await getRestaurantSettings();
+  const referralCode = user.referredByReferralCode || opts.referralCode || null;
   if (opts.reservationBookingNumber) {
     const reservation = await findDiningBookingByBookingNumber(opts.reservationBookingNumber);
     if (!reservation || reservation.userId !== userId || ['CANCELLED', 'REJECTED', 'COMPLETED', 'NO_SHOW'].includes(reservation.bookingStatus)) {
@@ -192,7 +194,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
         fulfillmentType: opts.fulfillmentType,
         couponCode: opts.couponCode || null,
         walletAmount: opts.walletAmount || null,
-        referralCode: opts.referralCode || null,
+        referralCode,
         paymentMethod: requestedPaymentMethod,
       },
       activeSession,
@@ -275,10 +277,6 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
       await adjustWalletBalance(userId, -promo.walletAmountUsed, 'Order payment', order.orderNumber, 'DEBIT', activeSession);
     }
 
-    if (promo.referralApplied && promo.referralCode) {
-      await finalizeReferralReward(order.orderNumber, userId, promo.referralCode, activeSession);
-    }
-
     await clearCart(userId, activeSession);
   };
 
@@ -309,6 +307,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
   } catch (err) {
     console.error('Failed to dispatch telegram notifyNewOrder', err);
   }
+  notifyOrderPlaced(order).catch((err) => console.error('Order notification failed', err));
 
   return order;
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOrderStatus, validOrderStatusTransitions, OrderStatus } from '@/src/models/order';
+import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
+import { qualifyReferralReward } from '@/src/services/promo-service';
 
 export async function PUT(request: Request, context: unknown) {
   const { params } = context as { params: { orderNumber: string } };
@@ -35,6 +37,9 @@ export async function PUT(request: Request, context: unknown) {
     if (!updated) {
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
     }
+    notifyUser(updated.userId, { type: `ORDER_${normalizedStatus}`, title: `Order ${normalizedStatus.toLowerCase()}`, message: `Order ${updated.orderNumber} is now ${normalizedStatus.toLowerCase()}.`, href: `/account/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, eventKey: `order:${updated.orderNumber}:status:${normalizedStatus}` }).catch((error) => console.error('Order notification failed', error));
+    if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'REJECTED') notifyAdmins({ type: `ORDER_${normalizedStatus}`, title: `Order ${normalizedStatus.toLowerCase()}`, message: `Order ${updated.orderNumber} was ${normalizedStatus.toLowerCase()}.`, href: `/admin/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, permission: 'orders.view', eventKey: `admin:order:${updated.orderNumber}:status:${normalizedStatus}` }).catch((error) => console.error('Admin order notification failed', error));
+    qualifyReferralReward(updated).catch((error) => console.error('Referral qualification failed', error));
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err: unknown) {

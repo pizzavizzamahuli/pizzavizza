@@ -21,6 +21,7 @@ export function RegisterForm() {
       mobile: formData.get('mobile')?.toString() ?? '',
       password: formData.get('password')?.toString() ?? '',
       confirmPassword: formData.get('confirmPassword')?.toString() ?? '',
+      referralCode: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') || '' : '',
     };
 
     const response = await fetch('/api/auth/register', {
@@ -37,7 +38,7 @@ export function RegisterForm() {
       return;
     }
 
-    router.push('/account');
+    router.push(`/verify-email?email=${encodeURIComponent(payload.email)}`);
   }
 
   return (

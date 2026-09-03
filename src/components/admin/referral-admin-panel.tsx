@@ -63,7 +63,10 @@ export default function ReferralAdminPanel() {
               <div className="flex justify-between gap-3">
                 <div>
                   <div className="font-medium">{String(referral.code)}</div>
-                  <div className="text-sm text-stone-600">User: {String(referral.referrerUserId || '')}</div>
+                  <div className="text-sm text-stone-600">Referrer: {String((referral.referrer as Record<string, unknown> | null)?.name || referral.referrerUserId || '')}</div>
+                  <div className="text-sm text-stone-600">Referred: {String((referral.referred as Record<string, unknown> | null)?.name || 'Not registered')}</div>
+                  <div className="text-xs text-stone-500">Qualifying order: {String(referral.qualifyingOrderId || 'Pending')} · Amount: INR {String(referral.qualifyingOrderAmount || '-')}</div>
+                  <div className="text-xs text-stone-500">Rewards: referrer INR {String(referral.referrerRewardAmount || '-')} · new user INR {String(referral.referredRewardAmount || '-')}</div>
                 </div>
                 <div className="text-sm text-stone-600">{String(referral.status)}</div>
               </div>

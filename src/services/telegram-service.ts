@@ -6,6 +6,7 @@ import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
 
 import { getSecret } from '@/src/services/secret-service';
+import { claimTelegramNotification, releaseTelegramNotification } from '@/src/models/telegram-notification';
 
 async function getBotToken() {
   const fromSecret = await getSecret('telegramBotToken');
@@ -16,13 +17,19 @@ async function getBotToken() {
 async function sendTelegramApi(method: string, body: Record<string, unknown>) {
   const token = await getBotToken();
   if (!token) throw new Error('TELEGRAM_BOT_TOKEN not configured');
-  const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json();
-  return json;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const res = await fetch(`${TELEGRAM_API_BASE}/bot${token}/${method}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) });
+      const json = await res.json() as { ok?: boolean; description?: string };
+      if (!res.ok || json.ok === false) throw new Error(json.description || `Telegram API returned ${res.status}`);
+      return json;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Telegram API request failed');
 }
 
 export async function sendMessage(chatId: string | number, text: string, options?: Record<string, unknown>) {
@@ -57,6 +64,13 @@ export async function safeNotify(chatId: string | number, text: string, options?
     console.error('Telegram notify failed', err);
     return null;
   }
+}
+
+async function safeNotifyEvent(chatId: string | number, eventKey: string, text: string, options?: Record<string, unknown>) {
+  if (!(await claimTelegramNotification(chatId, eventKey))) return null;
+  const result = await safeNotify(chatId, text, options);
+  if (!result) await releaseTelegramNotification(chatId, eventKey);
+  return result;
 }
 
 type OrderLike = {
@@ -111,7 +125,7 @@ export async function notifyNewOrder(order: OrderLike) {
 
     const text = summaryLines.join('\n');
 
-    await Promise.all(admins.map((a) => safeNotify(a.telegramChatId, text)));
+    await Promise.all(admins.map((a) => safeNotifyEvent(a.telegramChatId, `order:${order.orderNumber}:created`, text)));
   } catch (err) {
     console.error('notifyNewOrder error', err);
   }
@@ -150,7 +164,7 @@ export async function notifyNewBooking(booking: BookingLike) {
     lines.push(`*Status:* ${booking.bookingStatus}`);
 
     const text = lines.join('\n');
-    await Promise.all(admins.map((a) => safeNotify(a.telegramChatId, text)));
+    await Promise.all(admins.map((a) => safeNotifyEvent(a.telegramChatId, `booking:${booking.bookingNumber}:created`, text)));
   } catch (err) {
     console.error('notifyNewBooking error', err);
   }
@@ -186,7 +200,11 @@ export async function notifyPaymentProof(order: OrderLike) {
 
     const caption = captionLines.join('\n');
 
-    await Promise.all(admins.map((a) => sendPhoto(a.telegramChatId, order.paymentProofUrl || '', caption, { reply_markup: replyMarkup })));
+    await Promise.all(admins.map(async (a) => {
+      const eventKey = `payment-proof:${order.orderNumber}`;
+      if (!(await claimTelegramNotification(a.telegramChatId, eventKey))) return null;
+      try { return await sendPhoto(a.telegramChatId, order.paymentProofUrl || '', caption, { reply_markup: replyMarkup }); } catch (error) { await releaseTelegramNotification(a.telegramChatId, eventKey); console.error('Telegram payment proof send failed', error); return null; }
+    }));
   } catch (err) {
     console.error('notifyPaymentProof error', err);
   }

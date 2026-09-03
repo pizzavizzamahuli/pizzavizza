@@ -4,6 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { findDiningBookingByBookingNumber } from '@/src/models/dining-booking';
 import { canTransitionDiningBookingStatus, type DiningBookingStatus } from '@/src/models/dining-booking';
 import { updateBookingStatus } from '@/src/services/dining-service';
+import { notifyUser } from '@/src/services/notification-service';
 
 export async function PUT(request: Request, context: { params: Promise<{ bookingNumber: string }> }) {
   const { bookingNumber } = await context.params;
@@ -31,6 +32,7 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
       }
 
       const updatedBooking = await updateBookingStatus(booking._id!.toHexString(), status as DiningBookingStatus, user._id!.toHexString(), `Status updated to ${status}`);
+      if (updatedBooking) notifyUser(booking.userId, { type: `BOOKING_${status}`, title: `Booking ${status.toLowerCase()}`, message: `Your dining booking ${booking.bookingNumber} is now ${status.toLowerCase()}.`, href: `/account/bookings/${booking.bookingNumber}`, relatedType: 'booking', relatedId: booking.bookingNumber, eventKey: `booking:${booking.bookingNumber}:status:${status}` }).catch((error) => console.error('Booking notification failed', error));
       return NextResponse.json({ success: true, data: updatedBooking });
     }
 
@@ -47,6 +49,7 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
         paymentStatus: paymentStatus as (typeof booking.paymentStatus),
         ...(staffDiscountGiven !== undefined ? { staffDiscountGiven, staffDiscountAmount: staffDiscountGiven ? staffDiscountAmount || 0 : 0, staffDiscountReason: staffDiscountGiven ? staffDiscountReason || null : null } : {}),
       });
+      notifyUser(booking.userId, { type: `BOOKING_PAYMENT_${paymentStatus}`, title: `Booking payment ${paymentStatus.toLowerCase()}`, message: `Payment for booking ${booking.bookingNumber} is ${paymentStatus.toLowerCase()}.`, href: `/account/bookings/${booking.bookingNumber}`, relatedType: 'booking', relatedId: booking.bookingNumber, eventKey: `booking:${booking.bookingNumber}:payment:${paymentStatus}` }).catch((error) => console.error('Booking payment notification failed', error));
       return NextResponse.json({ success: true, data: result });
     }
 

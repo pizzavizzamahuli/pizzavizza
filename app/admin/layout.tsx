@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getSessionUser } from '@/src/auth/session';
+import { NotificationBell } from '@/src/components/notifications/notification-bell';
 
 export const metadata: Metadata = {
   title: 'Pizza Vizza Admin',
@@ -62,6 +63,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                     Consumer dashboard
                   </Link>
                 ) : null}
+                {isAdminUser ? <NotificationBell admin /> : null}
                 <div className="rounded-full border border-stone-200 px-3 py-1 text-sm text-stone-600">
                   Live access
                 </div>

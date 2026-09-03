@@ -23,6 +23,7 @@ import {
 import type { DiningBookingDocument, DiningBookingStatus } from '@/src/models/dining-booking';
 import { getUserById } from '@/src/services/user-service';
 import { AuthorizationService } from '@/src/config/permissions';
+import { ObjectId } from 'mongodb';
 
 type TelegramChat = {
   id: number | string;
@@ -182,6 +183,9 @@ export async function POST(request: Request) {
   // Validate webhook secret header
   try {
     const secret = env.TELEGRAM_WEBHOOK_SECRET || '';
+    if (env.NODE_ENV === 'production' && !secret) {
+      return NextResponse.json({ error: 'Telegram webhook secret is not configured' }, { status: 503 });
+    }
     if (secret) {
       const header = request.headers.get('x-telegram-bot-api-secret-token') || '';
       if (!header || header !== secret) {
@@ -369,6 +373,22 @@ export async function POST(request: Request) {
           return NextResponse.json({ ok: true });
         }
 
+        if (domain === 'delivery' && action === 'assign' && parts.length === 4) {
+          if (!AuthorizationService.canAccess(appUser.role, 'telegram.manageDelivery')) {
+            await safeNotify(fromId, 'You are not authorized to manage delivery assignments.');
+            return NextResponse.json({ ok: true });
+          }
+          const order = await findOrderByOrderNumber(target);
+          const staffId = parts[3];
+          let staff = null;
+          try { staff = await (await import('@/src/models/user')).getUsersCollection().then((collection) => collection.findOne({ _id: new ObjectId(staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' })); } catch { staff = null; }
+          if (!order || !staff) { await safeNotify(fromId, !order ? `Order not found: ${target}` : 'Active delivery staff member not found.'); return NextResponse.json({ ok: true }); }
+          await updateOrderByOrderNumber(target, { deliveryStaffId: staff._id!.toHexString(), deliveryStaffName: staff.name });
+          await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'delivery_assigned', targetType: 'order', targetId: target, timestamp: new Date(), payload: { staffId } });
+          await safeNotify(fromId, `Order ${target} assigned to ${staff.name}.`);
+          return NextResponse.json({ ok: true });
+        }
+
         if (domain === 'booking' && action === 'view') {
           const booking = await findDiningBookingByBookingNumber(target);
           if (!booking) {
@@ -420,6 +440,28 @@ export async function POST(request: Request) {
         }
       }
       // unknown callback: ignore
+      return NextResponse.json({ ok: true });
+    }
+
+    // Delivery assignment command: /assign <ORDER_NUMBER> <DELIVERY_STAFF_ID>
+    if (typeof text === 'string' && text.startsWith('/assign')) {
+      const parts = text.split(/\s+/);
+      const orderNumber = parts[1];
+      const staffId = parts[2];
+      const linked = await findTelegramAdminByChat(String(chatId));
+      const appUser = linked ? await getUserById(linked.userId) : null;
+      if (!linked || linked.status !== 'ACTIVE' || !appUser || !AuthorizationService.canAccess(appUser.role, 'telegram.manageDelivery')) {
+        await safeNotify(chatId, 'You are not authorized to manage delivery assignments.');
+        return NextResponse.json({ ok: true });
+      }
+      if (!orderNumber || !staffId) { await safeNotify(chatId, 'Usage: /assign <order number> <delivery staff id>'); return NextResponse.json({ ok: true }); }
+      const order = await findOrderByOrderNumber(orderNumber);
+      let staff = null;
+      try { staff = await (await import('@/src/models/user')).getUsersCollection().then((collection) => collection.findOne({ _id: new ObjectId(staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' })); } catch { staff = null; }
+      if (!order || !staff) { await safeNotify(chatId, !order ? `Order not found: ${orderNumber}` : 'Active delivery staff member not found.'); return NextResponse.json({ ok: true }); }
+      await updateOrderByOrderNumber(orderNumber, { deliveryStaffId: staff._id!.toHexString(), deliveryStaffName: staff.name });
+      await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: chatId, action: 'delivery_assigned', targetType: 'order', targetId: orderNumber, timestamp: new Date(), payload: { staffId } });
+      await safeNotify(chatId, `Order ${orderNumber} assigned to ${staff.name}.`);
       return NextResponse.json({ ok: true });
     }
 
@@ -561,7 +603,7 @@ export async function POST(request: Request) {
 
     // Other commands: /start, /help
     if (typeof text === 'string' && (text.startsWith('/start') || text.startsWith('/help'))) {
-      const help = `Pizza Vizza Admin Bot\nCommands:\n/start, /help - show this message\n/link <code> - link your Telegram chat (one-time code)\n/order <ORDER_NUMBER> - lookup order\n/orders <term> - search orders\n/booking <BOOKING_NUMBER> - lookup booking\n/bookings <term> - search bookings`;
+      const help = `Pizza Vizza Admin Bot\nCommands:\n/start, /help - show this message\n/link <code> - link your Telegram chat (one-time code)\n/order <ORDER_NUMBER> - lookup order\n/orders <term> - search orders\n/assign <ORDER_NUMBER> <STAFF_ID> - assign delivery\n/booking <BOOKING_NUMBER> - lookup booking\n/bookings <term> - search bookings`;
       await safeNotify(chatId, help);
       return NextResponse.json({ ok: true });
     }

@@ -268,6 +268,16 @@ export default function RestaurantSettingsForm() {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Referral programme</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.referralEnabled} onChange={(e) => setSettings({ ...settings, referralEnabled: e.target.checked })} /> Referral programme enabled</label>
+          <label className="text-sm"><span className="mb-1 block">Referrer reward (INR)</span><input type="number" min="0" className="input" value={settings.referralReferrerRewardAmount ?? 50} onChange={(e) => setSettings({ ...settings, referralReferrerRewardAmount: Number(e.target.value) || 0 })} /></label>
+          <label className="text-sm"><span className="mb-1 block">New user reward (INR)</span><input type="number" min="0" className="input" value={settings.referralReferredRewardAmount ?? 50} onChange={(e) => setSettings({ ...settings, referralReferredRewardAmount: Number(e.target.value) || 0 })} /></label>
+          <label className="text-sm sm:col-span-2"><span className="mb-1 block">Minimum qualifying order (INR)</span><input type="number" min="0" className="input" value={settings.referralMinimumOrderAmount ?? 300} onChange={(e) => setSettings({ ...settings, referralMinimumOrderAmount: Number(e.target.value) || 0 })} /></label>
+        </div>
+      </div>
+
       <div>
         <button className="btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</button>
       </div>

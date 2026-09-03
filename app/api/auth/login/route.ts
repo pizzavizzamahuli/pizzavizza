@@ -33,6 +33,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
     }
 
+    if (!user.emailVerified && user.emailVerification) {
+      return NextResponse.json({ error: 'Please verify your email before signing in.', requiresEmailVerification: true }, { status: 403 });
+    }
+
     if (user.accountStatus === 'DISABLED' || user.accountStatus === 'SUSPENDED') {
       return NextResponse.json({ error: 'This account is disabled or suspended.' }, { status: 403 });
     }

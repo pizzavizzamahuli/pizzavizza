@@ -5,6 +5,7 @@ import { getCartForUser } from '@/src/services/cart-service';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import MobileNavigation from '@/src/components/mobile-navigation';
 import { generateMapLink } from '@/src/services/map-provider';
+import { NotificationBell } from '@/src/components/notifications/notification-bell';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -77,8 +78,12 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
             <Link href="/cart" className="rounded-full bg-stone-900 px-3 py-2 text-white transition hover:bg-stone-700">
               Cart {cartCount > 0 ? `(${cartCount})` : ''}
             </Link>
+            {user ? <NotificationBell /> : null}
           </nav>
-          <MobileNavigation cartCount={cartCount} isAdminUser={isAdminUser} />
+          <div className="flex items-center gap-2 md:hidden">
+            {user ? <NotificationBell /> : null}
+            <MobileNavigation cartCount={cartCount} isAdminUser={isAdminUser} />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">{children}</main>

@@ -1,8 +1,11 @@
 import { findCouponByCode, CouponDocument } from '@/src/models/coupon';
-import { findReferralByCode, markReferralRedeemed } from '@/src/models/referral';
+import { findReferralByCode, qualifyReferral, markReferralRewarded } from '@/src/models/referral';
 import { getWalletBalance, adjustWalletBalance } from '@/src/models/wallet';
 import { listOrders } from '@/src/models/order';
 import type { ClientSession } from 'mongodb';
+import { notifyUser } from '@/src/services/notification-service';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getUserById } from '@/src/services/user-service';
 
 export interface PromotionCalculationInput {
   userId: string;
@@ -40,6 +43,9 @@ export async function calculatePromotions(input: PromotionCalculationInput, sess
   let discountAmount = 0;
   let coupon: CouponDocument | null = null;
   let couponCode: string | null = null;
+  let appliedReferralCode: string | null = null;
+  let referralApplied = false;
+  const referralSettings = await getRestaurantSettings();
 
   if (input.couponCode) {
     const normalizedCode = input.couponCode.trim().toUpperCase();
@@ -79,6 +85,17 @@ export async function calculatePromotions(input: PromotionCalculationInput, sess
     couponCode = normalizedCode;
   }
 
+  if (input.referralCode) {
+    if (!referralSettings.referralEnabled) throw new Error('Referral programme is currently unavailable');
+    const referralCode = input.referralCode.trim().toUpperCase();
+    const referral = await findReferralByCode(referralCode, session);
+    if (!referral || !referral.isActive || referral.status !== 'PENDING' || (referral.referredUserId && String(referral.referredUserId) !== input.userId) || String(referral.referrerUserId) === input.userId) {
+      throw new Error('Invalid referral code');
+    }
+    appliedReferralCode = referralCode;
+    referralApplied = true;
+  }
+
   const amountAfterCoupon = Math.max(0, baseAmount - discountAmount);
   const requestedWalletAmount = Math.max(0, toNumber(input.walletAmount));
   const availableBalance = await getWalletBalance(input.userId, session);
@@ -92,17 +109,31 @@ export async function calculatePromotions(input: PromotionCalculationInput, sess
     totalAmount: Math.round(totalAmount * 100) / 100,
     couponCode,
     coupon,
-    referralCode: null,
-    referralApplied: false,
+    referralCode: appliedReferralCode,
+    referralApplied,
   };
 }
 
-export async function finalizeReferralReward(orderNumber: string, userId: string, referralCode: string, session?: ClientSession) {
-  const referral = await findReferralByCode(referralCode, session);
-  if (!referral || !referral.isActive) return false;
-  if (referral.referredUserId) return false;
-  const update = await markReferralRedeemed(referralCode, userId, session);
-  if (!update.modifiedCount) return false;
-  await adjustWalletBalance(String(referral.referrerUserId), referral.rewardValue, 'Referral reward', orderNumber, 'REFERRAL_REWARD', session);
+export async function qualifyReferralReward(order: { orderNumber: string; userId: string; totalAmount: number; paymentStatus: string; paymentMethod?: string | null; orderStatus: string }, session?: ClientSession) {
+  const successfulPayment = order.paymentStatus === 'PAID' || (order.paymentMethod === 'COD' && order.paymentStatus === 'PENDING');
+  if (!successfulPayment || order.orderStatus !== 'COMPLETED') return false;
+  const settings = await getRestaurantSettings();
+  if (!settings.referralEnabled || order.totalAmount < settings.referralMinimumOrderAmount) return false;
+  const user = await getUserById(order.userId);
+  const code = user?.referredByReferralCode;
+  if (!code) return false;
+  const referral = await findReferralByCode(code, session);
+  if (!referral || !referral.isActive || referral.status !== 'PENDING' || String(referral.referrerUserId) === order.userId) return false;
+  const qualified = await qualifyReferral(code, order.userId, order.orderNumber, order.totalAmount, settings.referralReferrerRewardAmount, settings.referralReferredRewardAmount, session);
+  const reward = qualified || (await findReferralByCode(code, session));
+  if (!reward || !['QUALIFIED', 'REWARDED'].includes(reward.status)) return false;
+  if (reward.status === 'REWARDED') return true;
+  await adjustWalletBalance(String(reward.referrerUserId), reward.referrerRewardAmount || 0, 'Referral reward', `${order.orderNumber}:referrer`, 'REFERRAL_REWARD', session);
+  await adjustWalletBalance(order.userId, reward.referredRewardAmount || 0, 'New customer referral reward', `${order.orderNumber}:referred`, 'REFERRAL_REWARD', session);
+  const marked = await markReferralRewarded(code, order.userId, session);
+  if (marked.modifiedCount) {
+    notifyUser(String(reward.referrerUserId), { type: 'REFERRAL_REWARD', title: 'Referral reward credited', message: `You earned INR ${reward.referrerRewardAmount || 0} from order ${order.orderNumber}.`, href: '/account/wallet', relatedType: 'order', relatedId: order.orderNumber, eventKey: `referral:${order.orderNumber}:referrer` }).catch((error) => console.error('Referral notification failed', error));
+    notifyUser(order.userId, { type: 'REFERRAL_REWARD', title: 'Welcome reward credited', message: `INR ${reward.referredRewardAmount || 0} referral credit was added to your wallet.`, href: '/account/wallet', relatedType: 'order', relatedId: order.orderNumber, eventKey: `referral:${order.orderNumber}:referred` }).catch((error) => console.error('Referral notification failed', error));
+  }
   return true;
 }

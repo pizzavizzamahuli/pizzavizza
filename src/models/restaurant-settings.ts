@@ -60,6 +60,10 @@ export interface RestaurantSettingsDocument {
   telegramOrderNotificationsEnabled?: boolean;
   telegramBookingNotificationsEnabled?: boolean;
   telegramPaymentNotificationsEnabled?: boolean;
+  referralEnabled: boolean;
+  referralReferrerRewardAmount: number;
+  referralReferredRewardAmount: number;
+  referralMinimumOrderAmount: number;
   onlinePaymentEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -126,6 +130,10 @@ export async function getRestaurantSettings() {
     telegramOrderNotificationsEnabled: false,
     telegramBookingNotificationsEnabled: false,
     telegramPaymentNotificationsEnabled: false,
+    referralEnabled: true,
+    referralReferrerRewardAmount: 50,
+    referralReferredRewardAmount: 50,
+    referralMinimumOrderAmount: 300,
     createdAt: now,
     updatedAt: now,
   };

@@ -82,6 +82,8 @@ export interface OrderDocument {
   paymentStatus: PaymentStatus;
   transactionId?: string | null;
   paymentProofUrl?: string | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
   orderStatus: OrderStatus;
   customerNote?: string | null;
   reservationBookingNumber?: string | null;
@@ -144,6 +146,8 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     paymentStatus: doc.paymentStatus || 'PENDING',
     transactionId: doc.transactionId ?? null,
     paymentProofUrl: doc.paymentProofUrl ?? null,
+    razorpayOrderId: doc.razorpayOrderId ?? null,
+    razorpayPaymentId: doc.razorpayPaymentId ?? null,
     orderStatus: doc.orderStatus || 'PENDING',
     customerNote: doc.customerNote ?? null,
     deliveryDistance: doc.deliveryDistance ?? null,

@@ -72,6 +72,7 @@ export async function createUser(input: {
     forcePasswordChange?: boolean;
     status?: TemporaryAccessStatus;
   };
+  referredByReferralCode?: string | null;
 }) {
   const collection = await getUsersCollection();
   const now = new Date();
@@ -88,6 +89,7 @@ export async function createUser(input: {
     role: input.role ?? 'CUSTOMER',
     accountStatus: input.accountStatus ?? 'ACTIVE',
     emailVerified: false,
+    referredByReferralCode: input.referredByReferralCode ?? null,
     temporaryAccess: input.temporaryAccess,
     protected: input.protected ?? false,
     createdAt: now,
@@ -102,6 +104,36 @@ export async function findUserByEmail(email: string) {
   const collection = await getUsersCollection();
   const normalizedEmail = normalizeEmail(email);
   return collection.findOne({ email: normalizedEmail });
+}
+
+export async function setEmailVerification(id: string, codeHash: string, expiresAt: Date) {
+  const collection = await getUsersCollection();
+  return collection.updateOne({ _id: new ObjectId(id) }, { $set: { emailVerification: { codeHash, expiresAt, attempts: 0, resendCount: 0, sentAt: new Date() }, updatedAt: new Date() } });
+}
+
+export async function incrementEmailVerificationAttempt(id: string) {
+  const collection = await getUsersCollection();
+  return collection.findOneAndUpdate({ _id: new ObjectId(id), emailVerified: { $ne: true }, 'emailVerification.attempts': { $lt: 5 } }, { $inc: { 'emailVerification.attempts': 1 }, $set: { updatedAt: new Date() } }, { returnDocument: 'after' });
+}
+
+export async function reserveEmailVerificationResend(id: string, codeHash: string, expiresAt: Date, cooldownMs = 60_000) {
+  const collection = await getUsersCollection();
+  const cutoff = new Date(Date.now() - cooldownMs);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      emailVerified: { $ne: true },
+      $or: [{ 'emailVerification.sentAt': { $exists: false } }, { 'emailVerification.sentAt': { $lte: cutoff } }],
+    },
+    {
+      $set: { emailVerification: { codeHash, expiresAt, attempts: 0, sentAt: new Date() }, updatedAt: new Date() },
+    },
+  );
+}
+
+export async function markEmailVerified(id: string) {
+  const collection = await getUsersCollection();
+  return collection.updateOne({ _id: new ObjectId(id) }, { $set: { emailVerified: true, updatedAt: new Date() }, $unset: { emailVerification: '' } });
 }
 
 export async function findUserByLoginIdentifier(identifier: string) {

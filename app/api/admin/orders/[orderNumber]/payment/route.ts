@@ -3,6 +3,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, PaymentStatus, updateOrderByOrderNumber } from '@/src/models/order';
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
+import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 
 const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED'];
 
@@ -32,6 +33,11 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       paymentStatus: status as PaymentStatus,
       ...(staffDiscountGiven !== undefined ? { staffDiscountGiven, staffDiscountAmount: staffDiscountGiven ? staffDiscountAmount || 0 : 0, staffDiscountReason: staffDiscountGiven ? staffDiscountReason || null : null } : {}),
     });
+    if (updated) {
+      const eventKey = `order:${updated.orderNumber}:payment:${status.toLowerCase()}`;
+      notifyUser(updated.userId, { type: `PAYMENT_${status}`, title: `Payment ${status.toLowerCase()}`, message: `Payment for order ${updated.orderNumber} is ${status.toLowerCase()}.`, href: `/account/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, eventKey }).catch((error) => console.error('Payment notification failed', error));
+      if (status !== 'PAID') notifyAdmins({ type: `PAYMENT_${status}`, title: `Payment ${status.toLowerCase()}`, message: `Payment for order ${updated.orderNumber} requires attention.`, href: `/admin/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, permission: 'payments.view', eventKey: `admin:${eventKey}` }).catch((error) => console.error('Admin payment notification failed', error));
+    }
     await recordTelegramAudit({
       performedByUserId: user._id?.toHexString() || null,
       telegramUserId: null,

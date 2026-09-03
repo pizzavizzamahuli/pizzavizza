@@ -17,10 +17,10 @@ export default function MobileNavigation({ cartCount, isAdminUser }: { cartCount
   return (
     <div className="md:hidden">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="min-h-11 rounded-full border border-stone-300 bg-white px-4 text-sm font-semibold text-stone-800">
-          {open ? 'Close' : 'Menu'}
+        <button type="button" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={open} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-800">
+          <span aria-hidden="true" className="text-lg leading-none">{open ? '×' : '☰'}</span>
         </button>
-        <Link href="/cart" className="inline-flex min-h-11 items-center rounded-full bg-stone-900 px-4 text-sm font-semibold text-white">
+        <Link href="/cart" aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ''}`} className="inline-flex h-10 items-center rounded-full bg-stone-900 px-3 text-xs font-semibold text-white">
           Cart{cartCount > 0 ? ` (${cartCount})` : ''}
         </Link>
       </div>

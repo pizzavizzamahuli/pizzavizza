@@ -17,13 +17,13 @@ export default async function Home() {
     : null;
   return (
     <CustomerShell>
-      <section className="grid gap-6 rounded-3xl border border-stone-200 bg-white p-8 shadow-sm lg:grid-cols-[1.3fr_0.7fr] lg:p-10">
+      <section className="grid gap-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:rounded-3xl sm:p-8 lg:grid-cols-[1.3fr_0.7fr] lg:p-10">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Fresh customer experience</p>
-          <h2 className="mt-3 text-4xl font-semibold tracking-tight text-stone-900 sm:text-5xl">
+          <h2 className="mt-3 text-3xl font-semibold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl">
             Order, dine, and manage everything in one place.
           </h2>
-          <p className="mt-4 max-w-2xl text-lg text-stone-600">
+          <p className="mt-4 max-w-2xl text-base leading-6 text-stone-600 sm:text-lg">
             Pizza Vizza now brings menu browsing, checkout, dining reservations, wallet credits, and order history into a connected experience for customers.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -47,7 +47,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
+      <section className="mt-5 grid gap-3 sm:mt-8 md:grid-cols-3">
         {experienceCards.map((card) => (
           <Link key={card.href} href={card.href} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300">
             <h3 className="text-lg font-semibold text-stone-900">{card.title}</h3>
@@ -56,7 +56,7 @@ export default async function Home() {
         ))}
       </section>
 
-      <section className="mt-8 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
+      <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-3xl sm:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Restaurant menu</p>

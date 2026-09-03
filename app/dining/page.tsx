@@ -9,16 +9,16 @@ export default async function DiningHomePage() {
 
   return (
     <CustomerShell>
-      <div className="space-y-8">
-        <section className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
+      <div className="space-y-5 sm:space-y-8">
+        <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Private Dining</p>
-          <h1 className="mt-3 text-3xl font-semibold text-stone-900">Reserve a private dining room</h1>
-          <p className="mt-4 text-sm text-stone-600">Choose a dining room, pick a time slot, and book an intimate experience for your group.</p>
+          <h1 className="mt-3 text-2xl font-semibold leading-tight text-stone-900 sm:text-3xl">Reserve a private dining room</h1>
+          <p className="mt-3 text-sm leading-5 text-stone-600 sm:mt-4">Choose a dining room, pick a time slot, and book an intimate experience for your group.</p>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
+        <section className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {rooms.map((room) => (
-            <article key={room._id?.toHexString()} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <article key={room._id?.toHexString()} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
               {room.images?.[0] ? <img src={room.images[0]} alt={room.name} className="mb-5 aspect-[16/9] w-full rounded-2xl object-cover" /> : null}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">

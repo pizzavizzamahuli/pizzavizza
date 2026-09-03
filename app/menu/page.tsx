@@ -22,10 +22,10 @@ export default async function MenuPage({
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
+      <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Pizza Vizza</p>
-        <h1 className="mt-3 text-2xl font-semibold text-stone-900 sm:text-3xl">Fresh favourites, made for every craving</h1>
-        <p className="mt-3 max-w-2xl text-sm text-stone-600">Browse our signature pizzas, sides, and comfort favourites designed for quick pickup, express delivery, or a cozy dine-in evening.</p>
+        <h1 className="mt-3 text-2xl font-semibold leading-tight text-stone-900 sm:text-3xl">Fresh favourites, made for every craving</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-5 text-stone-600">Browse our signature pizzas, sides, and comfort favourites designed for quick pickup, express delivery, or a cozy dine-in evening.</p>
       </section>
 
       <section>

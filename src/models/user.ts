@@ -11,6 +11,8 @@ export interface UserDocument {
   mobile?: string | null;
   passwordHash: string;
   role: UserRole;
+  permissions?: string[];
+  staffStatus?: 'AVAILABLE' | 'BUSY' | 'ON_DELIVERY' | 'OFFLINE';
   accountStatus: AccountStatus;
   emailVerified: boolean;
   referredByReferralCode?: string | null;

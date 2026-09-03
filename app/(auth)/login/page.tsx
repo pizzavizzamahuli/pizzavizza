@@ -24,9 +24,7 @@ export default async function LoginPage() {
   if (user) {
     // Server-side role-based redirect to prevent client-side role decisions
     const adminRoles = ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
-    if (adminRoles.includes(user.role)) {
-      redirect('/admin');
-    }
+    if (adminRoles.includes(user.role)) redirect(user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/admin');
 
     redirect('/account');
   }

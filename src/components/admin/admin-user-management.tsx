@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
-type UserRow = { id: string; userCode?: string; name: string; email: string; mobile?: string | null; role: string; accountStatus: string; protected?: boolean };
+type UserRow = { id: string; userCode?: string; name: string; email: string; mobile?: string | null; role: string; accountStatus: string; permissions?: string[]; protected?: boolean };
 const statuses = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 const mainRoles = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
 const adminRoles = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
+const permissionOptions = ['orders.view', 'orders.manage', 'kitchen.view', 'kitchen.manage', 'delivery.view', 'delivery.manage', 'bookings.view', 'bookings.manage', 'payments.view', 'payments.manage', 'customers.view', 'customers.manage', 'reports.view'];
 
 function roleLabel(role: string) {
   if (role === 'CUSTOMER') return 'Consumer';
@@ -18,7 +19,7 @@ export function AdminUserManagement() {
   const [search, setSearch] = useState('');
   const [roles, setRoles] = useState<string[]>(mainRoles);
   const [isMainAdmin, setIsMainAdmin] = useState(false);
-  const [updates, setUpdates] = useState<Record<string, { role: string; accountStatus: string }>>({});
+  const [updates, setUpdates] = useState<Record<string, { role: string; accountStatus: string; permissions: string[] }>>({});
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -44,7 +45,7 @@ export function AdminUserManagement() {
       setIsMainAdmin(Boolean(json.meta?.isMainAdmin));
       setRoles(json.meta?.availableRoles || mainRoles);
       setRole(json.meta?.availableRoles?.[0] || 'ADMIN');
-      setUpdates(Object.fromEntries(nextUsers.map((item: UserRow) => [item.id, { role: item.role, accountStatus: item.accountStatus }])));
+      setUpdates(Object.fromEntries(nextUsers.map((item: UserRow) => [item.id, { role: item.role, accountStatus: item.accountStatus, permissions: item.permissions || [] }])));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to load users.');
     } finally {
@@ -104,5 +105,6 @@ export function AdminUserManagement() {
       <button type="submit" disabled={loading} className="rounded-full bg-amber-600 px-4 py-2 font-semibold text-white disabled:opacity-60">{loading ? 'Working...' : 'Create account'}</button>
     </form></details>
       <div className="mt-4 overflow-x-auto rounded-xl border"><table className="min-w-full text-left text-sm"><thead className="bg-stone-100"><tr><th className="px-3 py-2">User ID</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Contact</th><th className="px-3 py-2">Role</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Actions</th></tr></thead><tbody className="divide-y">{filteredUsers.map((user) => <tr key={user.id}><td className="px-3 py-2 font-mono text-xs font-semibold">{user.userCode || '—'}</td><td className="px-3 py-2 font-medium">{user.name}</td><td className="px-3 py-2">{user.email}<br />{user.mobile || 'No phone'}</td><td className="px-3 py-2">{user.protected ? <span className="font-semibold text-amber-700">Main Admin</span> : <select value={updates[user.id]?.role || user.role} onChange={(event) => setUpdates((current) => ({ ...current, [user.id]: { ...current[user.id], role: event.target.value } }))} className="rounded-lg border px-2 py-1">{(isMainAdmin ? roles : adminRoles).map((item) => <option key={item} value={item}>{roleLabel(item)}</option>)}</select>}</td><td className="px-3 py-2"><select value={updates[user.id]?.accountStatus || user.accountStatus} disabled={user.protected} onChange={(event) => setUpdates((current) => ({ ...current, [user.id]: { ...current[user.id], accountStatus: event.target.value } }))} className="rounded-lg border px-2 py-1">{statuses.map((item) => <option key={item}>{item}</option>)}</select></td><td className="whitespace-nowrap px-3 py-2"><button type="button" disabled={user.protected} onClick={() => saveUser(user.id)} className="rounded-full bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">Save</button>{!user.protected ? <><button type="button" onClick={() => changePassword(user.id)} className="ml-2 rounded-full border px-3 py-1.5 text-xs font-semibold">Password</button>{isMainAdmin ? <button type="button" onClick={() => changePassword(user.id, true)} className="ml-2 rounded-full border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700">Temporary</button> : null}</> : null}</td></tr>)}</tbody></table>{!filteredUsers.length ? <p className="p-5 text-sm text-stone-500">No matching accounts.</p> : null}</div>
+      {isMainAdmin ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-semibold text-amber-900">Assigned permissions</p><p className="mt-1 text-xs text-amber-800">Select a staff member above, then use the browser request/API to manage granular capabilities.</p>{filteredUsers.filter((user) => !user.protected && user.role !== 'CUSTOMER').map((user) => <label key={`${user.id}-permissions`} className="mt-3 block text-sm text-stone-700"><span className="font-medium">{user.name}</span><select multiple value={updates[user.id]?.permissions || []} onChange={(event) => setUpdates((current) => ({ ...current, [user.id]: { ...current[user.id], permissions: Array.from(event.target.selectedOptions, (option) => option.value) } }))} className="mt-1 h-24 w-full rounded-lg border bg-white px-2 py-1">{permissionOptions.map((permission) => <option key={permission} value={permission}>{permission}</option>)}</select><button type="button" onClick={() => saveUser(user.id)} className="mt-1 rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white">Save permissions</button></label>)}</div> : null}
   </section>;
 }

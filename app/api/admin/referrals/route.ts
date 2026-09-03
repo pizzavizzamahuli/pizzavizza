@@ -7,7 +7,7 @@ import { getUserById } from '@/src/services/user-service';
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'referrals.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'referrals.view', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const referrals = await listReferrals();
   const data = await Promise.all(referrals.map(async (referral) => {
     const [referrer, referred] = await Promise.all([
@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'referrals.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'referrals.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const payload = await request.json();
   const existing = await findReferralByUser(payload.userId);

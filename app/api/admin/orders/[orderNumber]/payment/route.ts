@@ -9,7 +9,7 @@ const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATI
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'payments.manage')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'payments.manage', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

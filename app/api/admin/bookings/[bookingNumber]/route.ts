@@ -9,7 +9,7 @@ import { notifyUser } from '@/src/services/notification-service';
 export async function PUT(request: Request, context: { params: Promise<{ bookingNumber: string }> }) {
   const { bookingNumber } = await context.params;
   const user = await getSessionUser();
-  if (!user || (!AuthorizationService.canAccess(user.role, 'bookings.manage') && !AuthorizationService.canAccess(user.role, 'payments.manage'))) {
+  if (!user || (!AuthorizationService.canAccess(user.role, 'bookings.manage', user.permissions) && !AuthorizationService.canAccess(user.role, 'payments.manage', user.permissions))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -23,6 +23,7 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
     const { status, paymentStatus, extendMinutes } = payload;
 
     if (typeof status === 'string') {
+      if (!AuthorizationService.canAccess(user.role, 'bookings.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       const validStatuses: DiningBookingStatus[] = ['PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'];
       if (!validStatuses.includes(status as DiningBookingStatus)) {
         return NextResponse.json({ error: 'Invalid booking status' }, { status: 400 });
@@ -37,6 +38,7 @@ export async function PUT(request: Request, context: { params: Promise<{ booking
     }
 
     if (typeof paymentStatus === 'string') {
+      if (!AuthorizationService.canAccess(user.role, 'payments.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       const validPaymentStatus = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED', 'NOT_REQUIRED'];
       if (!validPaymentStatus.includes(paymentStatus)) {
         return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 });

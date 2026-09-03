@@ -7,6 +7,7 @@ import { recordTelegramAudit } from '@/src/models/telegram-audit';
 import {
   findOrderByOrderNumber,
   updateOrderByOrderNumber,
+  assignDeliveryStaff,
   updateOrderStatusByOrderNumber,
   searchOrders,
   canTransitionOrderStatus,
@@ -383,7 +384,8 @@ export async function POST(request: Request) {
           let staff = null;
           try { staff = await (await import('@/src/models/user')).getUsersCollection().then((collection) => collection.findOne({ _id: new ObjectId(staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' })); } catch { staff = null; }
           if (!order || !staff) { await safeNotify(fromId, !order ? `Order not found: ${target}` : 'Active delivery staff member not found.'); return NextResponse.json({ ok: true }); }
-          await updateOrderByOrderNumber(target, { deliveryStaffId: staff._id!.toHexString(), deliveryStaffName: staff.name });
+          const assigned = await assignDeliveryStaff(target, staff._id!.toHexString(), staff.name, appUser._id?.toHexString() || 'telegram', order.deliveryStaffId || null);
+          if (!assigned) { await safeNotify(fromId, 'Assignment changed concurrently. Please refresh the order.'); return NextResponse.json({ ok: true }); }
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'delivery_assigned', targetType: 'order', targetId: target, timestamp: new Date(), payload: { staffId } });
           await safeNotify(fromId, `Order ${target} assigned to ${staff.name}.`);
           return NextResponse.json({ ok: true });

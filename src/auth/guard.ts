@@ -30,6 +30,18 @@ export async function requireAdminAccess() {
   return user;
 }
 
+  export async function requireAdminPanelAccess() {
+    const user = await requireAuth();
+    if (!['MAIN_ADMIN', 'ADMIN'].includes(user.role)) redirect(user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
+    return user;
+  }
+
+export async function requireRoleDashboard() {
+  const user = await requireAuth();
+  if (!['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'].includes(user.role)) redirect('/account');
+  return user;
+}
+
 export async function requireRole(role: UserRole) {
   const user = await requireAuth();
 
@@ -43,7 +55,7 @@ export async function requireRole(role: UserRole) {
 export async function requirePermission(permission: PermissionName) {
   const user = await requireAuth();
 
-  if (!AuthorizationService.canAccess(user.role, permission)) {
+  if (!AuthorizationService.canAccess(user.role, permission, user.permissions)) {
     redirect('/login');
   }
 

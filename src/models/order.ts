@@ -178,6 +178,20 @@ export async function updateOrderByOrderNumber(orderNumber: string, updates: Par
   return col.findOne({ orderNumber });
 }
 
+export async function assignDeliveryStaff(orderNumber: string, staffId: string | null, staffName: string | null, changedBy: string, expectedStaffId?: string | null) {
+  const col = await getOrdersCollection();
+  const current = await col.findOne({ orderNumber });
+  if (!current) return null;
+  const currentStaffId = current.deliveryStaffId || null;
+  if (expectedStaffId !== undefined && currentStaffId !== expectedStaffId) return null;
+  const now = new Date();
+  return col.findOneAndUpdate(
+    { orderNumber, deliveryStaffId: currentStaffId },
+    { $set: { deliveryStaffId: staffId, deliveryStaffName: staffName, updatedAt: now }, $push: { statusHistory: { previousStatus: current.orderStatus, newStatus: current.orderStatus, changedBy, note: staffId ? `Delivery assigned to ${staffName}` : 'Delivery assignment released', createdAt: now } } },
+    { returnDocument: 'after' },
+  );
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -215,21 +229,16 @@ export async function searchOrders(term: string) {
 }
 
 export async function updateOrderStatusByOrderNumber(orderNumber: string, status: OrderStatus, changedBy: string, note?: string) {
-  const order = await findOrderByOrderNumber(orderNumber);
-  if (!order) return null;
-
-  const history = [
-    ...(order.statusHistory || []),
-    {
-      previousStatus: order.orderStatus,
-      newStatus: status,
-      changedBy,
-      note: note || `Status updated to ${status}`,
-      createdAt: new Date(),
-    },
-  ];
-
-  return updateOrderByOrderNumber(orderNumber, { orderStatus: status, statusHistory: history });
+  const col = await getOrdersCollection();
+  const current = await col.findOne({ orderNumber });
+  if (!current || !canTransitionOrderStatus(current.orderStatus, status)) return null;
+  const now = new Date();
+  const result = await col.findOneAndUpdate(
+    { orderNumber, orderStatus: current.orderStatus },
+    { $set: { orderStatus: status, updatedAt: now }, $push: { statusHistory: { previousStatus: current.orderStatus, newStatus: status, changedBy, note: note || `Status updated to ${status}`, createdAt: now } } },
+    { returnDocument: 'after' },
+  );
+  return result;
 }
 
 export async function listOrdersForUser(userId: string) {

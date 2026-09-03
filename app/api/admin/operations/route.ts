@@ -7,8 +7,12 @@ import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'orders.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const canViewOrders = user && AuthorizationService.canAccess(user.role, 'orders.view', user.permissions);
+  const canViewDelivery = user && AuthorizationService.canAccess(user.role, 'delivery.view', user.permissions);
+  const canViewKitchen = user && AuthorizationService.canAccess(user.role, 'kitchen.view', user.permissions);
+  if (!user || (!canViewOrders && !canViewDelivery && !canViewKitchen)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const [orders, bookings, settings] = await Promise.all([listOrders(), listBookings(), getRestaurantSettings()]);
+  const scopedOrders = user.role === 'DELIVERY_STAFF' ? orders.filter((order) => order.deliveryStaffId === user._id?.toHexString() || order.deliveryStaffId === user.id) : user.role === 'KITCHEN_STAFF' ? orders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'].includes(order.orderStatus)) : orders;
   let staff: Array<{ id?: string; name: string; mobile?: string | null; accountStatus: string }> = [];
   if (AuthorizationService.canAccess(user.role, 'delivery.manage')) {
     const { getUsersCollection } = await import('@/src/models/user');
@@ -18,8 +22,8 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     data: {
-      orders: orders.map((order) => ({ ...order, _id: order._id?.toHexString(), createdAt: order.createdAt.toISOString(), updatedAt: order.updatedAt.toISOString() })),
-      bookings: bookings.map((booking) => ({ ...booking, _id: booking._id?.toHexString(), createdAt: booking.createdAt.toISOString(), updatedAt: booking.updatedAt.toISOString() })),
+      orders: scopedOrders.map((order) => ({ ...order, _id: order._id?.toHexString(), createdAt: order.createdAt.toISOString(), updatedAt: order.updatedAt.toISOString() })),
+      bookings: user.role === 'DELIVERY_STAFF' ? [] : bookings.map((booking) => ({ ...booking, _id: booking._id?.toHexString(), createdAt: booking.createdAt.toISOString(), updatedAt: booking.updatedAt.toISOString() })),
       staff,
       storeLocation: typeof settings.latitude === 'number' && typeof settings.longitude === 'number' ? { latitude: settings.latitude, longitude: settings.longitude } : null,
       restaurantName: settings.restaurantName,

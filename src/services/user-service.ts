@@ -63,6 +63,8 @@ export async function createUser(input: {
   mobile?: string | null;
   password: string;
   role?: UserRole;
+  permissions?: string[];
+  staffStatus?: 'AVAILABLE' | 'BUSY' | 'ON_DELIVERY' | 'OFFLINE';
   accountStatus?: AccountStatus;
   protected?: boolean;
   temporaryAccess?: {
@@ -87,6 +89,8 @@ export async function createUser(input: {
     mobile: input.mobile?.trim() || null,
     passwordHash,
     role: input.role ?? 'CUSTOMER',
+    permissions: input.permissions || [],
+    staffStatus: input.staffStatus || (input.role === 'DELIVERY_STAFF' || input.role === 'KITCHEN_STAFF' ? 'AVAILABLE' : undefined),
     accountStatus: input.accountStatus ?? 'ACTIVE',
     emailVerified: false,
     referredByReferralCode: input.referredByReferralCode ?? null,

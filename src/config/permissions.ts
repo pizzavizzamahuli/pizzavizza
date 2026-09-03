@@ -13,24 +13,27 @@ export const permissionDefinitions = {
   delivery: ['delivery.view', 'delivery.manage'],
   admins: ['admins.view', 'admins.manage'],
   settings: ['settings.view', 'settings.manage'],
+  kitchen: ['kitchen.view', 'kitchen.manage'],
 } as const;
 
 export type PermissionName = (typeof permissionDefinitions)[keyof typeof permissionDefinitions][number];
 
 export class AuthorizationService {
-  static canAccess(userRole: string, permission: PermissionName) {
+  static canAccess(userRole: string, permission: PermissionName, assignedPermissions?: string[]) {
     if (userRole === 'MAIN_ADMIN') {
       return true;
     }
 
+    if (assignedPermissions?.length) return assignedPermissions.includes(permission);
+
     // Define role-based permission mapping
     const rolePermissions: Record<string, Array<string>> = {
-      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'telegram'],
+      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'telegram', 'kitchen'],
       // Add telegram to admin privileges if desired; granular control is enforced via permission checks.
       ADMIN_TELEGRAM: ['telegram'],
-      MANAGER: ['menu', 'categories', 'products', 'orders', 'bookings'],
-      KITCHEN_STAFF: ['orders', 'bookings'],
-      DELIVERY_STAFF: ['orders', 'delivery', 'bookings'],
+      MANAGER: ['orders', 'bookings', 'delivery', 'kitchen', 'customers'],
+      KITCHEN_STAFF: ['kitchen'],
+      DELIVERY_STAFF: ['delivery'],
     };
 
     const allowedPrefixes = rolePermissions[userRole] || [];

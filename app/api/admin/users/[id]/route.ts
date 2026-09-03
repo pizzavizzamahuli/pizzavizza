@@ -4,6 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { getUserById, updateUser, updateUserPassword, isValidMobile } from '@/src/services/user-service';
 import { recordAudit } from '@/src/models/audit-log';
 import { UserRole, AccountStatus } from '@/src/types';
+import type { UserDocument } from '@/src/models/user';
 
 const editableRoles: UserRole[] = ['ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'];
 const editableStatuses: AccountStatus[] = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
@@ -24,8 +25,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (String(targetUser.role) === 'MAIN_ADMIN' || targetUser.protected) {
       return NextResponse.json({ error: 'Main admin account cannot be modified.' }, { status: 403 });
     }
-    const canManageTarget = user.role === 'MAIN_ADMIN' || (user.role === 'ADMIN' && targetUser.role !== 'MAIN_ADMIN');
-    if (!canManageTarget) return NextResponse.json({ error: 'Only Main Admin or Admin can manage this account.' }, { status: 403 });
+    const canManageTarget = user.role === 'MAIN_ADMIN';
+    if (!canManageTarget) return NextResponse.json({ error: 'Only Main Admin can manage staff accounts.' }, { status: 403 });
 
     const body = await request.json();
     const role = body?.role ? String(body.role).trim() : undefined;
@@ -33,6 +34,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const newPassword = body?.newPassword ? String(body.newPassword).trim() : undefined;
     const temporaryPassword = body?.temporaryPassword ? String(body.temporaryPassword).trim() : undefined;
     const mobile = body?.mobile !== undefined ? String(body.mobile || '').trim() : undefined;
+    const permissions = Array.isArray(body?.permissions) ? body.permissions.map((value: unknown) => String(value)).slice(0, 50) : undefined;
+    const staffStatus = ['AVAILABLE', 'BUSY', 'ON_DELIVERY', 'OFFLINE'].includes(String(body?.staffStatus)) ? String(body.staffStatus) as UserDocument['staffStatus'] : undefined;
 
     const updates: Partial<Record<string, unknown>> = {};
     const oldValue: Record<string, unknown> = {
@@ -48,9 +51,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (!editableRoles.includes(role as UserRole)) {
         return NextResponse.json({ error: 'Invalid role.' }, { status: 400 });
       }
-      if (user.role !== 'MAIN_ADMIN' && !editableRoles.includes(role as UserRole)) {
-        return NextResponse.json({ error: 'This role cannot be assigned by your account.' }, { status: 403 });
-      }
       updates.role = role as UserRole;
       newValue.role = role;
     }
@@ -59,6 +59,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (mobile && !isValidMobile(mobile)) return NextResponse.json({ error: 'Invalid mobile number.' }, { status: 400 });
       updates.mobile = mobile || null;
     }
+    if (permissions !== undefined) { if (user.role !== 'MAIN_ADMIN') return NextResponse.json({ error: 'Only Main Admin can change staff permissions.' }, { status: 403 }); updates.permissions = permissions; newValue.permissions = permissions; }
+    if (staffStatus !== undefined) { if (targetUser.role !== 'DELIVERY_STAFF' && targetUser.role !== 'KITCHEN_STAFF') return NextResponse.json({ error: 'Availability applies only to staff accounts.' }, { status: 400 }); updates.staffStatus = staffStatus; newValue.staffStatus = staffStatus; }
     if (newPassword !== undefined || temporaryPassword !== undefined) {
       const password = newPassword || temporaryPassword;
       if (!password || password.length < 8) return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
@@ -100,6 +102,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         email: updatedUser?.email,
         role: updatedUser?.role,
         accountStatus: updatedUser?.accountStatus,
+        staffStatus: updatedUser?.staffStatus || null,
       },
     });
   } catch (error) {

@@ -46,7 +46,9 @@ export async function GET(request: Request) {
         email: item.email,
         mobile: item.mobile || null,
         role: item.role,
+        staffStatus: item.staffStatus || null,
         accountStatus: item.accountStatus,
+        permissions: item.permissions || [],
         protected: isMainAdmin ? item.protected ?? false : false,
         createdAt: item.createdAt ? item.createdAt.toISOString() : null,
       }))),
@@ -75,6 +77,8 @@ export async function POST(request: Request) {
     const role = String(body?.role || '').trim();
     const mobile = String(body?.mobile || '').trim();
     const password = String(body?.password || '').trim();
+    const permissions = Array.isArray(body?.permissions) ? body.permissions.map((value: unknown) => String(value)).slice(0, 50) : [];
+    const staffStatus = ['AVAILABLE', 'BUSY', 'ON_DELIVERY', 'OFFLINE'].includes(String(body?.staffStatus)) ? String(body.staffStatus) as UserDocument['staffStatus'] : undefined;
 
     if (!name || !email || !role) {
       return NextResponse.json({ error: 'Name, email and role are required.' }, { status: 400 });
@@ -101,6 +105,8 @@ export async function POST(request: Request) {
       role: role as UserRole,
       accountStatus: 'ACTIVE',
       protected: false,
+      permissions,
+      staffStatus,
     });
 
     if (!password) {
@@ -119,6 +125,7 @@ export async function POST(request: Request) {
         name: staffUser.name,
         email: staffUser.email,
         role: staffUser.role,
+        permissions: staffUser.permissions,
         accountStatus: staffUser.accountStatus,
       },
       timestamp: new Date(),

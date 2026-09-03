@@ -56,7 +56,8 @@ export async function POST(request: Request) {
     const token = await createSession(user._id?.toHexString() || user.id || '');
     const adminRoles = ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
     const requiresPasswordChange = user.temporaryAccess?.enabled && user.temporaryAccess.forcePasswordChange;
-    const redirectTo = requiresPasswordChange ? '/account/change-password' : adminRoles.includes(user.role) ? '/admin' : '/account';
+    const roleRedirect = user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/admin';
+    const redirectTo = requiresPasswordChange ? '/account/change-password' : adminRoles.includes(user.role) ? roleRedirect : '/account';
     const responseBody: {
       success: true;
       redirect: string;

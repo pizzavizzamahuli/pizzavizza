@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { findOrderByOrderNumber, updateOrderByOrderNumber } from '@/src/models/order';
+import { assignDeliveryStaff, findOrderByOrderNumber } from '@/src/models/order';
 import { ObjectId } from 'mongodb';
+import { notifyUser, notifyAdmins } from '@/src/services/notification-service';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'delivery.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user || !AuthorizationService.canAccess(user.role, 'delivery.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { orderNumber } = await context.params;
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
@@ -17,7 +18,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     const { getUsersCollection } = await import('@/src/models/user');
     let staff = null;
     try {
-      staff = await (await getUsersCollection()).findOne({ _id: new ObjectId(payload.staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' });
+      staff = await (await getUsersCollection()).findOne({ _id: new ObjectId(payload.staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE', staffStatus: { $in: ['AVAILABLE', 'BUSY', 'ON_DELIVERY'] } });
     } catch {
       staff = null;
     }
@@ -25,9 +26,9 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     staffId = staff._id?.toHexString() || staff.id || null;
     staffName = staff.name;
   }
-  const updated = await updateOrderByOrderNumber(orderNumber, {
-    deliveryStaffId: staffId,
-    deliveryStaffName: staffName,
-  });
+  const updated = await assignDeliveryStaff(orderNumber, staffId, staffName, user._id!.toHexString(), order.deliveryStaffId || null);
+  if (!updated) return NextResponse.json({ error: 'Assignment changed concurrently. Refresh and try again.' }, { status: 409 });
+  if (staffId) notifyUser(staffId, { type: 'DELIVERY_ASSIGNED', title: 'Delivery assigned', message: `Order ${orderNumber} is assigned to you.`, href: `/delivery`, relatedType: 'order', relatedId: orderNumber, eventKey: `order:${orderNumber}:delivery:${staffId}` }).catch((error) => console.error('Delivery notification failed', error));
+  notifyAdmins({ type: 'DELIVERY_ASSIGNED', title: 'Delivery assignment updated', message: `${orderNumber} is assigned to ${staffName || 'no staff'}.`, href: `/admin/orders/${orderNumber}`, relatedType: 'order', relatedId: orderNumber, permission: 'delivery.view', eventKey: `admin:order:${orderNumber}:delivery:${staffId || 'unassigned'}` }).catch((error) => console.error('Admin delivery notification failed', error));
   return NextResponse.json({ success: true, data: updated });
 }

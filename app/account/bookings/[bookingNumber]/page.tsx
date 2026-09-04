@@ -45,7 +45,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           {booking.customerNote ? <p className="mt-6 rounded-2xl bg-stone-50 p-4 text-sm text-stone-600">{booking.customerNote}</p> : null}
           <BookingSlipActions
             bookingNumber={booking.bookingNumber}
-            restaurantName="Pizza Vizza"
+            restaurantName={restaurantSettings.restaurantName}
             roomName={booking.roomSnapshot.name}
             bookingDate={booking.bookingDate}
             startTime={booking.startTime}

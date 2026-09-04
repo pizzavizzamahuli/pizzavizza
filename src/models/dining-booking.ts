@@ -197,3 +197,13 @@ export async function updateDiningBooking(id: string, updates: Partial<DiningBoo
   await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...updates, updatedAt: now } });
   return col.findOne({ _id: new ObjectId(id) });
 }
+
+export async function updateDiningBookingStatusAtomic(id: string, expectedStatus: DiningBookingStatus, nextStatus: DiningBookingStatus, performedBy: string, note?: string) {
+  const col = await getDiningBookingsCollection();
+  const now = new Date();
+  return col.findOneAndUpdate(
+    { _id: new ObjectId(id), bookingStatus: expectedStatus },
+    { $set: { bookingStatus: nextStatus, updatedAt: now }, $push: { statusHistory: { previousStatus: expectedStatus, newStatus: nextStatus, performedBy, note: note || '', createdAt: now } } },
+    { returnDocument: 'after' },
+  );
+}

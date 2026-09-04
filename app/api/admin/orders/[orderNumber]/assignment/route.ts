@@ -11,6 +11,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   const { orderNumber } = await context.params;
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+  if (order.fulfillmentType !== 'DELIVERY' || ['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(order.orderStatus)) return NextResponse.json({ error: 'Only active delivery orders can be assigned.' }, { status: 400 });
   const payload = await request.json() as { staffId?: string | null; staffName?: string | null };
   let staffId: string | null = null;
   let staffName: string | null = null;
@@ -18,7 +19,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     const { getUsersCollection } = await import('@/src/models/user');
     let staff = null;
     try {
-      staff = await (await getUsersCollection()).findOne({ _id: new ObjectId(payload.staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE', staffStatus: { $in: ['AVAILABLE', 'BUSY', 'ON_DELIVERY'] } });
+      staff = await (await getUsersCollection()).findOne({ _id: new ObjectId(payload.staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE', $or: [{ staffStatus: { $in: ['AVAILABLE', 'BUSY', 'ON_DELIVERY'] } }, { staffStatus: { $exists: false } }] });
     } catch {
       staff = null;
     }

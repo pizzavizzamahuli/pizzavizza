@@ -218,6 +218,35 @@ export default function RestaurantSettingsForm() {
             <option value="MILES">Miles</option>
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-semibold text-stone-800">Delivery pricing mode</label>
+          <p className="mb-2 text-xs text-stone-500">Use the configured distance pricing for delivery</p>
+          <select className="input" value={settings.deliveryChargeType ?? 'DISTANCE_BASED'} onChange={(e) => setSettings({ ...settings, deliveryChargeType: e.target.value })}>
+            <option value="DISTANCE_BASED">Distance based</option>
+            <option value="FIXED">Fixed charge</option>
+            <option value="FREE">Always free</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-stone-800">Base delivery distance (km)</label>
+          <p className="mb-2 text-xs text-stone-500">Distance included in the base charge</p>
+          <input type="number" min="0" step="0.1" className="input" value={settings.deliveryBaseDistance ?? 5} onChange={(e) => setSettings({ ...settings, deliveryBaseDistance: Number(e.target.value) || 0 })} />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-stone-800">Base delivery charge (INR)</label>
+          <p className="mb-2 text-xs text-stone-500">Charge up to the base distance</p>
+          <input type="number" min="0" step="0.01" className="input" value={settings.deliveryBaseCharge ?? 50} onChange={(e) => setSettings({ ...settings, deliveryBaseCharge: Number(e.target.value) || 0 })} />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-stone-800">Extra charge per km (INR)</label>
+          <p className="mb-2 text-xs text-stone-500">Each rounded-up km after base distance</p>
+          <input type="number" min="0" step="0.01" className="input" value={settings.deliveryAdditionalChargePerKm ?? 10} onChange={(e) => setSettings({ ...settings, deliveryAdditionalChargePerKm: Number(e.target.value) || 0 })} />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-stone-800">Free delivery threshold (INR)</label>
+          <p className="mb-2 text-xs text-stone-500">Set zero to disable threshold-based free delivery</p>
+          <input type="number" min="0" step="0.01" className="input" value={settings.freeDeliveryMinimumOrder ?? 0} onChange={(e) => setSettings({ ...settings, freeDeliveryMinimumOrder: Number(e.target.value) || 0, freeDeliveryEnabled: Number(e.target.value) > 0 })} />
+        </div>
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">

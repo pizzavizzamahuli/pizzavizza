@@ -27,6 +27,15 @@ export default async function CheckoutPage({ searchParams }: { searchParams?: Pr
             manualPaymentUpiId: settings.manualPaymentUpiId || null,
             manualPaymentQrUrl: settings.manualPaymentQrUrl || null,
             manualPaymentBankDetails: settings.manualPaymentBankDetails || null,
+            deliveryBaseDistance: settings.deliveryBaseDistance,
+            deliveryBaseCharge: settings.deliveryBaseCharge,
+            deliveryAdditionalChargePerKm: settings.deliveryAdditionalChargePerKm,
+            freeDeliveryEnabled: settings.freeDeliveryEnabled,
+            freeDeliveryMinimumOrder: settings.freeDeliveryMinimumOrder,
+            latitude: settings.latitude,
+            longitude: settings.longitude,
+            deliveryRadius: settings.deliveryRadius,
+            deliveryRadiusUnit: settings.deliveryRadiusUnit,
           }}
         />
       </div>

@@ -23,6 +23,7 @@ import {
   listDiningBookings,
   listDiningBookingsForUser,
   updateDiningBooking,
+  updateDiningBookingStatusAtomic,
   canTransitionDiningBookingStatus,
 } from '@/src/models/dining-booking';
 import { getUserById } from '@/src/services/user-service';
@@ -424,10 +425,8 @@ export async function updateBookingStatus(id: string, status: DiningBookingStatu
   if (!canTransitionDiningBookingStatus(current.bookingStatus, status)) {
     throw new Error(`Cannot change booking from ${current.bookingStatus} to ${status}.`);
   }
-  const booking = await updateDiningBooking(id, {
-    bookingStatus: status,
-    statusHistory: [...(current.statusHistory || []), { previousStatus: current.bookingStatus, newStatus: status, performedBy, note: note || '', createdAt: new Date() }],
-  });
+  const booking = await updateDiningBookingStatusAtomic(id, current.bookingStatus, status, performedBy, note);
+  if (!booking) throw new Error('Booking changed concurrently. Refresh and try again.');
   return booking;
 }
 

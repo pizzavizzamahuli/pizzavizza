@@ -19,6 +19,15 @@ type CheckoutSettings = {
   manualPaymentUpiId?: string | null;
   manualPaymentQrUrl?: string | null;
   manualPaymentBankDetails?: string | null;
+  deliveryBaseDistance?: number;
+  deliveryBaseCharge?: number;
+  deliveryAdditionalChargePerKm?: number;
+  freeDeliveryEnabled?: boolean;
+  freeDeliveryMinimumOrder?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  deliveryRadius?: number;
+  deliveryRadiusUnit?: 'KM' | 'MILES';
 };
 
 type RazorpayPaymentResponse = {
@@ -97,7 +106,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
   const [newAddressSearch, setNewAddressSearch] = useState('');
   const [savingNewAddress, setSavingNewAddress] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [restaurantSettings, setRestaurantSettings] = useState<Record<string, unknown> | null>(null);
+  const restaurantSettings = settings as unknown as Record<string, unknown>;
   const [transactionId, setTransactionId] = useState('');
   const [manualProofFile, setManualProofFile] = useState<File | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -151,10 +160,6 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
         }
       })
       .catch(() => setAddresses([]));
-    fetch('/api/admin/settings/restaurant')
-      .then((r) => r.json())
-      .then((j) => setRestaurantSettings(j.success ? j.data : null))
-      .catch(() => setRestaurantSettings(null));
     fetch('/api/account/wallet')
       .then((r) => r.json())
       .then((j) => setWalletBalance(Number(j.data?.balance || 0)))
@@ -513,6 +518,15 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
       ? `This address is ${selectedDistanceKm.toFixed(2)} km away. Delivery is available only within ${deliveryRadius} ${deliveryRadiusUnit.toLowerCase()}.`
       : null;
 
+  const deliveryPricingDistanceKm = selectedDistanceKm === null ? null : Number(selectedDistanceKm.toFixed(2));
+  const freeDelivery = fulfillment === 'DELIVERY' && Boolean(settings.freeDeliveryEnabled) && subtotal >= Number(settings.freeDeliveryMinimumOrder || 0);
+  const pricingBaseDistance = Number(settings.deliveryBaseDistance ?? 5);
+  const pricingBaseCharge = Number(settings.deliveryBaseCharge ?? 50);
+  const pricingExtraPerKm = Number(settings.deliveryAdditionalChargePerKm ?? 10);
+  const estimatedDeliveryCharge = fulfillment !== 'DELIVERY' || freeDelivery ? 0 : deliveryPricingDistanceKm === null ? null : Number((pricingBaseCharge + Math.max(0, Math.ceil(deliveryPricingDistanceKm - pricingBaseDistance)) * pricingExtraPerKm).toFixed(2));
+  const walletUsed = useWallet ? Math.min(walletBalance, subtotal + (estimatedDeliveryCharge || 0)) : 0;
+  const estimatedTotal = subtotal + (estimatedDeliveryCharge || 0) - walletUsed;
+
   return (
     <div className="mx-auto max-w-4xl p-4">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -753,15 +767,15 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
               </div>
               <div className="flex justify-between">
                 <span>Delivery</span>
-                <span>Calculated at checkout</span>
+                <span className={freeDelivery ? 'font-semibold text-emerald-700' : ''}>{freeDelivery ? 'FREE DELIVERY' : estimatedDeliveryCharge === null ? 'Select address' : `₹${estimatedDeliveryCharge.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between">
                 <span>Wallet used</span>
-                <span>₹{(useWallet ? Math.min(walletBalance, subtotal) : 0).toFixed(2)}</span>
+                <span>₹{walletUsed.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold text-stone-900">
                 <span>Total</span>
-                <span>₹{Math.max(0, subtotal - (useWallet ? Math.min(walletBalance, subtotal) : 0)).toFixed(2)}</span>
+                <span>₹{Math.max(0, estimatedTotal).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -792,7 +806,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
         <div className="text-sm text-stone-500">
           {fulfillment === 'DELIVERY'
             ? selectedAddress
-              ? 'Delivery will be calculated once the order is placed.'
+              ? freeDelivery ? 'FREE DELIVERY applied.' : estimatedDeliveryCharge === null ? 'Delivery charge will appear after selecting an address.' : `Estimated delivery charge: ₹${estimatedDeliveryCharge.toFixed(2)}.`
               : 'Please select an address to proceed with delivery.'
             : 'Pickup selected. Collect your order from the restaurant.'}
         </div>

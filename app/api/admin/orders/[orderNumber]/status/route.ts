@@ -40,7 +40,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       return NextResponse.json({ error: 'Kitchen staff can only update preparation status.' }, { status: 403 });
     }
     if (canManageDelivery && !canManageOrders && (order.deliveryStaffId !== user._id?.toHexString() && order.deliveryStaffId !== user.id)) return NextResponse.json({ error: 'Delivery staff can only update assigned orders.' }, { status: 403 });
-    if (canManageDelivery && !canManageOrders && !['OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
+    if (canManageDelivery && !canManageOrders && !['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
 
     const updated = await updateOrderStatusByOrderNumber(order.orderNumber, normalizedStatus as OrderStatus, user._id!.toHexString(), `Admin updated order status to ${normalizedStatus}`);
     if (!updated) {

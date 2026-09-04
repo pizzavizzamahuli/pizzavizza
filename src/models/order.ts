@@ -8,6 +8,7 @@ export type OrderStatus =
   | 'CONFIRMED'
   | 'PREPARING'
   | 'READY'
+  | 'PICKED_UP'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
   | 'COMPLETED'
@@ -182,6 +183,7 @@ export async function assignDeliveryStaff(orderNumber: string, staffId: string |
   const col = await getOrdersCollection();
   const current = await col.findOne({ orderNumber });
   if (!current) return null;
+  if (current.fulfillmentType !== 'DELIVERY' || ['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(current.orderStatus)) return null;
   const currentStaffId = current.deliveryStaffId || null;
   if (expectedStaffId !== undefined && currentStaffId !== expectedStaffId) return null;
   const now = new Date();
@@ -200,7 +202,8 @@ export const validOrderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED', 'REJECTED'],
   CONFIRMED: ['PREPARING', 'CANCELLED'],
   PREPARING: ['READY', 'CANCELLED'],
-  READY: ['OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
+  READY: ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
+  PICKED_UP: ['OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'],
   OUT_FOR_DELIVERY: ['DELIVERED'],
   DELIVERED: ['COMPLETED'],
   COMPLETED: [],

@@ -41,6 +41,9 @@ export interface RestaurantSettingsDocument {
   deliveryRadiusUnit: DistanceUnit;
   deliveryChargeType: DeliveryChargeType;
   deliveryChargeValue: number;
+  deliveryBaseDistance?: number;
+  deliveryBaseCharge?: number;
+  deliveryAdditionalChargePerKm?: number;
   freeDeliveryEnabled: boolean;
   freeDeliveryMinimumOrder: number;
   codEnabled: boolean;
@@ -114,8 +117,11 @@ export async function getRestaurantSettings() {
     pickupEnabled: true,
     deliveryRadius: 0,
     deliveryRadiusUnit: 'KM',
-    deliveryChargeType: 'FIXED',
+    deliveryChargeType: 'DISTANCE_BASED',
     deliveryChargeValue: 0,
+    deliveryBaseDistance: 5,
+    deliveryBaseCharge: 50,
+    deliveryAdditionalChargePerKm: 10,
     freeDeliveryEnabled: false,
     freeDeliveryMinimumOrder: 0,
     codEnabled: true,

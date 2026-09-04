@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export async function POST(request: Request) {
   try {
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'menu.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !AuthorizationService.canAccess(user.role, 'menu.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     let cloudinaryConfig: { cloudName: string; apiKey: string } | null = null;
     try {
       const cfg = await getCloudinaryConfig();

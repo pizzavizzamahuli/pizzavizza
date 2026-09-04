@@ -2,6 +2,7 @@ import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 
 export type FulfillmentType = 'DELIVERY' | 'PICKUP';
+export type OrderSource = 'ONLINE' | 'COUNTER';
 
 export type OrderStatus =
   | 'PENDING'
@@ -67,6 +68,9 @@ export interface OrderDocument {
   customerSnapshot: CustomerSnapshot;
   items: OrderItemSnapshot[];
   fulfillmentType: FulfillmentType;
+  orderSource?: OrderSource;
+  tableNumber?: string | null;
+  createdByUserId?: string | null;
   deliveryAddress?: AddressSnapshot | null;
   subtotal: number;
   deliveryCharge: number;
@@ -77,6 +81,8 @@ export interface OrderDocument {
   staffDiscountReason?: string | null;
   walletAmount: number;
   totalAmount: number;
+  paidAmount?: number;
+  amountDue?: number;
   couponCode?: string | null;
   referralCode?: string | null;
   paymentMethod?: PaymentMethod | null;
@@ -131,6 +137,9 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     customerSnapshot: (doc.customerSnapshot as CustomerSnapshot) || { userId: '', name: '' },
     items: (doc.items as OrderItemSnapshot[]) || [],
     fulfillmentType: (doc.fulfillmentType as FulfillmentType) || 'DELIVERY',
+    orderSource: doc.orderSource || 'ONLINE',
+    tableNumber: doc.tableNumber ?? null,
+    createdByUserId: doc.createdByUserId ?? null,
     deliveryAddress: doc.deliveryAddress || null,
     subtotal: doc.subtotal || 0,
     deliveryCharge: doc.deliveryCharge || 0,
@@ -141,6 +150,8 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     staffDiscountReason: doc.staffDiscountReason ?? null,
     walletAmount: doc.walletAmount || 0,
     totalAmount: doc.totalAmount || 0,
+    paidAmount: doc.paidAmount ?? (doc.paymentStatus === 'PAID' ? doc.totalAmount || 0 : 0),
+    amountDue: doc.amountDue ?? (doc.paymentStatus === 'PAID' ? 0 : doc.totalAmount || 0),
     couponCode: doc.couponCode ?? null,
     referralCode: doc.referralCode ?? null,
     paymentMethod: doc.paymentMethod ?? null,

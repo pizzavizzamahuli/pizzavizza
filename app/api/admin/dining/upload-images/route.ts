@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'bookings.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user || !AuthorizationService.canAccess(user.role, 'bookings.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   try {
     const formData = await request.formData();
     const files = formData.getAll('images').filter((value): value is File => value instanceof File && value.type.startsWith('image/'));

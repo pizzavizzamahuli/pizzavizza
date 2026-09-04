@@ -9,6 +9,7 @@ export interface UserDocument {
   name: string;
   email: string;
   mobile?: string | null;
+  mobileVerified?: boolean;
   passwordHash: string;
   role: UserRole;
   permissions?: string[];
@@ -22,6 +23,12 @@ export interface UserDocument {
     attempts: number;
     sentAt: Date;
     resendCount?: number;
+  } | null;
+  mobileVerification?: {
+    codeHash: string;
+    expiresAt: Date;
+    attempts: number;
+    sentAt: Date;
   } | null;
   temporaryAccess?: {
     enabled: boolean;

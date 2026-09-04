@@ -12,7 +12,7 @@ const editableStatuses: AccountStatus[] = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
+    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -114,7 +114,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
+    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

@@ -4,6 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { assignDeliveryStaff, findOrderByOrderNumber } from '@/src/models/order';
 import { ObjectId } from 'mongodb';
 import { notifyUser, notifyAdmins } from '@/src/services/notification-service';
+import { isOrderPaymentCleared } from '@/src/services/payment-service';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -12,6 +13,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
   if (order.fulfillmentType !== 'DELIVERY' || ['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(order.orderStatus)) return NextResponse.json({ error: 'Only active delivery orders can be assigned.' }, { status: 400 });
+  if (!isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) return NextResponse.json({ error: 'Payment must be verified before delivery assignment.' }, { status: 409 });
   const payload = await request.json() as { staffId?: string | null; staffName?: string | null };
   let staffId: string | null = null;
   let staffName: string | null = null;

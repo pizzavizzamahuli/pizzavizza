@@ -9,10 +9,11 @@ import DeliveryShareActions from '@/src/components/admin/delivery-share-actions'
 import PaymentStatusActions from '@/src/components/admin/payment-status-actions';
 import DeliveryRouteMap from '@/src/components/admin/delivery-route-map';
 import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
+import AddOrderItemsForm from '@/src/components/admin/add-order-items-form';
 
 export default async function AdminOrderDetail({ params }: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'orders.view')) return notFound();
+  if (!user || !AuthorizationService.canAccess(user.role, 'orders.view', user.permissions)) return notFound();
   const { orderNumber } = await params;
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order) return notFound();
@@ -27,7 +28,7 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
         ? ['READY', 'CANCELLED']
         : order.orderStatus === 'READY'
           ? order.fulfillmentType === 'DELIVERY'
-            ? ['OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']
+            ? ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']
             : ['DELIVERED', 'CANCELLED']
           : order.orderStatus === 'OUT_FOR_DELIVERY'
             ? ['DELIVERED']
@@ -62,8 +63,10 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <p className="text-sm text-stone-500">Total amount</p>
         <p className="mt-2 text-3xl font-semibold">₹{order.totalAmount.toFixed(2)}</p>
-        <p className="mt-2 text-sm text-stone-500">Original subtotal: ₹{order.subtotal.toFixed(2)} • Discount: ₹{order.discount.toFixed(2)}</p>
+        <p className="mt-2 text-sm text-stone-500">Subtotal: ₹{order.subtotal.toFixed(2)} • Discount: ₹{order.discount.toFixed(2)} • Delivery: ₹{order.deliveryCharge.toFixed(2)}</p>
+        <p className="mt-1 text-sm text-stone-500">Paid: ₹{Number(order.paidAmount ?? (order.paymentStatus === 'PAID' ? order.totalAmount : 0)).toFixed(2)} • Due: ₹{Number(order.amountDue ?? (order.paymentStatus === 'PAID' ? 0 : order.totalAmount)).toFixed(2)}</p>
       </div>
+      {AuthorizationService.canAccess(user.role, 'orders.manage', user.permissions) ? <AddOrderItemsForm orderNumber={order.orderNumber} /> : null}
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Items</h2>
         <ul className="mt-4 space-y-2">
@@ -130,6 +133,7 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
           </div>
         </div>
       )}
+      <div className="rounded-3xl border border-stone-200 bg-white p-6"><h2 className="font-medium">Activity timeline</h2><ol className="mt-4 space-y-3">{(order.statusHistory || []).map((entry, index) => <li key={`${entry.createdAt}-${index}`} className="border-l-2 border-amber-200 pl-4 text-sm"><p className="font-medium text-stone-900">{entry.newStatus}</p><p className="text-stone-600">{entry.note || 'Status updated'} · {new Date(entry.createdAt).toLocaleString()}</p><p className="text-xs text-stone-400">Actor: {entry.changedBy || 'System'}</p></li>)}</ol></div>
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Delivery sharing</h2>
         <p className="mt-2 text-sm text-stone-600">Share complete order details with local delivery staff.</p>

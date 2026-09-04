@@ -4,6 +4,7 @@ import { getRazorpayOrder, verifyRazorpaySignature } from '@/src/services/razorp
 import { updateOrderByOrderNumber } from '@/src/models/order';
 import { findOrderByOrderNumber } from '@/src/models/order';
 import { notifyUser } from '@/src/services/notification-service';
+import { recordAudit } from '@/src/models/audit-log';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -33,10 +34,14 @@ export async function POST(request: Request) {
     if (razorpayOrder.id !== razorpayOrderId || razorpayOrder.currency !== 'INR' || razorpayOrder.amount !== expectedAmount) {
       return NextResponse.json({ error: 'Payment amount does not match this order.' }, { status: 400 });
     }
+    if (!['paid', 'captured'].includes(String((razorpayOrder as { status?: string }).status || '').toLowerCase())) {
+      return NextResponse.json({ error: 'Payment has not been captured by Razorpay.' }, { status: 409 });
+    }
 
     // mark order as PAID
     const updated = await updateOrderByOrderNumber(orderNumber, { paymentStatus: 'PAID', paymentMethod: 'ONLINE', razorpayPaymentId });
     if (updated) notifyUser(updated.userId, { type: 'PAYMENT_APPROVED', title: 'Payment approved', message: `Payment for order ${updated.orderNumber} was approved.`, href: `/account/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, eventKey: `order:${updated.orderNumber}:payment:approved` }).catch((error) => console.error('Payment notification failed', error));
+    await recordAudit({ type: 'ORDER_PAYMENT_VERIFIED_AUTOMATICALLY', performedBy: 'system', oldValue: { paymentStatus: order.paymentStatus }, newValue: { paymentStatus: 'PAID', paymentProvider: 'RAZORPAY', orderNumber }, timestamp: new Date() });
 
     // notify admins (best-effort)
     try {

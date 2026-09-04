@@ -7,7 +7,7 @@ import { encryptSecret } from '@/src/utils/secret-crypto';
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -25,7 +25,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

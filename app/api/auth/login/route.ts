@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     if (!user.emailVerified && user.emailVerification) {
       return NextResponse.json({ error: 'Please verify your email before signing in.', requiresEmailVerification: true }, { status: 403 });
     }
+    if (user.mobile && user.mobileVerified === false) return NextResponse.json({ error: 'Please verify your mobile number before signing in.', requiresMobileVerification: true }, { status: 403 });
 
     if (user.accountStatus === 'DISABLED' || user.accountStatus === 'SUSPENDED') {
       return NextResponse.json({ error: 'This account is disabled or suspended.' }, { status: 403 });

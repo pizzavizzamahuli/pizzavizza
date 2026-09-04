@@ -5,7 +5,7 @@ import { getAuditLogCollection } from '@/src/models/audit-log';
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

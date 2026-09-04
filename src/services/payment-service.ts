@@ -55,3 +55,8 @@ export function resolveInitialPaymentState(paymentMethod: PaymentMethod | string
       return { paymentMethod: 'COD' as PaymentMethod, paymentStatus: 'PENDING' as PaymentStatus, requiresProof: false };
   }
 }
+
+export function isOrderPaymentCleared(paymentMethod: PaymentMethod | string | null | undefined, paymentStatus: PaymentStatus | string | null | undefined) {
+  const method = normalizePaymentMethod(paymentMethod);
+  return method === 'COD' || method === 'WALLET' || paymentStatus === 'PAID';
+}

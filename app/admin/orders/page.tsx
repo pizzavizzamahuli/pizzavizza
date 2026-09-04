@@ -13,7 +13,7 @@ export default async function AdminOrdersPage() {
 
   return (
     <div className="mx-auto max-w-4xl p-8">
-      <h1 className="text-2xl font-semibold">Orders</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-semibold">Orders</h1>{AuthorizationService.canAccess(user.role, 'orders.manage', user.permissions) ? <Link href="/admin/orders/counter" className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white">Create Counter Order</Link> : null}</div>
       <ul className="mt-6 space-y-3">
         {orders.map((o) => (
           <li key={o.orderNumber} className="rounded border p-3 flex justify-between">

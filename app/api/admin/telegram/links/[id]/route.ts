@@ -5,7 +5,7 @@ import { revokeTelegramAdmin } from '@/src/models/telegram-admin';
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

@@ -5,7 +5,7 @@ import { getTelegramAdminsCollection } from '@/src/models/telegram-admin';
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

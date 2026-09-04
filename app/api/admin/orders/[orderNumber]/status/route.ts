@@ -4,6 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOrderStatus, validOrderStatusTransitions, OrderStatus } from '@/src/models/order';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { qualifyReferralReward } from '@/src/services/promo-service';
+import { isOrderPaymentCleared } from '@/src/services/payment-service';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const { orderNumber } = await context.params;
@@ -35,12 +36,18 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     if (!canTransitionOrderStatus(order.orderStatus, normalizedStatus as OrderStatus)) {
       return NextResponse.json({ error: `Cannot transition order from ${order.orderStatus} to ${normalizedStatus}` }, { status: 400 });
     }
+    if (order.fulfillmentType === 'DELIVERY' && order.orderStatus === 'READY' && normalizedStatus === 'DELIVERED') {
+      return NextResponse.json({ error: 'Delivery orders must be picked up and sent out before delivery completion.' }, { status: 409 });
+    }
 
     if (canManageKitchen && !canManageOrders && !['CONFIRMED', 'PREPARING', 'READY'].includes(normalizedStatus)) {
       return NextResponse.json({ error: 'Kitchen staff can only update preparation status.' }, { status: 403 });
     }
     if (canManageDelivery && !canManageOrders && (order.deliveryStaffId !== user._id?.toHexString() && order.deliveryStaffId !== user.id)) return NextResponse.json({ error: 'Delivery staff can only update assigned orders.' }, { status: 403 });
     if (canManageDelivery && !canManageOrders && !['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
+    if (['CONFIRMED', 'PREPARING', 'READY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(normalizedStatus) && !isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) {
+      return NextResponse.json({ error: 'Payment must be verified before this order can be processed.' }, { status: 409 });
+    }
 
     const updated = await updateOrderStatusByOrderNumber(order.orderNumber, normalizedStatus as OrderStatus, user._id!.toHexString(), `Admin updated order status to ${normalizedStatus}`);
     if (!updated) {

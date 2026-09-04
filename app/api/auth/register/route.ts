@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createUser, findUserByEmail, hashPassword, setEmailVerification } from '@/src/services/user-service';
+import { createUser, findUserByEmail, hashPassword, setEmailVerification, setMobileVerification } from '@/src/services/user-service';
 import { env } from '@/src/config/env';
 import { createReferral, findReferralByCode, reserveReferralForUser } from '@/src/models/referral';
-import { sendEmailVerificationEmail } from '@/src/services/email-service';
+import { sendEmailVerificationEmail, sendMobileVerificationCode } from '@/src/services/email-service';
 import { randomInt } from 'crypto';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const confirmPassword = String(body?.confirmPassword || '');
     const referralCode = String(body?.referralCode || '').trim().toUpperCase() || null;
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !mobile || !password || !confirmPassword) {
       return NextResponse.json({ error: 'Please complete all required fields.' }, { status: 400 });
     }
 
@@ -65,7 +65,10 @@ export async function POST(request: Request) {
 
     const verificationCode = randomInt(100000, 1000000).toString();
     await setEmailVerification(user.id as string, await hashPassword(verificationCode), new Date(Date.now() + 15 * 60 * 1000));
+    const mobileCode = randomInt(100000, 1000000).toString();
+    await setMobileVerification(user.id as string, await hashPassword(mobileCode), new Date(Date.now() + 15 * 60 * 1000));
     await sendEmailVerificationEmail(user.email, user.name, verificationCode);
+    await sendMobileVerificationCode(user.mobile || mobile, user.name, mobileCode);
 
     return NextResponse.json({ success: true, requiresEmailVerification: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {

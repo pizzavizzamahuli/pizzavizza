@@ -19,7 +19,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    if (!AuthorizationService.canAccess(user.role, 'bookings.manage')) {
+    if (!AuthorizationService.canAccess(user.role, 'bookings.manage', user.permissions)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

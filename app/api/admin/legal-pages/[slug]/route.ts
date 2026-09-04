@@ -6,7 +6,7 @@ import { recordAudit } from '@/src/models/audit-log';
 
 export async function PUT(request: Request, context: { params: Promise<{ slug: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

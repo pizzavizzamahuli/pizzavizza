@@ -20,11 +20,10 @@ export async function requireAuth() {
 export async function requireAdminAccess() {
   const user = await requireAuth();
 
-  const adminRoles = ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'];
+  const adminRoles = ['MAIN_ADMIN', 'ADMIN'];
 
   if (!adminRoles.includes(user.role)) {
-    // Authenticated but not authorized for admin — send to safe customer area
-    redirect('/account');
+    redirect(user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
   }
 
   return user;

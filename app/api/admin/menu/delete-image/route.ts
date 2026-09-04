@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function DELETE(request: Request) {
   const user = await getSessionUser();
-  if (!user || (!AuthorizationService.canAccess(user.role, 'settings.manage') && !AuthorizationService.canAccess(user.role, 'menu.manage') && !AuthorizationService.canAccess(user.role, 'bookings.manage'))) {
+  if (!user || (!AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions) && !AuthorizationService.canAccess(user.role, 'menu.manage', user.permissions) && !AuthorizationService.canAccess(user.role, 'bookings.manage', user.permissions))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const url = new URL(request.url);

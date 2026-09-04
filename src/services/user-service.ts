@@ -93,6 +93,7 @@ export async function createUser(input: {
     staffStatus: input.staffStatus || (input.role === 'DELIVERY_STAFF' || input.role === 'KITCHEN_STAFF' ? 'AVAILABLE' : undefined),
     accountStatus: input.accountStatus ?? 'ACTIVE',
     emailVerified: false,
+    mobileVerified: input.mobile ? false : true,
     referredByReferralCode: input.referredByReferralCode ?? null,
     temporaryAccess: input.temporaryAccess,
     protected: input.protected ?? false,
@@ -113,6 +114,21 @@ export async function findUserByEmail(email: string) {
 export async function setEmailVerification(id: string, codeHash: string, expiresAt: Date) {
   const collection = await getUsersCollection();
   return collection.updateOne({ _id: new ObjectId(id) }, { $set: { emailVerification: { codeHash, expiresAt, attempts: 0, resendCount: 0, sentAt: new Date() }, updatedAt: new Date() } });
+}
+
+export async function setMobileVerification(id: string, codeHash: string, expiresAt: Date) {
+  const collection = await getUsersCollection();
+  return collection.updateOne({ _id: new ObjectId(id) }, { $set: { mobileVerification: { codeHash, expiresAt, attempts: 0, sentAt: new Date() }, mobileVerified: false, updatedAt: new Date() } });
+}
+
+export async function incrementMobileVerificationAttempt(id: string) {
+  const collection = await getUsersCollection();
+  return collection.findOneAndUpdate({ _id: new ObjectId(id), 'mobileVerification.attempts': { $lt: 5 } }, { $inc: { 'mobileVerification.attempts': 1 }, $set: { updatedAt: new Date() } }, { returnDocument: 'after' });
+}
+
+export async function markMobileVerified(id: string) {
+  const collection = await getUsersCollection();
+  return collection.updateOne({ _id: new ObjectId(id) }, { $set: { mobileVerified: true, updatedAt: new Date() }, $unset: { mobileVerification: '' } });
 }
 
 export async function incrementEmailVerificationAttempt(id: string) {
@@ -176,6 +192,7 @@ export function isUserEligibleForSession(user: UserDocument) {
   if (user.accountStatus !== 'ACTIVE') {
     return false;
   }
+  if (user.mobile && user.mobileVerified === false) return false;
 
   if (user.temporaryAccess?.enabled) {
     const now = new Date();

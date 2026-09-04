@@ -8,7 +8,7 @@ import { ensureUserCode, getUserById } from '@/src/services/user-service';
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'wallet.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'wallet.view', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const wallets = await listWallets();
   const data = await Promise.all(wallets.map(async (wallet) => {
     const user = await getUserById(String(wallet.userId));
@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'wallet.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'wallet.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const payload = await request.json();
   if (typeof payload.userId !== 'string' || !payload.userId.trim()) return NextResponse.json({ error: 'A valid user ID is required' }, { status: 400 });

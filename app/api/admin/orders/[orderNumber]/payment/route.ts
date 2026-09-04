@@ -4,6 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, PaymentStatus, updateOrderByOrderNumber } from '@/src/models/order';
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
+import { recordAudit } from '@/src/models/audit-log';
 
 const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED'];
 
@@ -24,6 +25,9 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     const status = typeof payload.paymentStatus === 'string' ? payload.paymentStatus.trim().toUpperCase() : '';
     if (!allowedPaymentStatuses.includes(status as PaymentStatus)) {
       return NextResponse.json({ error: 'Invalid payment status' }, { status: 400 });
+    }
+    if (status === 'PAID' && order.paymentMethod === 'MANUAL' && (!order.paymentProofUrl || !order.transactionId)) {
+      return NextResponse.json({ error: 'Manual payment requires proof image and transaction ID before verification.' }, { status: 409 });
     }
 
     const staffDiscountGiven = typeof payload.staffDiscountGiven === 'boolean' ? payload.staffDiscountGiven : undefined;
@@ -47,6 +51,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       payload: { previousStatus: order.paymentStatus, newStatus: status, source: 'admin_panel' },
       timestamp: new Date(),
     });
+    await recordAudit({ type: `ORDER_PAYMENT_${status}`, performedBy: user._id?.toHexString() || user.email, oldValue: { paymentStatus: order.paymentStatus }, newValue: { paymentStatus: status, orderNumber: order.orderNumber }, timestamp: new Date() });
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err: unknown) {

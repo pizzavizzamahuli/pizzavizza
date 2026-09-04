@@ -6,7 +6,7 @@ import { createCoupon, listCoupons, updateCoupon } from '@/src/models/coupon';
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'coupons.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'coupons.view', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const coupons = await listCoupons();
   return NextResponse.json({ success: true, data: coupons });
 }
@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'coupons.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'coupons.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const payload = await request.json();
   const coupon = await createCoupon(payload);
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  if (!AuthorizationService.canAccess(user.role, 'coupons.manage')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!AuthorizationService.canAccess(user.role, 'coupons.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const payload = await request.json();
   const { id, ...updates } = payload;

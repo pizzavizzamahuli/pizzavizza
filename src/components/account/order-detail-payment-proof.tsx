@@ -91,6 +91,7 @@ export default function OrderDetailPaymentProof({ orderNumber, paymentStatus, pa
         });
 
         xhr.open('POST', `/api/account/orders/${orderNumber}/payment-proof`);
+        xhr.withCredentials = true;
         xhr.send(formData);
       });
 

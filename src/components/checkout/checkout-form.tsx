@@ -370,6 +370,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
             reject(new Error('Payment proof upload failed'));
           });
           xhr.open('POST', `/api/account/orders/${json.data.orderNumber}/payment-proof`);
+          xhr.withCredentials = true;
           xhr.send(formData);
         }).catch((err) => {
           setUploadStatus('error');
@@ -725,7 +726,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                   <div className="relative w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => setShowQrModal(false)} className="absolute right-3 top-3 rounded-full bg-stone-200 px-2 py-1 text-xs font-medium text-stone-700">Close</button>
                     <p className="mb-4 text-lg font-semibold text-stone-900">Payment QR</p>
-                    <Image src={settings.manualPaymentQrUrl} alt="Payment QR code" width={288} height={288} className="mx-auto h-72 w-72 rounded-2xl border border-stone-200 object-contain" />
+                    <Image unoptimized src={settings.manualPaymentQrUrl} alt="Payment QR code" width={288} height={288} className="mx-auto h-72 w-72 rounded-2xl border border-stone-200 object-contain" />
                     <a href={settings.manualPaymentQrUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block w-full rounded-xl bg-amber-600 px-4 py-2 text-center font-medium text-white">
                       Open QR in browser
                     </a>

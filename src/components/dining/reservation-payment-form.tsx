@@ -74,7 +74,7 @@ export default function ReservationPaymentForm({ bookingNumber, amount, razorpay
       const body = new FormData();
       body.append('proof', proofFile);
       body.append('transactionId', transactionId.trim());
-      const response = await fetch(`/api/account/bookings/${encodeURIComponent(bookingNumber)}/payment-proof`, { method: 'POST', body });
+      const response = await fetch(`/api/account/bookings/${encodeURIComponent(bookingNumber)}/payment-proof`, { method: 'POST', credentials: 'include', body });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'Payment proof upload failed.');
       setMessage('Payment proof submitted. The restaurant will verify it shortly.');

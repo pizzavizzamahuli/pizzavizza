@@ -97,6 +97,7 @@ export interface OrderDocument {
   deliveryStaffId?: string | null;
   deliveryStaffName?: string | null;
   deliveryNote?: string | null;
+  deliveryFailureReason?: string | null;
   deliveryDistance?: number | null;
   deliveryRadiusAtOrder?: number | null;
   deliveryRadiusUnitAtOrder?: 'KM' | 'MILES' | null;

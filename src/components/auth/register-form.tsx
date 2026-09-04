@@ -38,7 +38,7 @@ export function RegisterForm() {
       return;
     }
 
-    router.push(`/verify-email?email=${encodeURIComponent(payload.email)}&mobile=${encodeURIComponent(payload.mobile)}`);
+    router.push(`/verify-email?email=${encodeURIComponent(payload.email)}`);
   }
 
   return (
@@ -58,7 +58,7 @@ export function RegisterForm() {
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="mobile">Mobile number</label>
-          <input id="mobile" name="mobile" required className="w-full rounded-xl border border-stone-300 px-3 py-2" />
+          <input id="mobile" name="mobile" className="w-full rounded-xl border border-stone-300 px-3 py-2" />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>

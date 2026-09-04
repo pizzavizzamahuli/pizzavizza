@@ -24,6 +24,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   try {
     const payload = await request.json();
     const { status } = payload;
+    const deliveryFailureReason = typeof payload.deliveryFailureReason === 'string' ? payload.deliveryFailureReason.trim().slice(0, 500) : null;
     if (!status) return NextResponse.json({ error: 'status is required' }, { status: 400 });
     if (typeof status !== 'string') return NextResponse.json({ error: 'status must be a string' }, { status: 400 });
 
@@ -45,11 +46,13 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     }
     if (canManageDelivery && !canManageOrders && (order.deliveryStaffId !== user._id?.toHexString() && order.deliveryStaffId !== user.id)) return NextResponse.json({ error: 'Delivery staff can only update assigned orders.' }, { status: 403 });
     if (canManageDelivery && !canManageOrders && !['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
+    if (normalizedStatus === 'CANCELLED' && canManageDelivery && !canManageOrders && !deliveryFailureReason) return NextResponse.json({ error: 'A delivery failure reason is required.' }, { status: 400 });
     if (['CONFIRMED', 'PREPARING', 'READY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(normalizedStatus) && !isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) {
       return NextResponse.json({ error: 'Payment must be verified before this order can be processed.' }, { status: 409 });
     }
 
-    const updated = await updateOrderStatusByOrderNumber(order.orderNumber, normalizedStatus as OrderStatus, user._id!.toHexString(), `Admin updated order status to ${normalizedStatus}`);
+    const updated = await updateOrderStatusByOrderNumber(order.orderNumber, normalizedStatus as OrderStatus, user._id!.toHexString(), deliveryFailureReason || `Admin updated order status to ${normalizedStatus}`);
+    if (updated && deliveryFailureReason) await (await import('@/src/models/order')).updateOrderByOrderNumber(updated.orderNumber, { deliveryFailureReason });
     if (!updated) {
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
     }

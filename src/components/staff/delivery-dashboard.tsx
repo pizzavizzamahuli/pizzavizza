@@ -34,7 +34,9 @@ export default function DeliveryDashboard() {
   }, []);
 
   async function update(orderNumber: string, status: string) {
-    const response = await fetch(`/api/admin/orders/${orderNumber}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    const deliveryFailureReason = status === 'CANCELLED' ? window.prompt('Reason for delivery failure/cancellation:') : null;
+    if (status === 'CANCELLED' && !deliveryFailureReason) return;
+    const response = await fetch(`/api/admin/orders/${orderNumber}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, deliveryFailureReason }) });
     const data = await response.json();
     setMessage(response.ok ? `${orderNumber} updated` : data.error || 'Update failed');
     if (response.ok) await load();

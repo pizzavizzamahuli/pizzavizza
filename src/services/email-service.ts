@@ -62,7 +62,3 @@ export async function sendEmailVerificationEmail(to: string, name: string, code:
   console.info('SMTP configuration not available. Email verification code was generated for local development.', { to, subject });
 }
 
-export async function sendMobileVerificationCode(toMobile: string, name: string, code: string) {
-  if (env.NODE_ENV === 'production') throw new Error('SMS service is not configured.');
-  console.info('SMS configuration not available. Mobile verification code was generated for local development.', { toMobile, name, code });
-}

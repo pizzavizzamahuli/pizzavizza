@@ -32,10 +32,10 @@ test('admin route remains protected', async ({ page }) => {
 
 test('email verification journey exposes code and resend controls', async ({ page }) => {
   await page.goto('/verify-email?email=test%40example.com');
-  await expect(page.getByRole('heading', { name: 'Confirm your contact details' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Confirm your email address' })).toBeVisible();
   await expect(page.getByLabel('Email address')).toHaveValue('test@example.com');
-  await expect(page.getByPlaceholder('Email 6-digit code')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Resend email code' })).toBeVisible();
+  await expect(page.getByPlaceholder('6-digit code')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Resend code' })).toBeVisible();
 });
 
 test('registration carries referral code into the verification journey', async ({ page }) => {

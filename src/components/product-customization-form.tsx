@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import AddToCartButton from '@/src/components/add-to-cart-button';
+import QuantityControl from '@/src/components/quantity-control';
 
 type CustomizationOption = {
   id: string;
@@ -28,6 +29,7 @@ type ProductCustomizationFormProps = {
 export default function ProductCustomizationForm({ productId, groups }: ProductCustomizationFormProps) {
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
   const groupSelection = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -140,7 +142,7 @@ export default function ProductCustomizationForm({ productId, groups }: ProductC
           <div className="text-sm text-stone-600">Customization total</div>
           <div className="text-2xl font-semibold text-stone-900">₹{selectedTotal.toFixed(2)}</div>
         </div>
-        <AddToCartButton productId={productId} selectedOptionIds={selectedOptionIds} disabled={Boolean(validationError)} />
+        <div className="flex items-center gap-3"><QuantityControl quantity={quantity} onChange={async (next) => setQuantity(Math.max(1, next))} /><AddToCartButton productId={productId} selectedOptionIds={selectedOptionIds} quantity={quantity} disabled={Boolean(validationError)} /></div>
       </div>
 
       {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}

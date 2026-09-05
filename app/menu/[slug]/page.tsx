@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { getProductBySlug } from '@/src/services/menu-service';
 import { findCustomizationGroupsByIds } from '@/src/models/customization-group';
 import ProductImageGallery from '@/src/components/product-image-gallery';
-import AddToCartButton from '@/src/components/add-to-cart-button';
 import ProductCustomizationForm from '@/src/components/product-customization-form';
+import ProductPurchaseControls from '@/src/components/product-purchase-controls';
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ bookingNumber?: string }> }) {
   const { slug } = await params;
@@ -39,7 +39,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
               <div className="mt-2">
                 {customizationGroups.length === 0 ? (
-                  <AddToCartButton productId={product._id?.toHexString() || product.slug} bookingNumber={bookingNumber || null} />
+                  <ProductPurchaseControls productId={product._id?.toHexString() || product.slug} bookingNumber={bookingNumber || null} />
                 ) : (
                   <div className="rounded-3xl bg-amber-50 p-4 text-sm text-stone-700">
                     Customize this item below before adding it to your cart.

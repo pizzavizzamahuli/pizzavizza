@@ -71,11 +71,11 @@ export async function setCartItems(userId: string, items: CartItem[]) {
 }
 
 export async function updateCartItemQuantity(userId: string, itemKey: string, quantity: number) {
-  if (quantity <= 0) throw new Error('Quantity must be > 0');
   const existingCart = await findCartByUserId(userId);
   const items = existingCart?.items ? [...existingCart.items] : [];
   const idx = items.findIndex((i) => i.itemKey === itemKey || i.productId === itemKey);
   if (idx === -1) throw new Error('Item not found in cart');
+  if (quantity <= 0) return removeCartItem(userId, itemKey);
   items[idx].quantity = quantity;
   return updateCartItems(userId, items);
 }

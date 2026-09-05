@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
     const body = payload as Record<string, unknown>;
     const itemKey = typeof body.itemKey === 'string' ? body.itemKey : typeof body.productId === 'string' ? body.productId : '';
     const quantity = typeof body.quantity === 'number' ? body.quantity : Number(body.quantity);
-    const res = await updateCartItemQuantity(user._id!.toHexString(), itemKey, Number(quantity));
+    const res = await updateCartItemQuantity(user._id!.toHexString(), itemKey, Math.floor(Number(quantity)));
     return NextResponse.json({ success: true, data: res });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

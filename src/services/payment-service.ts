@@ -58,5 +58,5 @@ export function resolveInitialPaymentState(paymentMethod: PaymentMethod | string
 
 export function isOrderPaymentCleared(paymentMethod: PaymentMethod | string | null | undefined, paymentStatus: PaymentStatus | string | null | undefined) {
   const method = normalizePaymentMethod(paymentMethod);
-  return method === 'COD' || method === 'WALLET' || paymentStatus === 'PAID';
+  return method === 'COD' || paymentStatus === 'PAID';
 }

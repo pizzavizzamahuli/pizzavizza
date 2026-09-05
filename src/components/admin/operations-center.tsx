@@ -44,6 +44,8 @@ export default function OperationsCenter() {
   const [kind, setKind] = useState<'order' | 'booking'>('order');
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [assignmentStaffId, setAssignmentStaffId] = useState('');
+  const [fulfillmentTab, setFulfillmentTab] = useState<'DELIVERY' | 'PICKUP' | 'STORE_VISITED'>('DELIVERY');
 
   async function reload() {
     setLoading(true);
@@ -65,9 +67,10 @@ export default function OperationsCenter() {
   }, []);
 
   const visibleOrders = useMemo(() => (data?.orders || []).filter((order) => {
+    const orderSection = order.fulfillmentType === 'DELIVERY' ? 'DELIVERY' : order.orderSource === 'COUNTER' ? 'STORE_VISITED' : 'PICKUP';
     const searchText = `${order.orderNumber} ${order.customerSnapshot?.name || ''} ${order.customerSnapshot?.mobile || ''} ${order.deliveryStaffName || ''}`.toLowerCase();
-    return (!search || searchText.includes(search.toLowerCase())) && (!date || String(order.createdAt || '').slice(0, 10) === date) && (filter === 'ALL' || (filter !== 'RESERVATIONS' && orderStatus(order) === filter));
-  }), [data, filter, search, date]);
+    return orderSection === fulfillmentTab && (!search || searchText.includes(search.toLowerCase())) && (!date || String(order.createdAt || '').slice(0, 10) === date) && (filter === 'ALL' || (filter !== 'RESERVATIONS' && orderStatus(order) === filter));
+  }), [data, filter, search, date, fulfillmentTab]);
 
   const visibleBookings = useMemo(() => (data?.bookings || []).filter((booking) => {
     const searchText = `${booking.bookingNumber} ${booking.customerSnapshot?.name || ''} ${booking.customerSnapshot?.mobile || ''}`.toLowerCase();
@@ -75,12 +78,16 @@ export default function OperationsCenter() {
   }), [data, filter, search, date]);
 
   async function update(url: string, payload: AnyRecord) {
-    const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.error || 'Update failed');
-    setNotice('Updated successfully.');
-    await reload();
-    setSelected(null);
+    try {
+      const response = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || 'Update failed');
+      setNotice('Updated successfully.');
+      await reload();
+      setSelected(null);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Update failed');
+    }
   }
 
   const orders = data?.orders || [];
@@ -94,13 +101,13 @@ export default function OperationsCenter() {
   };
 
   if (loading && !data) return <div className="rounded-2xl border bg-white p-8">Loading operations...</div>;
-  return <div className="space-y-6">
+  return <div className="operations-center space-y-6">
     <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Central operations</p><h1 className="mt-1 text-3xl font-semibold">Order Management Center</h1><p className="mt-2 text-sm text-stone-600">Orders, payments, delivery and reservations in one workspace.</p></div><button type="button" onClick={() => reload()} className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold">Refresh</button></header>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{[['New Orders', counters.newOrders], ['Pending Payments', counters.pendingPayments], ['Unassigned Deliveries', counters.unassigned], ['Active Deliveries', counters.active], ['Pending Bookings', counters.pendingBookings]].map(([label, value]) => <div key={String(label)} className="rounded-2xl border bg-white p-4"><p className="text-xs font-semibold uppercase text-stone-500">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></div>)}</div>
-    <div className="rounded-2xl border bg-white p-4"><div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, mobile or staff" className="rounded-xl border px-4 py-3" /><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="rounded-xl border px-4 py-3" /><select value={filter} onChange={(event) => setFilter(event.target.value)} className="rounded-xl border px-4 py-3">{FILTERS.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></div></div>
+    <div className="rounded-2xl border bg-white p-4"><div className="grid gap-3 lg:grid-cols-[1fr_auto_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, mobile or staff" className="rounded-xl border px-4 py-3" /><input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="rounded-xl border px-4 py-3" /><select value={filter} onChange={(event) => setFilter(event.target.value)} className="rounded-xl border px-4 py-3">{FILTERS.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}</select></div><div className="mt-4 grid grid-cols-3 gap-2" role="tablist" aria-label="Order fulfillment sections">{([['DELIVERY', 'Delivery'], ['PICKUP', 'Pickup'], ['STORE_VISITED', 'Store Visited']] as const).map(([value, label]) => <button key={value} type="button" role="tab" aria-selected={fulfillmentTab === value} onClick={() => { setFulfillmentTab(value); setFilter('ALL'); }} className={`rounded-xl px-4 py-3 text-sm font-semibold ${fulfillmentTab === value ? 'bg-amber-600 text-white' : 'border border-stone-200 bg-white text-stone-700'}`}>{label}<span className="ml-2 text-xs opacity-80">{orders.filter((order) => (order.fulfillmentType === 'DELIVERY' ? 'DELIVERY' : order.orderSource === 'COUNTER' ? 'STORE_VISITED' : 'PICKUP') === value).length}</span></button>)}</div></div>
     {notice ? <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p> : null}
     <div className="grid gap-4">{visibleOrders.map((order) => <button type="button" key={order.orderNumber} onClick={() => { setSelected(order); setKind('order'); }} className="rounded-2xl border bg-white p-5 text-left shadow-sm hover:border-amber-400"><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold">{order.orderNumber}</p><p className="mt-1 text-sm text-stone-600">{order.customerSnapshot?.name} • {order.fulfillmentType}</p></div><div className="text-right"><p className="font-semibold">₹{Number(order.totalAmount || 0).toFixed(2)}</p><p className="mt-1 text-xs font-semibold text-amber-700">{orderStatus(order)}</p></div></div><p className="mt-3 text-sm text-stone-500">Payment: {order.paymentMethod || 'COD'} / {order.paymentStatus}{order.deliveryStaffName ? ` • Staff: ${order.deliveryStaffName}` : ''}</p></button>)}{visibleBookings.map((booking) => <button type="button" key={booking.bookingNumber} onClick={() => { setSelected(booking); setKind('booking'); }} className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left"><p className="font-semibold">{booking.bookingNumber}</p><p className="mt-1 text-sm">{booking.customerSnapshot?.name} • {booking.roomSnapshot?.name}</p><p className="mt-1 text-sm text-stone-600">{booking.bookingDate} • {booking.startTime} - {booking.endTime} • {booking.bookingStatus}</p></button>)}{visibleOrders.length === 0 && visibleBookings.length === 0 ? <div className="rounded-2xl border border-dashed p-8 text-center text-stone-500">No matching operations.</div> : null}</div>
-    {selected ? <div className="fixed inset-0 z-50 bg-stone-950/40" onClick={() => setSelected(null)}><aside className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto bg-stone-50 p-5 shadow-2xl sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">{kind === 'order' ? 'Order operations' : 'Reservation operations'}</p><h2 className="mt-2 text-2xl font-semibold">{selected.orderNumber || selected.bookingNumber}</h2></div><button type="button" onClick={() => setSelected(null)} className="rounded-full border px-3 py-2">Close</button></div>{kind === 'order' && selected.fulfillmentType === 'DELIVERY' && selected.orderStatus === 'READY' && !selected.deliveryStaffId ? <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5"><h3 className="font-semibold text-amber-900">Assign Delivery Staff</h3><p className="mt-1 text-sm text-amber-800">This READY delivery is waiting for assignment.</p>{data?.staff?.length ? <select defaultValue="" onChange={(event) => { const staff = data.staff.find((person) => person.id === event.target.value); if (staff) update(`/api/admin/orders/${selected.orderNumber}/assignment`, { staffId: staff.id }); }} className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2"><option value="">Select delivery staff</option>{data.staff.map((staff) => <option key={staff.id} value={staff.id}>{staff.name} ({staff.accountStatus})</option>)}</select> : <p className="mt-3 text-sm font-medium text-amber-900">No eligible delivery staff is currently available.</p>}</section> : null}<OperationDetail data={data} selected={selected} kind={kind} update={update} /></aside></div> : null}
+    {selected ? <div className="fixed inset-0 z-50 bg-stone-950/40" onClick={() => setSelected(null)}><aside className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto bg-stone-50 p-5 shadow-2xl sm:p-8" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-600">{kind === 'order' ? 'Order operations' : 'Reservation operations'}</p><h2 className="mt-2 text-2xl font-semibold">{selected.orderNumber || selected.bookingNumber}</h2></div><button type="button" onClick={() => setSelected(null)} className="rounded-full border px-3 py-2">Close</button></div>{kind === 'order' && selected.fulfillmentType === 'DELIVERY' && selected.orderStatus === 'READY' && !selected.deliveryStaffId ? <section className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5"><h3 className="font-semibold text-amber-900">Assign Delivery Staff</h3><p className="mt-1 text-sm text-amber-800">This READY delivery is waiting for assignment.</p>{data?.staff?.length ? <><select value={assignmentStaffId} onChange={(event) => setAssignmentStaffId(event.target.value)} className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2"><option value="">Select delivery staff</option>{data.staff.map((staff) => <option key={staff.id} value={staff.id}>{staff.name} ({staff.accountStatus})</option>)}</select><button type="button" disabled={!assignmentStaffId} onClick={() => update(`/api/admin/orders/${selected.orderNumber}/assignment`, { staffId: assignmentStaffId })} className="mt-3 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Save assignment</button></> : <p className="mt-3 text-sm font-medium text-amber-900">No eligible delivery staff is currently available.</p>}</section> : null}<OperationDetail data={data} selected={selected} kind={kind} update={update} /></aside></div> : null}
   </div>;
 }
 

@@ -6,6 +6,7 @@ import { ObjectId } from 'mongodb';
 import { notifyUser, notifyAdmins } from '@/src/services/notification-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
 import { createDeliveryAuditEvent } from '@/src/models/delivery-audit';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -22,11 +23,18 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     const { getUsersCollection } = await import('@/src/models/user');
     let staff = null;
     try {
-      staff = await (await getUsersCollection()).findOne({ _id: new ObjectId(payload.staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE', $or: [{ staffStatus: { $in: ['AVAILABLE', 'BUSY', 'ON_DELIVERY'] } }, { staffStatus: { $exists: false } }] });
+      const staffCollection = await getUsersCollection();
+      const identityFilters: Array<Record<string, unknown>> = [{ id: payload.staffId }];
+      if (ObjectId.isValid(payload.staffId)) identityFilters.push({ _id: new ObjectId(payload.staffId) });
+      staff = await staffCollection.findOne({ $and: [{ $or: identityFilters }, { $or: [{ staffStatus: { $in: ['AVAILABLE', 'BUSY'] } }, { staffStatus: { $exists: false } }] }], role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' } as never);
     } catch {
       staff = null;
     }
     if (!staff) return NextResponse.json({ error: 'Active delivery staff member not found' }, { status: 400 });
+    const settings = await getRestaurantSettings();
+    if (settings.deliveryAssignmentEligibleStaffIds.length && !settings.deliveryAssignmentEligibleStaffIds.includes(payload.staffId)) {
+      return NextResponse.json({ error: 'This delivery staff member is not eligible for assignment.' }, { status: 409 });
+    }
     staffId = staff._id?.toHexString() || staff.id || null;
     staffName = staff.name;
   }

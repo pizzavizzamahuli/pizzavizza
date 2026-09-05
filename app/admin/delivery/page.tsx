@@ -1,4 +1,4 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requirePermission } from '@/src/auth/guard';
 import { listOrders } from '@/src/models/order';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { generateDeliveryWhatsAppMessage } from '@/src/services/delivery-service';
@@ -7,7 +7,7 @@ import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 import Link from 'next/link';
 
 export default async function AdminDeliveryPage({ searchParams }: { searchParams?: Promise<{ date?: string; status?: string }> }) {
-  await requireAdminAccess();
+  await requirePermission('delivery.view');
   const [orders, settings] = await Promise.all([listOrders(), getRestaurantSettings()]);
   const params = searchParams ? await searchParams : {};
   const activeOrders = orders.filter((order) =>

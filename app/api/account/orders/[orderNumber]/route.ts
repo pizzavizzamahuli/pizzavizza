@@ -7,6 +7,8 @@ export async function GET(request: Request, context: unknown) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   const orderNumber = (context as { params: { orderNumber: string } })?.params?.orderNumber;
   const order = await findOrderByOrderNumber(orderNumber);
-  if (!order || order.userId !== user._id!.toHexString()) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  const userId = user._id!.toHexString();
+  const canAccessAssignedDelivery = user.role === 'DELIVERY_STAFF' && order?.fulfillmentType === 'DELIVERY' && order.deliveryStaffId === userId;
+  if (!order || (order.userId !== userId && !canAccessAssignedDelivery)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ success: true, data: order });
 }

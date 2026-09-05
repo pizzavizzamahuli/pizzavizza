@@ -23,8 +23,8 @@ export default function DeliveryDashboard() {
   const [availability, setAvailability] = useState('AVAILABLE');
 
   async function load() {
-    const response = await fetch('/api/admin/operations', { cache: 'no-store' });
-    if (response.ok) setOrders((await response.json()).data.orders || []);
+    const response = await fetch('/api/account/orders', { cache: 'no-store' });
+    if (response.ok) setOrders((await response.json()).data || []);
   }
 
   useEffect(() => {

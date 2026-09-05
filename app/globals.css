@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+.operations-center aside section.bg-white:has(select) {
+  display: none;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

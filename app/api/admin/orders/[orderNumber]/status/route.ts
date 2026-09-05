@@ -5,6 +5,7 @@ import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOr
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { qualifyReferralReward } from '@/src/services/promo-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
+import { createDeliveryAuditEvent } from '@/src/models/delivery-audit';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const { orderNumber } = await context.params;
@@ -55,6 +56,9 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     if (updated && deliveryFailureReason) await (await import('@/src/models/order')).updateOrderByOrderNumber(updated.orderNumber, { deliveryFailureReason });
     if (!updated) {
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
+    }
+    if (updated.fulfillmentType === 'DELIVERY' && ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(normalizedStatus)) {
+      await createDeliveryAuditEvent({ orderId: updated._id?.toHexString() || updated.id || updated.orderNumber, event: normalizedStatus === 'PICKED_UP' ? 'PICKUP_COMPLETED' : normalizedStatus === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : normalizedStatus === 'DELIVERED' ? 'DELIVERED' : 'DELIVERY_UNASSIGNED', performedBy: user._id?.toHexString() || user.id || null, metadata: { orderNumber: updated.orderNumber, status: normalizedStatus, deliveryFailureReason } });
     }
     if (normalizedStatus === 'READY' && updated.fulfillmentType === 'DELIVERY') {
       const { autoAssignDeliveryStaff } = await import('@/src/services/delivery-assignment-service');

@@ -20,7 +20,7 @@ export async function notifyUser(userId: string, input: NotificationInput) {
 
 export async function notifyAdmins(input: NotificationInput) {
   const users = await getUsersCollection();
-  const admins = await users.find({ role: { $in: ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'] }, accountStatus: 'ACTIVE' }).project({ _id: 1, role: 1 }).toArray();
+  const admins = await users.find({ role: { $in: ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF'] }, accountStatus: 'ACTIVE' }).project({ _id: 1, role: 1 }).toArray();
   const recipients = admins.filter((admin) => admin.role === 'MAIN_ADMIN' || !input.permission || AuthorizationService.canAccess(admin.role, input.permission));
   await Promise.all(recipients.map((admin) => createNotification({ ...input, recipientId: admin._id!.toHexString(), audience: 'ADMIN' })));
   return recipients.length;

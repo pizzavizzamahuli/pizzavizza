@@ -5,6 +5,7 @@ import { findOrderByOrderNumber, PaymentStatus, updateOrderByOrderNumber } from 
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { recordAudit } from '@/src/models/audit-log';
+import { isOrderPaymentCleared } from '@/src/services/payment-service';
 
 const allowedPaymentStatuses: PaymentStatus[] = ['PENDING', 'AWAITING_VERIFICATION', 'PAID', 'FAILED', 'SUSPICIOUS', 'REFUNDED'];
 
@@ -47,6 +48,10 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       const eventKey = `order:${updated.orderNumber}:payment:${status.toLowerCase()}`;
       notifyUser(updated.userId, { type: `PAYMENT_${status}`, title: `Payment ${status.toLowerCase()}`, message: `Payment for order ${updated.orderNumber} is ${status.toLowerCase()}.`, href: `/account/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, eventKey }).catch((error) => console.error('Payment notification failed', error));
       if (status !== 'PAID') notifyAdmins({ type: `PAYMENT_${status}`, title: `Payment ${status.toLowerCase()}`, message: `Payment for order ${updated.orderNumber} requires attention.`, href: `/admin/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, permission: 'payments.view', eventKey: `admin:${eventKey}` }).catch((error) => console.error('Admin payment notification failed', error));
+      if (status === 'PAID' && updated.fulfillmentType === 'DELIVERY' && updated.orderStatus === 'READY' && isOrderPaymentCleared(updated.paymentMethod, updated.paymentStatus)) {
+        const { autoAssignDeliveryStaff } = await import('@/src/services/delivery-assignment-service');
+        autoAssignDeliveryStaff(updated.orderNumber).catch((error) => console.error('Automatic delivery assignment after payment failed', error));
+      }
     }
     await recordTelegramAudit({
       performedByUserId: user._id?.toHexString() || null,

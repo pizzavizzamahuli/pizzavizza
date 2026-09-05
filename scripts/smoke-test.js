@@ -181,7 +181,11 @@ async function run() {
       const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
       serverProcess = spawn(npmCommand, ['run', 'dev', '--', '--hostname', '127.0.0.1', '--port', String(port)], {
         cwd,
-        env: Object.assign({}, process.env, { MONGODB_URI: uri, MONGODB_DB_NAME: dbName }),
+        env: Object.assign({}, process.env, {
+          MONGODB_URI: uri,
+          MONGODB_DB_NAME: dbName,
+          NEXT_DIST_DIR: '.next-smoke',
+        }),
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: process.platform === 'win32',
       });

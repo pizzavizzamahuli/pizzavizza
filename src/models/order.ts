@@ -96,6 +96,9 @@ export interface OrderDocument {
   reservationBookingNumber?: string | null;
   deliveryStaffId?: string | null;
   deliveryStaffName?: string | null;
+  deliveryAssignedAt?: Date | null;
+  deliveryAssignedBy?: string | null;
+  deliveryAssignmentStatus?: 'UNASSIGNED' | 'ASSIGNED' | 'PENDING' | null;
   deliveryNote?: string | null;
   deliveryFailureReason?: string | null;
   deliveryDistance?: number | null;
@@ -166,6 +169,9 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     deliveryDistance: doc.deliveryDistance ?? null,
     deliveryRadiusAtOrder: doc.deliveryRadiusAtOrder ?? null,
     deliveryRadiusUnitAtOrder: doc.deliveryRadiusUnitAtOrder ?? null,
+    deliveryAssignedAt: doc.deliveryAssignedAt ?? null,
+    deliveryAssignedBy: doc.deliveryAssignedBy ?? null,
+    deliveryAssignmentStatus: doc.deliveryAssignmentStatus ?? 'UNASSIGNED',
     statusHistory: doc.statusHistory || [],
     createdAt: now,
     updatedAt: now,
@@ -200,8 +206,8 @@ export async function assignDeliveryStaff(orderNumber: string, staffId: string |
   if (expectedStaffId !== undefined && currentStaffId !== expectedStaffId) return null;
   const now = new Date();
   return col.findOneAndUpdate(
-    { orderNumber, deliveryStaffId: currentStaffId },
-    { $set: { deliveryStaffId: staffId, deliveryStaffName: staffName, updatedAt: now }, $push: { statusHistory: { previousStatus: current.orderStatus, newStatus: current.orderStatus, changedBy, note: staffId ? `Delivery assigned to ${staffName}` : 'Delivery assignment released', createdAt: now } } },
+    { orderNumber, $or: currentStaffId ? [{ deliveryStaffId: currentStaffId }] : [{ deliveryStaffId: null }, { deliveryStaffId: { $exists: false } }] },
+    { $set: { deliveryStaffId: staffId, deliveryStaffName: staffName, deliveryAssignedAt: staffId ? now : null, deliveryAssignedBy: staffId ? changedBy : null, deliveryAssignmentStatus: staffId ? 'ASSIGNED' : 'UNASSIGNED', updatedAt: now }, $push: { statusHistory: { previousStatus: current.orderStatus, newStatus: current.orderStatus, changedBy, note: staffId ? `Delivery assigned to ${staffName}` : 'Delivery assignment released', createdAt: now } } },
     { returnDocument: 'after' },
   );
 }
@@ -259,6 +265,11 @@ export async function updateOrderStatusByOrderNumber(orderNumber: string, status
 export async function listOrdersForUser(userId: string) {
   const col = await getOrdersCollection();
   return col.find({ userId }).sort({ createdAt: -1 }).toArray();
+}
+
+export async function listOrdersForDeliveryStaff(staffId: string) {
+  const col = await getOrdersCollection();
+  return col.find({ deliveryStaffId: staffId, fulfillmentType: 'DELIVERY' }).sort({ createdAt: -1 }).toArray();
 }
 
 export async function listOrders(filter: Partial<OrderDocument> = {}, session?: ClientSession) {

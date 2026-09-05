@@ -33,8 +33,14 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     const staffDiscountGiven = typeof payload.staffDiscountGiven === 'boolean' ? payload.staffDiscountGiven : undefined;
     const staffDiscountAmount = typeof payload.staffDiscountAmount === 'number' && Number.isFinite(payload.staffDiscountAmount) ? Math.max(0, payload.staffDiscountAmount) : undefined;
     const staffDiscountReason = typeof payload.staffDiscountReason === 'string' ? payload.staffDiscountReason.trim().slice(0, 500) : undefined;
+
+    const paidAmount = status === 'PAID' ? Number(order.totalAmount || 0) : order.paymentStatus === 'PAID' ? Number(order.paidAmount ?? order.totalAmount || 0) : 0;
+    const amountDue = status === 'PAID' ? 0 : Number(order.totalAmount || 0);
+
     const updated = await updateOrderByOrderNumber(order.orderNumber, {
       paymentStatus: status as PaymentStatus,
+      paidAmount,
+      amountDue,
       ...(staffDiscountGiven !== undefined ? { staffDiscountGiven, staffDiscountAmount: staffDiscountGiven ? staffDiscountAmount || 0 : 0, staffDiscountReason: staffDiscountGiven ? staffDiscountReason || null : null } : {}),
     });
     if (updated) {

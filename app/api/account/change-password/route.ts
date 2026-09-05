@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/src/auth/guard';
 import { comparePassword, updateUserPassword } from '@/src/services/user-service';
 import { env } from '@/src/config/env';
+import { recordAudit } from '@/src/models/audit-log';
 
 export async function POST(request: Request) {
   try {
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
     }
 
     await updateUserPassword(user._id?.toHexString() || user.id || '', newPassword);
+    await recordAudit({ type: 'PASSWORD_CHANGED', performedBy: user._id?.toHexString() || user.id || null });
 
     return NextResponse.json({ success: true });
   } catch (error) {

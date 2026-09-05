@@ -62,3 +62,22 @@ export async function sendEmailVerificationEmail(to: string, name: string, code:
   console.info('SMTP configuration not available. Email verification code was generated for local development.', { to, subject });
 }
 
+export async function sendProfileVerificationEmail(to: string, name: string, code: string) {
+  const subject = 'Pizza Vizza profile change verification code';
+  const text = `Hi ${name},\n\nUse ${code} to confirm your Pizza Vizza profile change. It expires in 15 minutes. If you did not request this, secure your account immediately.`;
+  const html = `<p>Hi ${name},</p><p>Use <strong>${code}</strong> to confirm your Pizza Vizza profile change. It expires in 15 minutes.</p><p>If you did not request this, secure your account immediately.</p>`;
+  if (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_APP_PASSWORD) {
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({ host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_PORT === 465, auth: { user: env.SMTP_USER, pass: env.SMTP_APP_PASSWORD } });
+      await transporter.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject, text, html });
+      return;
+    } catch (error) {
+      console.error('Profile verification email failed:', error);
+      throw new Error('Email service is unavailable. Please try again later.');
+    }
+  }
+  if (env.NODE_ENV === 'production') throw new Error('Email service is not configured.');
+  console.info('SMTP configuration not available. Profile verification code was generated for local development.', { to, subject });
+}
+

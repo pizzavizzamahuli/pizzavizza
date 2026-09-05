@@ -93,6 +93,7 @@ export async function createUser(input: {
     staffStatus: input.staffStatus || (input.role === 'DELIVERY_STAFF' || input.role === 'KITCHEN_STAFF' ? 'AVAILABLE' : undefined),
     accountStatus: input.accountStatus ?? 'ACTIVE',
     emailVerified: false,
+    mobileVerified: false,
     referredByReferralCode: input.referredByReferralCode ?? null,
     temporaryAccess: input.temporaryAccess,
     protected: input.protected ?? false,
@@ -206,6 +207,33 @@ export async function updateUser(id: string, updates: Partial<UserDocument>) {
   return collection.updateOne({ _id: new ObjectId(id) }, { $set: { ...updates, updatedAt: new Date() } });
 }
 
+export async function reserveProfileVerification(id: string, input: {
+  codeHash: string;
+  expiresAt: Date;
+  pendingName: string;
+  pendingEmail: string;
+  pendingMobile: string | null;
+}, cooldownMs = 60_000) {
+  const collection = await getUsersCollection();
+  const cutoff = new Date(Date.now() - cooldownMs);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      $or: [{ 'profileVerification.sentAt': { $exists: false } }, { 'profileVerification.sentAt': { $lte: cutoff } }],
+    },
+    { $set: { profileVerification: { ...input, attempts: 0, sentAt: new Date() }, updatedAt: new Date() } },
+  );
+}
+
+export async function incrementProfileVerificationAttempt(id: string) {
+  const collection = await getUsersCollection();
+  return collection.findOneAndUpdate(
+    { _id: new ObjectId(id), 'profileVerification.attempts': { $lt: 5 } },
+    { $inc: { 'profileVerification.attempts': 1 }, $set: { updatedAt: new Date() } },
+    { returnDocument: 'after' },
+  );
+}
+
 export async function setPasswordResetForUser(id: string, codeHash: string, expiresAt: Date) {
   const collection = await getUsersCollection();
   return collection.updateOne(
@@ -227,7 +255,7 @@ export async function updateUserPassword(id: string, newPassword: string) {
   const passwordHash = await hashPassword(newPassword);
   return collection.updateOne(
     { _id: new ObjectId(id) },
-    { $set: { passwordHash, updatedAt: new Date() }, $unset: { passwordReset: '' } }
+    { $set: { passwordHash, lastPasswordChangeAt: new Date(), updatedAt: new Date() }, $unset: { passwordReset: '' } }
   );
 }
 

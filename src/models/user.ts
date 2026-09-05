@@ -15,6 +15,7 @@ export interface UserDocument {
   staffStatus?: 'AVAILABLE' | 'BUSY' | 'ON_DELIVERY' | 'OFFLINE';
   accountStatus: AccountStatus;
   emailVerified: boolean;
+  mobileVerified?: boolean;
   referredByReferralCode?: string | null;
   emailVerification?: {
     codeHash: string;
@@ -23,6 +24,17 @@ export interface UserDocument {
     sentAt: Date;
     resendCount?: number;
   } | null;
+  profileVerification?: {
+    codeHash: string;
+    expiresAt: Date;
+    attempts: number;
+    sentAt: Date;
+    pendingName: string;
+    pendingEmail: string;
+    pendingMobile: string | null;
+  } | null;
+  lastProfileUpdateAt?: Date | null;
+  lastPasswordChangeAt?: Date | null;
   temporaryAccess?: {
     enabled: boolean;
     startsAt?: Date | null;

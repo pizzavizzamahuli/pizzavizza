@@ -4,6 +4,7 @@ import { CustomerShell } from '@/src/app-shell';
 import { getWalletBalance, getWalletLedger } from '@/src/models/wallet';
 import { findReferralByUser } from '@/src/models/referral';
 import { ensureUserCode } from '@/src/services/user-service';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -15,10 +16,11 @@ export default async function WalletPage() {
 
   const userId = user._id?.toHexString() || user.id || '';
   const userCode = await ensureUserCode(user);
-  const [balance, ledger, referral] = await Promise.all([
+  const [balance, ledger, referral, settings] = await Promise.all([
     getWalletBalance(userId).catch(() => 0),
     getWalletLedger(userId).catch(() => []),
     findReferralByUser(userId).catch(() => null),
+    getRestaurantSettings().catch(() => null),
   ]);
 
   return (
@@ -38,10 +40,10 @@ export default async function WalletPage() {
           <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-stone-900">Current balance</h2>
             <p className="mt-4 text-4xl font-semibold text-amber-700">{formatCurrency(balance)}</p>
-            <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+            {settings?.referralEnabled === true && user.role === 'CUSTOMER' ? <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 p-4">
               <p className="text-sm text-stone-600">Referral code</p>
               <p className="mt-1 text-lg font-semibold text-stone-900">{referral?.code || 'No referral created yet'}</p>
-            </div>
+            </div> : null}
           </div>
 
           <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">

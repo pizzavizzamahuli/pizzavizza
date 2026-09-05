@@ -105,7 +105,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
   if (!user) throw new Error('User not found');
 
   const settings = await getRestaurantSettings();
-  const referralCode = user.referredByReferralCode || opts.referralCode || null;
+  const referralCode = settings.referralEnabled ? user.referredByReferralCode || opts.referralCode || null : null;
   if (opts.reservationBookingNumber) {
     const reservation = await findDiningBookingByBookingNumber(opts.reservationBookingNumber);
     if (!reservation || reservation.userId !== userId || ['CANCELLED', 'REJECTED', 'COMPLETED', 'NO_SHOW'].includes(reservation.bookingStatus)) {

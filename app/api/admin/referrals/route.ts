@@ -3,11 +3,13 @@ import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { createReferral, findReferralByUser, listReferrals } from '@/src/models/referral';
 import { getUserById } from '@/src/services/user-service';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   if (!AuthorizationService.canAccess(user.role, 'referrals.view', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await getRestaurantSettings()).referralEnabled) return NextResponse.json({ error: 'Referral programme is disabled.' }, { status: 409 });
   const referrals = await listReferrals();
   const data = await Promise.all(referrals.map(async (referral) => {
     const [referrer, referred] = await Promise.all([
@@ -23,6 +25,7 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   if (!AuthorizationService.canAccess(user.role, 'referrals.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await getRestaurantSettings()).referralEnabled) return NextResponse.json({ error: 'Referral programme is disabled.' }, { status: 409 });
 
   const payload = await request.json();
   const existing = await findReferralByUser(payload.userId);

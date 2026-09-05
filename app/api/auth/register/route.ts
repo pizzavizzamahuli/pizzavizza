@@ -40,8 +40,8 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json({ error: 'An account with that email already exists.' }, { status: 409 });
     }
+    const referralSettings = await getRestaurantSettings();
     if (referralCode) {
-      const referralSettings = await getRestaurantSettings();
       if (!referralSettings.referralEnabled) return NextResponse.json({ error: 'Referral programme is currently unavailable.' }, { status: 400 });
       const referral = await findReferralByCode(referralCode);
       if (!referral || !referral.isActive || referral.status !== 'PENDING') return NextResponse.json({ error: 'Invalid referral code.' }, { status: 400 });
@@ -61,7 +61,9 @@ export async function POST(request: Request) {
       const reserved = await reserveReferralForUser(referralCode, user.id as string);
       if (!reserved.modifiedCount) return NextResponse.json({ error: 'Invalid referral code.' }, { status: 400 });
     }
-    await createReferral(user.id as string);
+    if (referralSettings?.referralEnabled === true) {
+      await createReferral(user.id as string);
+    }
 
     const verificationCode = randomInt(100000, 1000000).toString();
     await setEmailVerification(user.id as string, await hashPassword(verificationCode), new Date(Date.now() + 15 * 60 * 1000));

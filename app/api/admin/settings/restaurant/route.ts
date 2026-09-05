@@ -3,6 +3,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { RestaurantSettingsDocument, getRestaurantSettings, updateRestaurantSettings } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
+import { recordAudit } from '@/src/models/audit-log';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -123,7 +124,11 @@ export async function PUT(request: Request) {
       referralMinimumOrderAmount: typeof updates.referralMinimumOrderAmount === 'number' ? Math.max(0, updates.referralMinimumOrderAmount) : undefined,
     };
 
+    const before = await getRestaurantSettings();
     const updated = await updateRestaurantSettings(sanitized);
+    if (typeof sanitized.referralEnabled === 'boolean' && sanitized.referralEnabled !== before.referralEnabled) {
+      await recordAudit({ type: sanitized.referralEnabled ? 'REFERRAL_SYSTEM_ENABLED' : 'REFERRAL_SYSTEM_DISABLED', performedBy: user._id?.toHexString() || user.id || null, oldValue: before.referralEnabled, newValue: sanitized.referralEnabled });
+    }
     return NextResponse.json({ success: true, data: updated });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update restaurant settings';

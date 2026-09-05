@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/src/auth/session';
 import { CustomerShell } from '@/src/app-shell';
 import { createReferral, findReferralByUser } from '@/src/models/referral';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { ReferralShareCard } from '@/src/components/referrals/referral-share-card';
 
 function formatCurrency(value: number) {
@@ -11,10 +12,12 @@ function formatCurrency(value: number) {
 export default async function ReferralsPage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  const settings = await getRestaurantSettings();
+  if (user.role !== 'CUSTOMER' || settings.referralEnabled !== true) redirect('/account');
 
   const userId = user._id?.toHexString() || user.id || '';
   const referral = await findReferralByUser(userId).catch(() => null);
-  const activeReferral = referral ?? (await createReferral(userId, 50).catch(() => null));
+  const activeReferral = referral ?? (await createReferral(userId, settings.referralReferrerRewardAmount || 50).catch(() => null));
 
   return (
     <CustomerShell>

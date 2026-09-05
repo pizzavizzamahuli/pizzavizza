@@ -210,6 +210,7 @@ export async function updateUser(id: string, updates: Partial<UserDocument>) {
 export async function reserveProfileVerification(id: string, input: {
   codeHash: string;
   expiresAt: Date;
+  purpose?: 'PROFILE_UPDATE' | 'MOBILE_VERIFICATION';
   pendingName: string;
   pendingEmail: string;
   pendingMobile: string | null;
@@ -221,7 +222,7 @@ export async function reserveProfileVerification(id: string, input: {
       _id: new ObjectId(id),
       $or: [{ 'profileVerification.sentAt': { $exists: false } }, { 'profileVerification.sentAt': { $lte: cutoff } }],
     },
-    { $set: { profileVerification: { ...input, attempts: 0, sentAt: new Date() }, updatedAt: new Date() } },
+    { $set: { profileVerification: { purpose: 'PROFILE_UPDATE', ...input, attempts: 0, sentAt: new Date() }, updatedAt: new Date() } },
   );
 }
 

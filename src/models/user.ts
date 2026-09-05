@@ -29,6 +29,7 @@ export interface UserDocument {
     expiresAt: Date;
     attempts: number;
     sentAt: Date;
+    purpose?: 'PROFILE_UPDATE' | 'MOBILE_VERIFICATION';
     pendingName: string;
     pendingEmail: string;
     pendingMobile: string | null;

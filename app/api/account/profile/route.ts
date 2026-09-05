@@ -78,7 +78,7 @@ export async function PUT(request: Request) {
     if (!/^\d{6}$/.test(code)) return NextResponse.json({ error: 'Enter the six-digit verification code.' }, { status: 400 });
     const current = await incrementProfileVerificationAttempt(userId(user));
     const verification = current?.profileVerification;
-    if (!verification || verification.expiresAt < new Date() || !(await comparePassword(code, verification.codeHash))) {
+    if (!verification || (verification.purpose && verification.purpose !== 'PROFILE_UPDATE') || verification.expiresAt < new Date() || !(await comparePassword(code, verification.codeHash))) {
       await recordAudit({ type: 'PROFILE_VERIFICATION_FAILED', performedBy: userId(user), newValue: { reason: 'invalid_or_expired_code' } });
       return NextResponse.json({ error: 'Invalid or expired verification code.' }, { status: 400 });
     }
@@ -93,7 +93,7 @@ export async function PUT(request: Request) {
           email: verification.pendingEmail,
           mobile: verification.pendingMobile,
           emailVerified: emailChanged ? false : user.emailVerified,
-          mobileVerified: mobileChanged ? false : user.mobileVerified === true,
+          mobileVerified: mobileChanged ? verification.pendingMobile !== null : user.mobileVerified === true,
           lastProfileUpdateAt: new Date(),
           updatedAt: new Date(),
         },

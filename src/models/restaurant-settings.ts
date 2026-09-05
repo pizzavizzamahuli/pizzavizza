@@ -27,6 +27,9 @@ export interface RestaurantSettingsDocument {
   menuImage?: string | null;
   phone?: string | null;
   email?: string | null;
+  supportEmail?: string | null;
+  whatsappSupportNumber?: string | null;
+  workingHours?: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
   landmark?: string | null;
@@ -96,7 +99,19 @@ export async function getRestaurantSettings() {
   const col = await getRestaurantSettingsCollection();
   const settings = await col.findOne({});
 
-  if (settings) return settings;
+  if (settings) {
+    const defaults = {
+      referralEnabled: true,
+      referralReferrerRewardAmount: 50,
+      referralReferredRewardAmount: 50,
+      referralMinimumOrderAmount: 300,
+    };
+    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([key]) => settings[key as keyof RestaurantSettingsDocument] === undefined));
+    if (Object.keys(missingDefaults).length) {
+      await col.updateOne({ _id: settings._id }, { $set: { ...missingDefaults, updatedAt: new Date() } });
+    }
+    return { ...defaults, ...settings, ...missingDefaults } as RestaurantSettingsDocument;
+  }
 
   const now = new Date();
   const defaultSettings: RestaurantSettingsDocument = {
@@ -107,6 +122,9 @@ export async function getRestaurantSettings() {
     menuImage: null,
     phone: null,
     email: null,
+    supportEmail: null,
+    whatsappSupportNumber: null,
+    workingHours: null,
     addressLine1: null,
     addressLine2: null,
     landmark: null,
@@ -134,7 +152,6 @@ export async function getRestaurantSettings() {
     manualPaymentQrUrl: null,
     manualPaymentBankDetails: null,
     onlinePaymentEnabled: false,
-    deliveryWhatsAppNumber: null,
     chatbotEnabled: true,
     telegramEnabled: false,
     telegramOrderNotificationsEnabled: false,

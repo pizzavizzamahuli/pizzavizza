@@ -5,6 +5,7 @@ export interface AuditLogDocument {
   _id?: ObjectId;
   type: string;
   performedBy?: string | null;
+  performedByRole?: string | null;
   oldValue?: unknown;
   newValue?: unknown;
   timestamp: Date;
@@ -34,6 +35,7 @@ export async function recordAudit(entry: Partial<AuditLogDocument>) {
   const toInsert: AuditLogDocument = {
     type: entry.type || 'UNKNOWN',
     performedBy: entry.performedBy ?? null,
+    performedByRole: entry.performedByRole ?? null,
     oldValue: entry.oldValue ?? null,
     newValue: entry.newValue ?? null,
     timestamp: now,

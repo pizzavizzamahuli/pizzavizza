@@ -1,5 +1,11 @@
 import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+
+async function assertReferralEnabled() {
+  const settings = await getRestaurantSettings();
+  if (settings.referralEnabled !== true) throw new Error('Referral programme is currently unavailable');
+}
 
 export interface ReferralDocument {
   _id?: ObjectId;
@@ -57,11 +63,13 @@ export function generateReferralCode(userId: string) {
 }
 
 export async function findReferralByCode(code: string, session?: ClientSession) {
+  if ((await getRestaurantSettings()).referralEnabled !== true) return null;
   const col = await getReferralsCollection();
   return col.findOne({ code: code.toUpperCase() }, { session });
 }
 
 export async function createReferral(referrerUserId: string, rewardValue = 50) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   const code = generateReferralCode(referrerUserId);
   const now = new Date();
@@ -97,6 +105,7 @@ export async function listReferrals() {
 }
 
 export async function markReferralRedeemed(code: string, referredUserId: string, session?: ClientSession) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   return col.updateOne(
     { code: code.toUpperCase(), status: 'PENDING' },
@@ -106,6 +115,7 @@ export async function markReferralRedeemed(code: string, referredUserId: string,
 }
 
 export async function reserveReferralForUser(code: string, referredUserId: string) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   return col.updateOne(
     { code: code.toUpperCase(), status: 'PENDING', $or: [{ referredUserId: { $exists: false } }, { referredUserId: null }, { referredUserId }] },
@@ -114,6 +124,7 @@ export async function reserveReferralForUser(code: string, referredUserId: strin
 }
 
 export async function creditReferralRewards(code: string, referredUserId: string, session?: ClientSession) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   const referral = await col.findOneAndUpdate(
     { code: code.toUpperCase(), status: 'PENDING', referrerUserId: { $ne: referredUserId } },
@@ -125,6 +136,7 @@ export async function creditReferralRewards(code: string, referredUserId: string
 }
 
 export async function qualifyReferral(code: string, referredUserId: string, orderNumber: string, orderAmount: number, referrerRewardAmount: number, referredRewardAmount: number, session?: ClientSession) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   return col.findOneAndUpdate(
     { code: code.toUpperCase(), referredUserId, status: 'PENDING', qualifyingOrderId: { $in: [null, undefined] } },
@@ -134,6 +146,7 @@ export async function qualifyReferral(code: string, referredUserId: string, orde
 }
 
 export async function markReferralRewarded(code: string, referredUserId: string, session?: ClientSession) {
+  await assertReferralEnabled();
   const col = await getReferralsCollection();
   return col.updateOne({ code: code.toUpperCase(), referredUserId, status: 'QUALIFIED' }, { $set: { status: 'REWARDED', creditedAt: new Date(), referrerRewardCreditedAt: new Date(), referredRewardCreditedAt: new Date(), updatedAt: new Date() } }, { session });
 }

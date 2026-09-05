@@ -23,6 +23,9 @@ export async function GET() {
     menuImage: s.menuImage,
     phone: s.phone,
     email: s.email,
+    supportEmail: s.supportEmail || null,
+    whatsappSupportNumber: s.whatsappSupportNumber || null,
+    workingHours: s.workingHours || null,
     addressLine1: s.addressLine1,
     addressLine2: s.addressLine2,
     landmark: s.landmark,
@@ -83,6 +86,12 @@ export async function PUT(request: Request) {
     }
     const poweredByName = typeof updates.poweredByName === 'string' ? updates.poweredByName.trim() : updates.poweredByName === null ? null : undefined;
     const poweredByUrl = typeof updates.poweredByUrl === 'string' ? updates.poweredByUrl.trim() : updates.poweredByUrl === null ? null : undefined;
+    const supportEmailValue = typeof updates.supportEmail === 'string' ? updates.supportEmail.trim().toLowerCase() : updates.supportEmail === null ? null : undefined;
+    const supportEmail = supportEmailValue === '' ? null : supportEmailValue;
+    const whatsappSupportValue = typeof updates.whatsappSupportNumber === 'string' ? updates.whatsappSupportNumber.trim() : updates.whatsappSupportNumber === null ? null : undefined;
+    const whatsappSupportNumber = whatsappSupportValue === '' ? null : whatsappSupportValue;
+    const workingHoursValue = typeof updates.workingHours === 'string' ? updates.workingHours.trim().slice(0, 200) : updates.workingHours === null ? null : undefined;
+    const workingHours = workingHoursValue === '' ? null : workingHoursValue;
     if (isMainAdmin && typeof poweredByName === 'string' && (poweredByName.length > 100 || /[<>]/.test(poweredByName))) {
       return NextResponse.json({ error: 'Powered By name must be plain text up to 100 characters.' }, { status: 400 });
     }
@@ -93,6 +102,13 @@ export async function PUT(request: Request) {
       } catch {
         return NextResponse.json({ error: 'Powered By URL must be a valid HTTP or HTTPS URL.' }, { status: 400 });
       }
+    }
+    if (supportEmail !== undefined && supportEmail !== null && !/^\S+@\S+\.\S+$/.test(supportEmail)) {
+      return NextResponse.json({ error: 'Help & Support email must be valid.' }, { status: 400 });
+    }
+    const normalizedWhatsApp = whatsappSupportNumber === null ? null : whatsappSupportNumber?.replace(/\D/g, '');
+    if (normalizedWhatsApp && (normalizedWhatsApp.length < 8 || normalizedWhatsApp.length > 15)) {
+      return NextResponse.json({ error: 'WhatsApp number must contain 8 to 15 digits.' }, { status: 400 });
     }
     const sanitizedLat = typeof updates.latitude === 'number' ? updates.latitude : typeof updates.latitude === 'string' ? Number(updates.latitude) : undefined;
     const sanitizedLng = typeof updates.longitude === 'number' ? updates.longitude : typeof updates.longitude === 'string' ? Number(updates.longitude) : undefined;
@@ -105,6 +121,9 @@ export async function PUT(request: Request) {
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,
       email: typeof updates.email === 'string' ? updates.email.trim() : undefined,
+      supportEmail,
+      whatsappSupportNumber: normalizedWhatsApp,
+      workingHours,
       addressLine1: typeof updates.addressLine1 === 'string' ? updates.addressLine1.trim() : undefined,
       addressLine2: typeof updates.addressLine2 === 'string' ? updates.addressLine2.trim() : undefined,
       landmark: typeof updates.landmark === 'string' ? updates.landmark.trim() : undefined,
@@ -146,11 +165,17 @@ export async function PUT(request: Request) {
 
     const before = await getRestaurantSettings();
     const updated = await updateRestaurantSettings(sanitized);
+    if (sanitized.supportEmail !== undefined && sanitized.supportEmail !== before.supportEmail) {
+      await recordAudit({ type: 'SUPPORT_EMAIL_UPDATED', performedBy: user._id?.toHexString() || user.id || null, performedByRole: user.role, oldValue: before.supportEmail || null, newValue: sanitized.supportEmail || null });
+    }
+    if (sanitized.whatsappSupportNumber !== undefined && sanitized.whatsappSupportNumber !== before.whatsappSupportNumber) {
+      await recordAudit({ type: 'WHATSAPP_SUPPORT_NUMBER_UPDATED', performedBy: user._id?.toHexString() || user.id || null, performedByRole: user.role, oldValue: before.whatsappSupportNumber || null, newValue: sanitized.whatsappSupportNumber || null });
+    }
     if (isMainAdmin && (sanitized.poweredByName !== undefined || sanitized.poweredByUrl !== undefined) && (before.poweredByName !== sanitized.poweredByName || before.poweredByUrl !== sanitized.poweredByUrl)) {
-      await recordAudit({ type: 'FOOTER_POWERED_BY_UPDATED', performedBy: user._id?.toHexString() || user.id || null, oldValue: { name: before.poweredByName || null, url: before.poweredByUrl || null }, newValue: { name: sanitized.poweredByName ?? before.poweredByName ?? null, url: sanitized.poweredByUrl ?? before.poweredByUrl ?? null } });
+      await recordAudit({ type: 'POWERED_BY_UPDATED', performedBy: user._id?.toHexString() || user.id || null, performedByRole: user.role, oldValue: { name: before.poweredByName || null, url: before.poweredByUrl || null }, newValue: { name: sanitized.poweredByName ?? before.poweredByName ?? null, url: sanitized.poweredByUrl ?? before.poweredByUrl ?? null } });
     }
     if (typeof sanitized.referralEnabled === 'boolean' && sanitized.referralEnabled !== before.referralEnabled) {
-      await recordAudit({ type: sanitized.referralEnabled ? 'REFERRAL_SYSTEM_ENABLED' : 'REFERRAL_SYSTEM_DISABLED', performedBy: user._id?.toHexString() || user.id || null, oldValue: before.referralEnabled, newValue: sanitized.referralEnabled });
+      await recordAudit({ type: sanitized.referralEnabled ? 'REFERRAL_SYSTEM_ENABLED' : 'REFERRAL_SYSTEM_DISABLED', performedBy: user._id?.toHexString() || user.id || null, performedByRole: user.role, oldValue: before.referralEnabled, newValue: sanitized.referralEnabled });
     }
     return NextResponse.json({ success: true, data: updated });
   } catch (err: unknown) {

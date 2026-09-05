@@ -105,6 +105,9 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
   if (!user) throw new Error('User not found');
 
   const settings = await getRestaurantSettings();
+  if (!settings.referralEnabled && opts.referralCode) {
+    throw new Error('Referral programme is currently unavailable');
+  }
   const referralCode = settings.referralEnabled ? user.referredByReferralCode || opts.referralCode || null : null;
   if (opts.reservationBookingNumber) {
     const reservation = await findDiningBookingByBookingNumber(opts.reservationBookingNumber);

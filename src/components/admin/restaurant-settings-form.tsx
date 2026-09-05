@@ -307,6 +307,16 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         </div>
       </div>
 
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Customer support</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="text-sm"><span className="mb-1 block">Help &amp; Support email</span><input className="input" type="email" value={settings.supportEmail || ''} onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })} placeholder="support@example.com" /></label>
+          <label className="text-sm"><span className="mb-1 block">WhatsApp support number</span><input className="input" inputMode="tel" value={settings.whatsappSupportNumber || ''} onChange={(e) => setSettings({ ...settings, whatsappSupportNumber: e.target.value })} placeholder="+91XXXXXXXXXX" /></label>
+          <label className="text-sm sm:col-span-2"><span className="mb-1 block">Working hours</span><input className="input" maxLength={200} value={settings.workingHours || ''} onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })} placeholder="Daily, 11:00 AM - 11:00 PM" /></label>
+        </div>
+        <p className="mt-3 text-xs text-stone-500">Support email and WhatsApp links appear in the public footer after saving.</p>
+      </div>
+
       {isMainAdmin ? <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
         <h2 className="text-sm font-semibold text-stone-900">Footer settings</h2>
         <p className="mt-1 text-xs text-stone-500">Configure the optional Powered By credit shown in the public footer.</p>

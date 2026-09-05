@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { getAllCategories, getProductsForCustomer } from '@/src/services/menu-service';
 import { ProductDocument } from '@/src/models/product';
 import { CategoryDocument } from '@/src/models/category';
 import AddToCartButton from '@/src/components/add-to-cart-button';
+import ImageCarousel from '@/src/components/image-carousel';
 
 export default async function MenuPage({
   searchParams,
@@ -66,14 +66,7 @@ export default async function MenuPage({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleProducts.map((p) => (
               <article key={p._id?.toHexString()} className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
-                  <img
-                    src={p.image || '/icon-512.png'}
-                    alt={p.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
+                <ImageCarousel images={[p.image, ...(p.images || [])]} title={p.name} aspectClassName="aspect-[4/3]" />
                 <div className="p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="text-lg font-semibold text-stone-900">{p.name}</h3>

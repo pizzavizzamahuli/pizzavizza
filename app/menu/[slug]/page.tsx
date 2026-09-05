@@ -18,7 +18,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     ? await findCustomizationGroupsByIds(product.customizationGroupIds)
     : [];
 
-  const images = [...(product.images ?? []), ...(product.image ? [product.image] : [])].filter(Boolean);
+  const images = [...(product.image ? [product.image] : []), ...(product.images ?? [])].filter(Boolean);
 
   return (
     <div className="space-y-4 sm:space-y-6">

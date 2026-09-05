@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 
 type ProductImageGalleryProps = {
   images: string[];
@@ -17,6 +17,7 @@ export default function ProductImageGallery({ images, title }: ProductImageGalle
   }, [images]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   const safeActiveIndex = gallery.length === 0 ? 0 : Math.min(activeIndex, gallery.length - 1);
   const activeImage = gallery[safeActiveIndex] || PLACEHOLDER;
@@ -26,12 +27,20 @@ export default function ProductImageGallery({ images, title }: ProductImageGalle
   const closeViewer = () => setIsOpen(false);
   const showPrev = () => setActiveIndex((current) => (current - 1 + gallery.length) % gallery.length);
   const showNext = () => setActiveIndex((current) => (current + 1) % gallery.length);
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    if (touchStartX.current === null || !hasMultiple) return;
+    const distance = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+    if (Math.abs(distance) > 36) (distance < 0 ? showNext : showPrev)();
+    touchStartX.current = null;
+  };
 
   return (
     <div className="space-y-4">
       <button
         type="button"
         onClick={openViewer}
+        onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; }}
+        onTouchEnd={handleTouchEnd}
         className="group relative block w-full overflow-hidden rounded-3xl border border-stone-200 bg-stone-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
       >
         <div className="relative h-96 w-full">

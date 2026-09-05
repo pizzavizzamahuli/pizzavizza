@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { CustomerShell } from '@/src/app-shell';
 import { getAvailableDiningRooms } from '@/src/services/dining-service';
 import { DiningRoomDocument } from '@/src/models/dining-room';
+import ImageCarousel from '@/src/components/image-carousel';
 
 export default async function DiningHomePage() {
   const rooms: DiningRoomDocument[] = await getAvailableDiningRooms();
@@ -19,7 +19,7 @@ export default async function DiningHomePage() {
         <section className="grid gap-4 sm:gap-6 lg:grid-cols-2">
           {rooms.map((room) => (
             <article key={room._id?.toHexString()} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
-              {room.images?.[0] ? <img src={room.images[0]} alt={room.name} className="mb-5 aspect-[16/9] w-full rounded-2xl object-cover" /> : null}
+              <div className="mb-5 overflow-hidden rounded-2xl"><ImageCarousel images={room.images} title={room.name} aspectClassName="aspect-[16/9]" /></div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>

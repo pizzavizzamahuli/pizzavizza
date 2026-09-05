@@ -11,6 +11,7 @@ import { createReferral, findReferralByUser } from '@/src/models/referral';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { ensureUserCode } from '@/src/services/user-service';
 import ProfileEditor from '@/src/components/account/profile-editor';
+import EmailVerificationButton from '@/src/components/account/email-verification-button';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -71,7 +72,7 @@ export default async function AccountPage() {
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Security status</p>
-              <dl className="mt-3 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt className="text-stone-500">Email verification</dt><dd className="font-medium">{user.emailVerified ? 'Verified' : 'Pending'}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Mobile verification</dt><dd className="font-medium">{user.mobileVerified ? 'Verified' : 'Not verified'}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Last profile update</dt><dd className="text-right font-medium">{user.lastProfileUpdateAt?.toLocaleString() || 'Not updated'}</dd></div></dl>
+              <dl className="mt-3 space-y-2 text-sm"><div className="flex items-center justify-between gap-3"><dt className="text-stone-500">Email verification</dt><dd className="flex items-center gap-2 font-medium">{user.emailVerified ? <span className="text-emerald-700">Verified</span> : <><span>Pending</span><EmailVerificationButton email={user.email} /></>}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Mobile verification</dt><dd className="font-medium">{user.mobileVerified ? 'Verified' : 'Not verified'}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Last profile update</dt><dd className="text-right font-medium">{user.lastProfileUpdateAt?.toLocaleString() || 'Not updated'}</dd></div></dl>
             </div>
           </div>
 

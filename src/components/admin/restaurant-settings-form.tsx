@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import LocationMap from '@/src/components/map/location-map';
 import { geocodeAddress } from '@/src/services/map-provider';
 
-export default function RestaurantSettingsForm() {
+export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -306,6 +306,16 @@ export default function RestaurantSettingsForm() {
           <label className="text-sm sm:col-span-2"><span className="mb-1 block">Minimum qualifying order (INR)</span><input type="number" min="0" className="input" value={settings.referralMinimumOrderAmount ?? 300} onChange={(e) => setSettings({ ...settings, referralMinimumOrderAmount: Number(e.target.value) || 0 })} /></label>
         </div>
       </div>
+
+      {isMainAdmin ? <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Footer settings</h2>
+        <p className="mt-1 text-xs text-stone-500">Configure the optional Powered By credit shown in the public footer.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="text-sm"><span className="mb-1 block">Powered By name</span><input className="input" maxLength={100} value={settings.poweredByName || ''} onChange={(e) => setSettings({ ...settings, poweredByName: e.target.value })} placeholder="ABC Technologies" /></label>
+          <label className="text-sm"><span className="mb-1 block">Powered By URL</span><input className="input" type="url" value={settings.poweredByUrl || ''} onChange={(e) => setSettings({ ...settings, poweredByUrl: e.target.value })} placeholder="https://example.com" /></label>
+        </div>
+        {settings.poweredByName && settings.poweredByUrl ? <p className="mt-4 text-sm text-stone-600">Preview: Powered by <a href={settings.poweredByUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-700">{settings.poweredByName}</a></p> : <p className="mt-4 text-xs text-stone-500">Leave both fields configured to show the Powered By link.</p>}
+      </div> : null}
 
       <div>
         <button className="btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</button>

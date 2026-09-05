@@ -6,6 +6,7 @@ import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import MobileNavigation from '@/src/components/mobile-navigation';
 import { generateMapLink } from '@/src/services/map-provider';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
+import GlobalFooter from '@/src/components/global-footer';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -87,18 +88,7 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-10">{children}</main>
-      <footer className="border-t border-stone-200 bg-white/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>Pizza Vizza brings your menu, dining reservations, and orders into one place.</span>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/privacy-policy">Privacy</Link>
-            <Link href="/terms-and-conditions">Terms</Link>
-            <Link href="/refund-cancellation-policy">Refunds</Link>
-            <Link href="/delivery-policy">Delivery</Link>
-          </div>
-          <span>{user ? `Signed in as ${user.name}` : 'Guest experience'}</span>
-        </div>
-      </footer>
+      <GlobalFooter settings={restaurantSettings} />
     </div>
   );
 }

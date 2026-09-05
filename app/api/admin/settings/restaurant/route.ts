@@ -19,6 +19,7 @@ export async function GET() {
     id: s.id,
     restaurantName: s.restaurantName,
     logo: s.logo,
+    ...(user.role === 'MAIN_ADMIN' ? { poweredByName: s.poweredByName || null, poweredByUrl: s.poweredByUrl || null } : {}),
     menuImage: s.menuImage,
     phone: s.phone,
     email: s.email,
@@ -75,6 +76,24 @@ export async function PUT(request: Request) {
   try {
     const payload = await request.json();
     const updates = payload as Record<string, unknown>;
+    const isMainAdmin = user.role === 'MAIN_ADMIN';
+    const hasPoweredByUpdate = Object.prototype.hasOwnProperty.call(updates, 'poweredByName') || Object.prototype.hasOwnProperty.call(updates, 'poweredByUrl');
+    if (hasPoweredByUpdate && !isMainAdmin) {
+      return NextResponse.json({ error: 'Only the Main Admin can update Powered By settings.' }, { status: 403 });
+    }
+    const poweredByName = typeof updates.poweredByName === 'string' ? updates.poweredByName.trim() : updates.poweredByName === null ? null : undefined;
+    const poweredByUrl = typeof updates.poweredByUrl === 'string' ? updates.poweredByUrl.trim() : updates.poweredByUrl === null ? null : undefined;
+    if (isMainAdmin && typeof poweredByName === 'string' && (poweredByName.length > 100 || /[<>]/.test(poweredByName))) {
+      return NextResponse.json({ error: 'Powered By name must be plain text up to 100 characters.' }, { status: 400 });
+    }
+    if (isMainAdmin && poweredByUrl) {
+      try {
+        const parsedUrl = new URL(poweredByUrl);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error('Invalid protocol');
+      } catch {
+        return NextResponse.json({ error: 'Powered By URL must be a valid HTTP or HTTPS URL.' }, { status: 400 });
+      }
+    }
     const sanitizedLat = typeof updates.latitude === 'number' ? updates.latitude : typeof updates.latitude === 'string' ? Number(updates.latitude) : undefined;
     const sanitizedLng = typeof updates.longitude === 'number' ? updates.longitude : typeof updates.longitude === 'string' ? Number(updates.longitude) : undefined;
     const nextMapUrl = typeof sanitizedLat === 'number' && typeof sanitizedLng === 'number' ? generateMapLink(sanitizedLat, sanitizedLng, typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined) : undefined;
@@ -82,6 +101,7 @@ export async function PUT(request: Request) {
     const sanitized: Partial<RestaurantSettingsDocument> = {
       restaurantName: typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined,
       logo: typeof updates.logo === 'string' ? updates.logo.trim() : undefined,
+      ...(isMainAdmin ? { poweredByName, poweredByUrl } : {}),
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,
       email: typeof updates.email === 'string' ? updates.email.trim() : undefined,
@@ -126,6 +146,9 @@ export async function PUT(request: Request) {
 
     const before = await getRestaurantSettings();
     const updated = await updateRestaurantSettings(sanitized);
+    if (isMainAdmin && (sanitized.poweredByName !== undefined || sanitized.poweredByUrl !== undefined) && (before.poweredByName !== sanitized.poweredByName || before.poweredByUrl !== sanitized.poweredByUrl)) {
+      await recordAudit({ type: 'FOOTER_POWERED_BY_UPDATED', performedBy: user._id?.toHexString() || user.id || null, oldValue: { name: before.poweredByName || null, url: before.poweredByUrl || null }, newValue: { name: sanitized.poweredByName ?? before.poweredByName ?? null, url: sanitized.poweredByUrl ?? before.poweredByUrl ?? null } });
+    }
     if (typeof sanitized.referralEnabled === 'boolean' && sanitized.referralEnabled !== before.referralEnabled) {
       await recordAudit({ type: sanitized.referralEnabled ? 'REFERRAL_SYSTEM_ENABLED' : 'REFERRAL_SYSTEM_DISABLED', performedBy: user._id?.toHexString() || user.id || null, oldValue: before.referralEnabled, newValue: sanitized.referralEnabled });
     }

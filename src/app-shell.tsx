@@ -7,6 +7,8 @@ import MobileNavigation from '@/src/components/mobile-navigation';
 import { generateMapLink } from '@/src/services/map-provider';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
 import GlobalFooter from '@/src/components/global-footer';
+import { mergeWebsiteAppearance } from '@/src/types/appearance';
+import type { CSSProperties } from 'react';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -43,19 +45,37 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
   }
 
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
+  const appearance = mergeWebsiteAppearance(restaurantSettings?.appearance);
+  const radius = appearance.radius === 'sharp' ? '0.25rem' : appearance.radius === 'soft' ? '0.5rem' : appearance.radius === 'extra-rounded' ? '1.5rem' : '1rem';
+  const shadow = appearance.shadow === 'none' ? 'none' : appearance.shadow === 'medium' ? '0 8px 24px rgb(0 0 0 / 0.12)' : appearance.shadow === 'strong' ? '0 16px 36px rgb(0 0 0 / 0.18)' : '0 1px 2px rgb(0 0 0 / 0.05)';
+  const themeStyle = {
+    '--background': appearance.colors.background,
+    '--foreground': appearance.colors.body,
+    '--theme-primary': appearance.colors.primary,
+    '--theme-secondary': appearance.colors.secondary,
+    '--theme-accent': appearance.colors.accent,
+    '--theme-surface': appearance.colors.surface,
+    '--theme-border': appearance.colors.border,
+    '--theme-link': appearance.colors.link,
+    '--theme-button': appearance.colors.buttonBackground,
+    '--theme-button-text': appearance.colors.buttonText,
+    '--theme-button-hover': appearance.colors.buttonHover,
+    '--theme-radius': radius,
+    '--theme-shadow': shadow,
+  } as CSSProperties;
   const restaurantMapUrl = restaurantSettings && typeof restaurantSettings.latitude === 'number' && typeof restaurantSettings.longitude === 'number'
     ? generateMapLink(restaurantSettings.latitude, restaurantSettings.longitude, restaurantSettings.restaurantName)
     : null;
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900">
-      <header className="border-b border-stone-200 bg-white/90 backdrop-blur">
+    <div className="min-h-screen text-stone-900" style={themeStyle}>
+      <header className="border-b bg-white/90 backdrop-blur" style={{ backgroundColor: appearance.colors.headerBackground, color: appearance.colors.headerText, borderColor: appearance.colors.border }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <Link href="/" className="flex min-w-0 items-center gap-2.5">
-              {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border border-amber-100 object-cover sm:h-10 sm:w-10" /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-600 text-sm font-semibold text-white sm:h-10 sm:w-10">PV</div>}
+              {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border object-cover sm:h-10 sm:w-10" style={{ borderColor: appearance.colors.accent }} /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10" style={{ backgroundColor: appearance.colors.primary, color: appearance.colors.buttonText }}>PV</div>}
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-600 sm:text-sm sm:tracking-[0.25em]">{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-sm sm:tracking-[0.25em]" style={{ color: appearance.colors.accent }}>{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
                 <h1 className="truncate text-xs font-semibold sm:text-lg">Order online <span className="hidden sm:inline">• Dine • Pickup</span></h1>
               </div>
             </Link>

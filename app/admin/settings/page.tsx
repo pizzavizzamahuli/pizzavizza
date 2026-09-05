@@ -4,6 +4,7 @@ import RestaurantSettingsForm from '@/src/components/admin/restaurant-settings-f
 import SecretSettingsForm from '@/src/components/admin/secret-settings-form';
 import AuditLogViewer from '@/src/components/admin/audit-log-viewer';
 import LegalPagesPanel from '@/src/components/admin/legal-pages-panel';
+import AppearanceEditor from '@/src/components/admin/appearance-editor';
 
 export default async function AdminSettingsPage() {
   const user = await requireAdminAccess();
@@ -13,6 +14,14 @@ export default async function AdminSettingsPage() {
       <h1 className="text-2xl font-semibold">Settings</h1>
       <p className="text-sm text-stone-600">Manage staff access, reset flows, and future restaurant settings from this console.</p>
       <div className="space-y-3">
+        <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
+            Website Appearance
+            <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
+            <span className="hidden text-sm font-normal text-stone-500 group-open:inline">Close section</span>
+          </summary>
+          <div className="border-t border-stone-200 p-4 sm:p-5"><AppearanceEditor /></div>
+        </details>
         <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
             Audit Logs

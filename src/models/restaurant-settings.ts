@@ -1,8 +1,13 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
+import { defaultWebsiteAppearance, type WebsiteAppearance } from '@/src/types/appearance';
+
+export { defaultWebsiteAppearance, mergeWebsiteAppearance } from '@/src/types/appearance';
+export type { WebsiteAppearance } from '@/src/types/appearance';
 
 export type DistanceUnit = 'KM' | 'MILES';
 export type DeliveryChargeType = 'FREE' | 'FIXED' | 'DISTANCE_BASED';
+
 
 export interface RestaurantLocationSnapshot {
   addressLine1?: string | null;
@@ -24,6 +29,7 @@ export interface RestaurantSettingsDocument {
   logo?: string | null;
   poweredByName?: string | null;
   poweredByUrl?: string | null;
+  appearance?: WebsiteAppearance;
   menuImage?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -119,6 +125,7 @@ export async function getRestaurantSettings() {
     logo: null,
     poweredByName: null,
     poweredByUrl: null,
+    appearance: defaultWebsiteAppearance,
     menuImage: null,
     phone: null,
     email: null,

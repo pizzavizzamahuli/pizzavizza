@@ -7,6 +7,8 @@ export type { WebsiteAppearance } from '@/src/types/appearance';
 
 export type DistanceUnit = 'KM' | 'MILES';
 export type DeliveryChargeType = 'FREE' | 'FIXED' | 'DISTANCE_BASED';
+export type DeliveryAssignmentMode = 'MANUAL' | 'AUTOMATIC' | 'MANUAL_FALLBACK';
+export type DeliveryAssignmentStrategy = 'LOWEST_WORKLOAD' | 'ROUND_ROBIN' | 'LEAST_RECENT';
 
 
 export interface RestaurantLocationSnapshot {
@@ -36,6 +38,10 @@ export interface RestaurantSettingsDocument {
   supportEmail?: string | null;
   whatsappSupportNumber?: string | null;
   workingHours?: string | null;
+  deliveryAssignmentMode: DeliveryAssignmentMode;
+  deliveryAssignmentStrategy: DeliveryAssignmentStrategy;
+  deliveryAssignmentEligibleStaffIds: string[];
+  deliveryAssignmentLastStaffId?: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
   landmark?: string | null;
@@ -132,6 +138,10 @@ export async function getRestaurantSettings() {
     supportEmail: null,
     whatsappSupportNumber: null,
     workingHours: null,
+    deliveryAssignmentMode: 'MANUAL',
+    deliveryAssignmentStrategy: 'LOWEST_WORKLOAD',
+    deliveryAssignmentEligibleStaffIds: [],
+    deliveryAssignmentLastStaffId: null,
     addressLine1: null,
     addressLine2: null,
     landmark: null,

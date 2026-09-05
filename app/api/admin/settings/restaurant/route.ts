@@ -12,6 +12,8 @@ export async function GET() {
   }
 
   const s = await getRestaurantSettings();
+  const { getUsersCollection } = await import('@/src/models/user');
+  const deliveryStaff = await (await getUsersCollection()).find({ role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' }).project({ passwordHash: 0, passwordReset: 0 }).toArray();
   const mapUrl = typeof s.latitude === 'number' && typeof s.longitude === 'number' ? generateMapLink(s.latitude, s.longitude, s.restaurantName) : s.googleMapsUrl || null;
   // Construct a public settings view that excludes sensitive server-side keys
   const publicSettings = {
@@ -26,6 +28,10 @@ export async function GET() {
     supportEmail: s.supportEmail || null,
     whatsappSupportNumber: s.whatsappSupportNumber || null,
     workingHours: s.workingHours || null,
+    deliveryAssignmentMode: s.deliveryAssignmentMode,
+    deliveryAssignmentStrategy: s.deliveryAssignmentStrategy,
+    deliveryAssignmentEligibleStaffIds: s.deliveryAssignmentEligibleStaffIds || [],
+    deliveryStaff: deliveryStaff.map((staff) => ({ id: staff._id?.toHexString() || staff.id, name: staff.name, status: staff.staffStatus || 'AVAILABLE' })),
     addressLine1: s.addressLine1,
     addressLine2: s.addressLine2,
     landmark: s.landmark,
@@ -92,6 +98,9 @@ export async function PUT(request: Request) {
     const whatsappSupportNumber = whatsappSupportValue === '' ? null : whatsappSupportValue;
     const workingHoursValue = typeof updates.workingHours === 'string' ? updates.workingHours.trim().slice(0, 200) : updates.workingHours === null ? null : undefined;
     const workingHours = workingHoursValue === '' ? null : workingHoursValue;
+    const deliveryAssignmentMode = ['MANUAL', 'AUTOMATIC', 'MANUAL_FALLBACK'].includes(String(updates.deliveryAssignmentMode)) ? updates.deliveryAssignmentMode as RestaurantSettingsDocument['deliveryAssignmentMode'] : undefined;
+    const deliveryAssignmentStrategy = ['LOWEST_WORKLOAD', 'ROUND_ROBIN', 'LEAST_RECENT'].includes(String(updates.deliveryAssignmentStrategy)) ? updates.deliveryAssignmentStrategy as RestaurantSettingsDocument['deliveryAssignmentStrategy'] : undefined;
+    const deliveryAssignmentEligibleStaffIds = Array.isArray(updates.deliveryAssignmentEligibleStaffIds) ? updates.deliveryAssignmentEligibleStaffIds.filter((id): id is string => typeof id === 'string').slice(0, 100) : undefined;
     if (isMainAdmin && typeof poweredByName === 'string' && (poweredByName.length > 100 || /[<>]/.test(poweredByName))) {
       return NextResponse.json({ error: 'Powered By name must be plain text up to 100 characters.' }, { status: 400 });
     }
@@ -124,6 +133,9 @@ export async function PUT(request: Request) {
       supportEmail,
       whatsappSupportNumber: normalizedWhatsApp,
       workingHours,
+      deliveryAssignmentMode,
+      deliveryAssignmentStrategy,
+      deliveryAssignmentEligibleStaffIds,
       addressLine1: typeof updates.addressLine1 === 'string' ? updates.addressLine1.trim() : undefined,
       addressLine2: typeof updates.addressLine2 === 'string' ? updates.addressLine2.trim() : undefined,
       landmark: typeof updates.landmark === 'string' ? updates.landmark.trim() : undefined,

@@ -56,6 +56,10 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     if (!updated) {
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
     }
+    if (normalizedStatus === 'READY' && updated.fulfillmentType === 'DELIVERY') {
+      const { autoAssignDeliveryStaff } = await import('@/src/services/delivery-assignment-service');
+      autoAssignDeliveryStaff(updated.orderNumber).catch((error) => console.error('Automatic delivery assignment failed', error));
+    }
     notifyUser(updated.userId, { type: `ORDER_${normalizedStatus}`, title: `Order ${normalizedStatus.toLowerCase()}`, message: `Order ${updated.orderNumber} is now ${normalizedStatus.toLowerCase()}.`, href: `/account/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, eventKey: `order:${updated.orderNumber}:status:${normalizedStatus}` }).catch((error) => console.error('Order notification failed', error));
     if (updated.deliveryStaffId && ['READY', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) notifyUser(updated.deliveryStaffId, { type: `DELIVERY_ORDER_${normalizedStatus}`, title: `Delivery order ${normalizedStatus.toLowerCase()}`, message: `Order ${updated.orderNumber} is ${normalizedStatus.toLowerCase()}.`, href: '/delivery', relatedType: 'order', relatedId: updated.orderNumber, eventKey: `delivery:${updated.orderNumber}:status:${normalizedStatus}` }).catch((error) => console.error('Delivery notification failed', error));
     if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'REJECTED') notifyAdmins({ type: `ORDER_${normalizedStatus}`, title: `Order ${normalizedStatus.toLowerCase()}`, message: `Order ${updated.orderNumber} was ${normalizedStatus.toLowerCase()}.`, href: `/admin/orders/${updated.orderNumber}`, relatedType: 'order', relatedId: updated.orderNumber, permission: 'orders.view', eventKey: `admin:order:${updated.orderNumber}:status:${normalizedStatus}` }).catch((error) => console.error('Admin order notification failed', error));

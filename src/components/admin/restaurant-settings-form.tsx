@@ -148,6 +148,16 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Delivery assignment</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="text-sm"><span className="mb-1 block">Assignment mode</span><select className="input" value={settings.deliveryAssignmentMode || 'MANUAL'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentMode: e.target.value })}><option value="MANUAL">Manual assignment</option><option value="AUTOMATIC">Automatic assignment</option><option value="MANUAL_FALLBACK">Automatic with manual fallback</option></select></label>
+          <label className="text-sm"><span className="mb-1 block">Assignment strategy</span><select className="input" value={settings.deliveryAssignmentStrategy || 'LOWEST_WORKLOAD'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentStrategy: e.target.value })}><option value="LOWEST_WORKLOAD">Lowest active workload</option><option value="ROUND_ROBIN">Round robin</option><option value="LEAST_RECENT">Least recently assigned</option></select></label>
+        </div>
+        <p className="mt-3 text-xs text-stone-500">Automatic assignment runs only for READY, payment-eligible delivery orders. Staff must be selected below and available.</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">{(settings.deliveryStaff || []).map((staff: { id: string; name: string; status: string }) => <label key={staff.id} className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 text-sm"><input type="checkbox" checked={(settings.deliveryAssignmentEligibleStaffIds || []).includes(staff.id)} onChange={(e) => setSettings({ ...settings, deliveryAssignmentEligibleStaffIds: e.target.checked ? [...(settings.deliveryAssignmentEligibleStaffIds || []), staff.id] : (settings.deliveryAssignmentEligibleStaffIds || []).filter((id: string) => id !== staff.id) })} /><span className="flex-1">{staff.name}</span><span className="text-xs text-stone-500">{staff.status}</span></label>)}</div>
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
         <label className="block text-sm font-medium">Restaurant Logo</label>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           {(logoPreview || settings.logo) ? <img src={logoPreview || settings.logo} alt="Restaurant logo preview" className="h-20 w-20 rounded-full border-4 border-white object-cover shadow" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-600 text-xl font-bold text-white">PV</div>}

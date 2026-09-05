@@ -14,7 +14,7 @@ export async function GET() {
   if (!user || (!canViewOrders && !canViewDelivery && !canViewKitchen)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const [orders, bookings, settings] = await Promise.all([listOrders(), listBookings(), getRestaurantSettings()]);
   const eligibleOrders = orders.filter((order) => isOrderPaymentCleared(order.paymentMethod, order.paymentStatus));
-  const scopedOrders = user.role === 'DELIVERY_STAFF' ? eligibleOrders.filter((order) => order.deliveryStaffId === user._id?.toHexString() || order.deliveryStaffId === user.id) : user.role === 'KITCHEN_STAFF' ? eligibleOrders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'].includes(order.orderStatus)) : orders;
+  const scopedOrders = user.role === 'DELIVERY_STAFF' ? eligibleOrders.filter((order) => order.deliveryStaffId === user._id?.toHexString() || order.deliveryStaffId === user.id) : user.role === 'KITCHEN_STAFF' ? eligibleOrders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'].includes(order.orderStatus)) : canViewOrders ? orders : [];
   let staff: Array<{ id?: string; name: string; mobile?: string | null; accountStatus: string }> = [];
   if (AuthorizationService.canAccess(user.role, 'delivery.manage', user.permissions)) {
     const { getUsersCollection } = await import('@/src/models/user');

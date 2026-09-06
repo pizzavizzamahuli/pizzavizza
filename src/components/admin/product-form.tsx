@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { getIdString } from '@/src/lib/id';
-import { extractCloudinaryPublicId } from '@/src/utils/cloudinary';
 
 export type Category = { _id?: unknown; name: string };
 export type CustomizationGroup = { id: string; name: string; groupType?: 'SIZE' | 'TOPPINGS' | 'EXTRAS' | 'INCLUDED_TOPPING' | 'EXTRA_ADDON' | 'OTHER' };
@@ -60,7 +59,7 @@ const emptyFormState = (): ProductFormState => ({
 
 function getExistingImageUrls(product?: ProductLike | null) {
   if (!product) return [];
-  const imageUrls = [...(product.images ?? []), ...(product.image ? [product.image] : [])].filter(Boolean);
+  const imageUrls = [...(product.image ? [product.image] : []), ...(product.images ?? [])].filter(Boolean);
   return Array.from(new Set(imageUrls));
 }
 
@@ -273,26 +272,25 @@ export function ProductForm({
   }
 
   async function handleRemoveExistingImage(imageUrl: string) {
-    const publicId = extractCloudinaryPublicId(imageUrl);
-    if (!publicId) {
-      setExistingImages((current) => current.filter((item) => item !== imageUrl));
-      setMessage('Image removed from product');
-      return;
-    }
+    if (!editingProduct || !window.confirm('Delete this product image?\n\nThis image will no longer be shown to customers.')) return;
 
     setIsSubmitting(true);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(publicId)}`, {
+      const response = await fetch(`/api/admin/menu/products/${encodeURIComponent(getIdString(editingProduct._id || editingProduct.id))}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl }),
       });
       const json = await response.json();
       if (!response.ok || !json.success) {
         throw new Error(json.error || 'Failed to delete image');
       }
-      setExistingImages((current) => current.filter((item) => item !== imageUrl));
-      setMessage('Image removed');
+      const updated = json.data as ProductLike;
+      setExistingImages(getExistingImageUrls(updated));
+      onSaved?.(updated);
+      setMessage('Product image deleted successfully.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setMessage(msg || 'Error deleting image');

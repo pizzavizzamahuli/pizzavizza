@@ -24,6 +24,16 @@ export interface RestaurantLocationSnapshot {
   longitude?: number | null;
 }
 
+export interface HomepageImageDocument {
+  id: string;
+  imageUrl: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface RestaurantSettingsDocument {
   _id?: ObjectId;
   id?: string;
@@ -34,6 +44,7 @@ export interface RestaurantSettingsDocument {
   appearance?: WebsiteAppearance;
   homeImage?: string | null;
   homeDescription?: string | null;
+  homepageImages?: HomepageImageDocument[];
   menuImage?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -121,10 +132,16 @@ export async function getRestaurantSettings() {
       referralMinimumOrderAmount: 300,
     };
     const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([key]) => settings[key as keyof RestaurantSettingsDocument] === undefined));
-    if (Object.keys(missingDefaults).length) {
-      await col.updateOne({ _id: settings._id }, { $set: { ...missingDefaults, updatedAt: new Date() } });
+    const now = new Date();
+    const homepageImages = Array.isArray(settings.homepageImages) && settings.homepageImages.length
+      ? settings.homepageImages
+      : settings.homeImage
+        ? [{ id: `legacy-${settings._id?.toHexString() || 'homepage'}`, imageUrl: settings.homeImage, description: settings.homeDescription || null, sortOrder: 0, isActive: true, createdAt: settings.createdAt || now, updatedAt: settings.updatedAt || now }]
+        : [];
+    if (Object.keys(missingDefaults).length || !Array.isArray(settings.homepageImages)) {
+      await col.updateOne({ _id: settings._id }, { $set: { ...missingDefaults, homepageImages, updatedAt: now } });
     }
-    return { ...defaults, ...settings, ...missingDefaults } as RestaurantSettingsDocument;
+    return { ...defaults, ...settings, ...missingDefaults, homepageImages } as RestaurantSettingsDocument;
   }
 
   const now = new Date();
@@ -136,6 +153,7 @@ export async function getRestaurantSettings() {
     appearance: defaultWebsiteAppearance,
     homeImage: null,
     homeDescription: null,
+    homepageImages: [],
     menuImage: null,
     phone: null,
     email: null,

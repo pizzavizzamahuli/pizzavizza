@@ -32,7 +32,7 @@ export default async function Home() {
         <div className="p-5 sm:p-8 lg:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Welcome to {restaurantSettings.restaurantName}</p>
           <h1 className="mt-3 text-3xl font-semibold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl">Freshly made. Deliciously served.</h1>
-          <p className="mt-4 max-w-2xl text-base leading-6 text-stone-600 sm:text-lg">{restaurantSettings.homeDescription || 'Order your favorite pizzas, enjoy a comfortable dine-in experience, or have a hot meal delivered to your doorstep.'}</p>
+          <p className="mt-4 max-w-2xl text-base leading-6 text-stone-600 sm:text-lg">{restaurantSettings.homepageImages?.[0]?.description || restaurantSettings.homeDescription || 'Order your favorite pizzas, enjoy a comfortable dine-in experience, or have a hot meal delivered to your doorstep.'}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/menu" className="rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700">Explore Menu</Link>
             {diningRooms.length ? <Link href="/dining" className="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Book a Table</Link> : null}
@@ -44,7 +44,7 @@ export default async function Home() {
           </div>
         </div>
         <div className="min-h-56 bg-stone-100 lg:min-h-full">
-          {restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
+          {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
         </div>
       </section>
 

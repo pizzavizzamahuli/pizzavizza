@@ -11,6 +11,7 @@ type ImageCarouselProps = {
   aspectClassName?: string;
   imageClassName?: string;
   thumbnails?: boolean;
+  captions?: Array<string | null | undefined>;
 };
 
 function normalizeImages(images: ImageCarouselProps['images']) {
@@ -18,7 +19,7 @@ function normalizeImages(images: ImageCarouselProps['images']) {
   return valid.length ? Array.from(new Set(valid)) : [FALLBACK_IMAGE];
 }
 
-export default function ImageCarousel({ images, title, aspectClassName = 'aspect-[4/3]', imageClassName = 'object-cover', thumbnails = false }: ImageCarouselProps) {
+export default function ImageCarousel({ images, title, aspectClassName = 'aspect-[4/3]', imageClassName = 'object-cover', thumbnails = false, captions }: ImageCarouselProps) {
   const gallery = useMemo(() => normalizeImages(images), [images]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
@@ -64,6 +65,7 @@ export default function ImageCarousel({ images, title, aspectClassName = 'aspect
       {hasMultiple ? <div className="flex items-center justify-center gap-1.5 px-2 py-2" aria-label={`${title} image selector`}>
         {gallery.map((image, index) => <button key={`${image}-${index}`} type="button" aria-label={`Show ${title} image ${index + 1}`} aria-current={currentIndex === index} onClick={() => setActiveIndex(index)} className={`h-1.5 rounded-full transition-all ${currentIndex === index ? 'w-6 bg-amber-600' : 'w-1.5 bg-stone-300 hover:bg-stone-500'}`} />)}
       </div> : null}
+      {captions?.[currentIndex]?.trim() ? <p className="px-4 pb-3 text-center text-sm text-stone-600">{captions[currentIndex]}</p> : null}
       {thumbnails && hasMultiple ? <div className="flex gap-2 overflow-x-auto py-1">{gallery.map((image, index) => <button key={`thumb-${image}-${index}`} type="button" onClick={() => setActiveIndex(index)} className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${currentIndex === index ? 'border-amber-500' : 'border-transparent'}`}><img src={failedImages.has(image) ? FALLBACK_IMAGE : image} alt={`${title} thumbnail ${index + 1}`} className="h-full w-full object-cover" loading="lazy" onError={() => handleImageError(image)} /></button>)}</div> : null}
     </div>
   );

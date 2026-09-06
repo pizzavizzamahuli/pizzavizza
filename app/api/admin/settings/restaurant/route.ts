@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { RestaurantSettingsDocument, getRestaurantSettings, updateRestaurantSettings } from '@/src/models/restaurant-settings';
+import { RestaurantSettingsDocument, getRestaurantSettings, updateRestaurantSettings, type HomepageImageDocument } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
 import { recordAudit } from '@/src/models/audit-log';
+import { getProductsCollection } from '@/src/models/product';
+import { deleteCloudinaryResource, extractCloudinaryPublicId } from '@/src/utils/cloudinary';
+import fs from 'fs';
+import path from 'path';
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -23,6 +28,7 @@ export async function GET() {
     logo: s.logo,
     homeImage: s.homeImage || null,
     homeDescription: s.homeDescription || null,
+    homepageImages: (s.homepageImages || []).filter((image) => image.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
     ...(user.role === 'MAIN_ADMIN' ? { poweredByName: s.poweredByName || null, poweredByUrl: s.poweredByUrl || null } : {}),
     menuImage: s.menuImage,
     phone: s.phone,
@@ -124,12 +130,30 @@ export async function PUT(request: Request) {
     const sanitizedLat = typeof updates.latitude === 'number' ? updates.latitude : typeof updates.latitude === 'string' ? Number(updates.latitude) : undefined;
     const sanitizedLng = typeof updates.longitude === 'number' ? updates.longitude : typeof updates.longitude === 'string' ? Number(updates.longitude) : undefined;
     const nextMapUrl = typeof sanitizedLat === 'number' && typeof sanitizedLng === 'number' ? generateMapLink(sanitizedLat, sanitizedLng, typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined) : undefined;
+    const homepageImages = Array.isArray(updates.homepageImages)
+      ? updates.homepageImages.map((item, index): HomepageImageDocument | null => {
+        if (!item || typeof item !== 'object') return null;
+        const value = item as Record<string, unknown>;
+        if (typeof value.id !== 'string' || typeof value.imageUrl !== 'string' || !value.imageUrl.trim()) return null;
+        const now = new Date();
+        return {
+          id: value.id,
+          imageUrl: value.imageUrl.trim(),
+          description: typeof value.description === 'string' && value.description.trim() ? value.description.trim().slice(0, 500) : null,
+          sortOrder: typeof value.sortOrder === 'number' ? value.sortOrder : index,
+          isActive: value.isActive !== false,
+          createdAt: value.createdAt ? new Date(String(value.createdAt)) : now,
+          updatedAt: now,
+        };
+      }).filter((item): item is HomepageImageDocument => Boolean(item))
+      : undefined;
 
     const sanitized: Partial<RestaurantSettingsDocument> = {
       restaurantName: typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined,
       logo: typeof updates.logo === 'string' ? updates.logo.trim() : undefined,
       homeImage: typeof updates.homeImage === 'string' ? updates.homeImage.trim() : undefined,
       homeDescription: typeof updates.homeDescription === 'string' ? updates.homeDescription.trim().slice(0, 500) : updates.homeDescription === null ? null : undefined,
+      homepageImages,
       ...(isMainAdmin ? { poweredByName, poweredByUrl } : {}),
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,
@@ -181,6 +205,24 @@ export async function PUT(request: Request) {
 
     const before = await getRestaurantSettings();
     const updated = await updateRestaurantSettings(sanitized);
+    const previousHomepageUrls = new Set((before.homepageImages || []).map((image) => image.imageUrl));
+    const currentHomepageUrls = new Set((updated.homepageImages || []).map((image) => image.imageUrl));
+    if (previousHomepageUrls.size) {
+      const products = await (await getProductsCollection()).find({}).project({ image: 1, images: 1 }).toArray();
+      const referencedByProduct = new Set(products.flatMap((product) => [product.image, ...(product.images || [])]).filter((image): image is string => Boolean(image)));
+      for (const imageUrl of previousHomepageUrls) {
+        if (currentHomepageUrls.has(imageUrl) || referencedByProduct.has(imageUrl) || [updated.logo, updated.menuImage].includes(imageUrl)) continue;
+        if (imageUrl.startsWith('/')) {
+          const localPath = path.join(process.cwd(), 'public', imageUrl.replace(/^\//, ''));
+          await fs.promises.unlink(localPath).catch((error: unknown) => { if ((error as { code?: string })?.code !== 'ENOENT') throw error; });
+        } else {
+          const publicId = extractCloudinaryPublicId(imageUrl);
+          if (publicId) await deleteCloudinaryResource(publicId);
+        }
+      }
+    }
+    revalidatePath('/');
+    revalidatePath('/admin');
     if (sanitized.supportEmail !== undefined && sanitized.supportEmail !== before.supportEmail) {
       await recordAudit({ type: 'SUPPORT_EMAIL_UPDATED', performedBy: user._id?.toHexString() || user.id || null, performedByRole: user.role, oldValue: before.supportEmail || null, newValue: sanitized.supportEmail || null });
     }

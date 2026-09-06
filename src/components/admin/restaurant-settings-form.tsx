@@ -5,6 +5,16 @@ import React, { useEffect, useState } from 'react';
 import LocationMap from '@/src/components/map/location-map';
 import { geocodeAddress } from '@/src/services/map-provider';
 
+type HomepageImage = {
+  id: string;
+  imageUrl: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,6 +27,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
   const [menuPreview, setMenuPreview] = useState<string | null>(null);
   const [homeFile, setHomeFile] = useState<File | null>(null);
   const [homePreview, setHomePreview] = useState<string | null>(null);
+  const [homeDraftDescription, setHomeDraftDescription] = useState('');
 
   useEffect(() => {
     if (!logoFile) {
@@ -104,10 +115,12 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
     try {
       const previousLogo = settings.logo || null;
       const previousMenuImage = settings.menuImage || null;
-      const previousHomeImage = settings.homeImage || null;
+      const previousHomepageImages: HomepageImage[] = Array.isArray(settings.homepageImages)
+        ? settings.homepageImages
+        : settings.homeImage ? [{ id: `legacy-${Date.now()}`, imageUrl: settings.homeImage, description: settings.homeDescription || null, sortOrder: 0, isActive: true }] : [];
       let nextLogo = settings.logo || null;
       let nextMenuImage = settings.menuImage || null;
-      let nextHomeImage = settings.homeImage || null;
+      let nextHomepageImages = previousHomepageImages;
       if (logoFile) {
         const body = new FormData();
         body.append('logo', logoFile);
@@ -130,11 +143,14 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         const uploadResponse = await fetch('/api/admin/settings/restaurant/home-image', { method: 'POST', body });
         const uploadData = await uploadResponse.json();
         if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Homepage image upload failed.');
-        nextHomeImage = uploadData.data;
+        nextHomepageImages = [...nextHomepageImages, { id: crypto.randomUUID(), imageUrl: uploadData.data, description: homeDraftDescription.trim() || null, sortOrder: nextHomepageImages.length, isActive: true }];
       }
+      nextHomepageImages = nextHomepageImages.map((image, index) => ({ ...image, sortOrder: index }));
+      const nextHomeImage = nextHomepageImages[0]?.imageUrl || null;
+      const nextHomeDescription = nextHomepageImages[0]?.description || null;
       const res = await fetch('/api/admin/settings/restaurant', {
         method: 'PUT',
-        body: JSON.stringify({ ...settings, logo: nextLogo, homeImage: nextHomeImage, homeDescription: settings.homeDescription || null, menuImage: nextMenuImage }),
+        body: JSON.stringify({ ...settings, logo: nextLogo, homeImage: nextHomeImage, homeDescription: nextHomeDescription, homepageImages: nextHomepageImages, menuImage: nextMenuImage }),
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
@@ -143,14 +159,18 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       setLogoFile(null);
       setMenuFile(null);
       setHomeFile(null);
+      setHomeDraftDescription('');
       if (previousLogo && previousLogo !== nextLogo) {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousLogo)}`, { method: 'DELETE' });
       }
       if (previousMenuImage && previousMenuImage !== nextMenuImage) {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousMenuImage)}`, { method: 'DELETE' });
       }
-      if (previousHomeImage && previousHomeImage !== nextHomeImage) {
-        await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousHomeImage)}`, { method: 'DELETE' });
+      const nextUrls = new Set(nextHomepageImages.map((image) => image.imageUrl));
+      for (const previousImage of previousHomepageImages) {
+        if (!nextUrls.has(previousImage.imageUrl)) {
+          await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousImage.imageUrl)}`, { method: 'DELETE' });
+        }
       }
       alert('Saved');
     } catch (e: unknown) {
@@ -201,22 +221,30 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         <label className="block text-sm font-medium">Restaurant Menu Image</label>
         <p className="mt-1 text-xs text-stone-500">Upload the menu card customers see on the homepage.</p>
         {(menuPreview || settings.menuImage) ? <img src={menuPreview || settings.menuImage} alt="Restaurant menu preview" className="mt-3 max-h-64 w-full rounded-xl border border-stone-200 bg-white object-contain" /> : null}
-        <div className="mt-3">
+        <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <input id="restaurant-menu-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setMenuFile(event.target.files?.[0] || null)} />
-          <label htmlFor="restaurant-menu-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose menu image</label>
-          {(menuFile || settings.menuImage) ? <button type="button" onClick={() => { setMenuFile(null); setSettings({ ...settings, menuImage: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove menu</button> : null}
+          <label htmlFor="restaurant-menu-picker" className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-700 sm:w-auto">Choose menu image</label>
+          {(menuFile || settings.menuImage) ? <button type="button" onClick={() => { setMenuFile(null); setSettings({ ...settings, menuImage: null }); }} className="inline-flex min-h-10 w-full items-center justify-center rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 sm:w-auto">Remove menu</button> : null}
         </div>
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-        <label className="block text-sm font-medium">Homepage Image</label>
-        <p className="mt-1 text-xs text-stone-500">Upload the image shown in the customer homepage hero. The full image stays visible on mobile.</p>
-        {(homePreview || settings.homeImage) ? <img src={homePreview || settings.homeImage} alt="Homepage preview" className="mt-3 max-h-72 w-full rounded-xl border border-stone-200 bg-white object-contain" /> : null}
-        <textarea value={settings.homeDescription || ''} onChange={(event) => setSettings({ ...settings, homeDescription: event.target.value })} rows={3} maxLength={500} className="input mt-3 w-full" placeholder="Short description for the customer homepage" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><label className="block text-sm font-medium">Homepage Images</label><p className="mt-1 text-xs text-stone-500">Add as many homepage slides as needed. Each image has its own optional description.</p></div>
+          <label htmlFor="restaurant-home-picker" className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-700">+ Add homepage image</label>
+        </div>
+        <input id="restaurant-home-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setHomeFile(event.target.files?.[0] || null)} />
+        {homePreview ? <div className="mt-4 rounded-xl border border-dashed border-amber-300 bg-white p-3"><p className="text-xs font-semibold text-amber-800">New image to be added</p><img src={homePreview} alt="New homepage preview" className="mt-2 max-h-56 w-full rounded-lg object-contain" /><label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-stone-500">Description</label><textarea value={homeDraftDescription} onChange={(event) => setHomeDraftDescription(event.target.value)} rows={2} maxLength={500} className="input mt-1 w-full" placeholder="Optional description" /></div> : null}
+        <div className="mt-4 grid gap-4">
+          {(settings.homepageImages || []).map((image: HomepageImage, index: number) => <div key={image.id} className="rounded-xl border border-stone-200 bg-white p-3">
+            <img src={image.imageUrl} alt={`Homepage image ${index + 1}`} className="max-h-56 w-full rounded-lg bg-stone-100 object-contain" />
+            <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-stone-500">Description</label>
+            <textarea value={image.description || ''} onChange={(event) => setSettings({ ...settings, homepageImages: settings.homepageImages.map((item: HomepageImage) => item.id === image.id ? { ...item, description: event.target.value } : item) })} rows={2} maxLength={500} className="input mt-1 w-full" placeholder="Optional description" />
+            <button type="button" onClick={() => { if (window.confirm('Delete homepage image?\n\nThis image will be removed from the homepage.')) setSettings({ ...settings, homepageImages: settings.homepageImages.filter((item: HomepageImage) => item.id !== image.id) }); }} className="mt-2 inline-flex min-h-9 rounded-full border border-rose-200 px-3 py-1.5 text-sm font-semibold text-rose-700 hover:bg-rose-50">Delete</button>
+          </div>)}
+        </div>
         <div className="mt-3">
-          <input id="restaurant-home-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setHomeFile(event.target.files?.[0] || null)} />
-          <label htmlFor="restaurant-home-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose homepage image</label>
-          {(homeFile || settings.homeImage) ? <button type="button" onClick={() => { setHomeFile(null); setSettings({ ...settings, homeImage: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove homepage image</button> : null}
+          {homeFile ? <button type="button" onClick={() => { setHomeFile(null); setHomeDraftDescription(''); }} className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Clear pending image</button> : null}
         </div>
       </div>
 

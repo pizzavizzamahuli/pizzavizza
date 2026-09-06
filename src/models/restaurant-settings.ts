@@ -32,6 +32,8 @@ export interface RestaurantSettingsDocument {
   poweredByName?: string | null;
   poweredByUrl?: string | null;
   appearance?: WebsiteAppearance;
+  homeImage?: string | null;
+  homeDescription?: string | null;
   menuImage?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -132,6 +134,8 @@ export async function getRestaurantSettings() {
     poweredByName: null,
     poweredByUrl: null,
     appearance: defaultWebsiteAppearance,
+    homeImage: null,
+    homeDescription: null,
     menuImage: null,
     phone: null,
     email: null,

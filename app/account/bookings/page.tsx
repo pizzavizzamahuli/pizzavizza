@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/src/auth/session';
 import { listDiningBookingsForUser } from '@/src/models/dining-booking';
 import { CustomerShell } from '@/src/app-shell';
+import { bookingStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -38,9 +39,9 @@ export default async function AccountBookingsPage() {
                     <p className="mt-2 text-sm text-stone-600">{booking.bookingDate} • {booking.startTime} to {booking.endTime}</p>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm text-stone-500">{booking.bookingStatus}</p>
+                    <p className="text-sm text-stone-500">{bookingStatusLabel(booking.bookingStatus)}</p>
                     <p className="mt-2 text-lg font-semibold text-stone-900">{formatCurrency(booking.finalAmount)}</p>
-                    <p className="mt-1 text-sm text-stone-500">Payment: {booking.paymentStatus}</p>
+                    <p className="mt-1 text-sm text-stone-500">Payment: {paymentStatusLabel(booking.paymentStatus)}</p>
                     <Link href={`/account/bookings/${booking.bookingNumber}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-amber-700">View details</Link>
                   </div>
                 </div>

@@ -10,7 +10,8 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   const recipientId = getUserId(user);
-  const [notifications, unreadCount] = await Promise.all([listNotifications(recipientId), countUnreadNotifications(recipientId)]);
+  const audience = ['KITCHEN_STAFF', 'DELIVERY_STAFF', 'CUSTOMER'].includes(user.role) ? 'USER' as const : undefined;
+  const [notifications, unreadCount] = await Promise.all([listNotifications(recipientId, 50, audience), countUnreadNotifications(recipientId, audience)]);
   return NextResponse.json({ success: true, data: notifications, unreadCount });
 }
 

@@ -55,13 +55,13 @@ export default function EmailVerificationButton({ email }: { email: string }) {
   }
 
   if (step === 'idle') {
-    return <button type="button" onClick={sendCode} disabled={busy} className="rounded-full border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-60">{busy ? 'Sending...' : 'Verify email'}</button>;
+    return <button type="button" onClick={sendCode} disabled={busy} className="rounded-full border border-amber-300 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:opacity-60">{busy ? 'Sending…' : 'Verify email'}</button>;
   }
 
   return (
     <form onSubmit={verifyCode} className="flex flex-wrap items-center justify-end gap-2">
       <input aria-label="Email verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} placeholder="6-digit code" className="w-28 rounded-lg border border-stone-300 px-2 py-1 text-xs" />
-      <button type="submit" disabled={busy} className="rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60">{busy ? 'Checking...' : 'Confirm'}</button>
+      <button type="submit" disabled={busy} className="rounded-full bg-amber-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60">{busy ? 'Checking…' : 'Confirm'}</button>
       {message ? <span className="w-full text-right text-xs text-emerald-700">{message}</span> : null}
       {error ? <span className="w-full text-right text-xs text-rose-700">{error}</span> : null}
     </form>

@@ -5,6 +5,7 @@ import { generateDeliveryWhatsAppMessage } from '@/src/services/delivery-service
 import DeliveryShareActions from '@/src/components/admin/delivery-share-actions';
 import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 import Link from 'next/link';
+import { displayLabel, orderStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 
 export default async function AdminDeliveryPage({ searchParams }: { searchParams?: Promise<{ date?: string; status?: string }> }) {
   await requirePermission('delivery.view');
@@ -33,7 +34,7 @@ export default async function AdminDeliveryPage({ searchParams }: { searchParams
                     {order.orderNumber}
                   </Link>
                   <p className="mt-1 text-sm text-stone-600">{order.customerSnapshot.name} • {order.customerSnapshot.mobile || 'No mobile'}</p>
-                  <p className="mt-1 text-sm text-stone-500">{order.fulfillmentType} • {order.orderStatus} • {order.paymentStatus}</p>
+                  <p className="mt-1 text-sm text-stone-500">{displayLabel(order.fulfillmentType)} • {orderStatusLabel(order.orderStatus)} • {paymentStatusLabel(order.paymentStatus)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-semibold text-stone-900">₹{order.totalAmount.toFixed(2)}</p>

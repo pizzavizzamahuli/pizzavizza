@@ -23,7 +23,7 @@ export default function Image() {
         }}
       >
         <div style={{ fontSize: 64, fontWeight: 700 }}>Pizza Vizza</div>
-        <div style={{ fontSize: 28, marginTop: 16 }}>Restaurant platform foundation</div>
+        <div style={{ fontSize: 28, marginTop: 16 }}>Order online, dine, and enjoy more</div>
       </div>
     ),
     size,

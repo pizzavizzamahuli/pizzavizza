@@ -3,6 +3,7 @@ import { getUsersCollection } from '@/src/models/user';
 import { listOrders } from '@/src/models/order';
 import { countDiningBookings } from '@/src/models/dining-booking';
 import { LogoutButton } from '@/src/components/auth/logout-button';
+import { orderStatusLabel, paymentStatusLabel, displayLabel } from '@/src/utils/display-labels';
 import Link from 'next/link';
 
 export default async function AdminPage() {
@@ -60,11 +61,11 @@ export default async function AdminPage() {
               <Link key={order.orderNumber} href={`/admin/orders/${order.orderNumber}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-amber-300">
                 <div>
                   <p className="font-semibold text-stone-900">{order.orderNumber}</p>
-                  <p className="text-sm text-stone-600">{order.customerSnapshot.name} • {order.orderStatus}</p>
+                  <p className="text-sm text-stone-600">{order.customerSnapshot.name} • {orderStatusLabel(order.orderStatus)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-stone-900">₹{order.totalAmount.toFixed(2)}</p>
-                  <p className="text-sm text-stone-500">{order.paymentStatus}</p>
+                  <p className="text-sm text-stone-500">{paymentStatusLabel(order.paymentStatus)}</p>
                 </div>
               </Link>
             ))
@@ -76,7 +77,7 @@ export default async function AdminPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-stone-900">Signed in as</h2>
-            <p className="text-sm text-stone-600">{user.email} • {user.role}</p>
+            <p className="text-sm text-stone-600">{user.email} • {displayLabel(user.role)}</p>
           </div>
           <LogoutButton />
         </div>

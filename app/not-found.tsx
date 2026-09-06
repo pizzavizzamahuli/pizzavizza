@@ -5,7 +5,7 @@ export default function NotFound() {
         <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">404</p>
         <h1 className="mt-3 text-2xl font-semibold text-stone-900">Page not found</h1>
         <p className="mt-2 text-sm text-stone-600">
-          The requested page is not available in this foundation phase.
+          The requested page could not be found.
         </p>
       </div>
     </main>

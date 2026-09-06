@@ -48,7 +48,7 @@ export default function WalletAdminPanel() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <label className="text-sm">
             <span className="mb-1 block">User ID</span>
-            <input value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full rounded border px-3 py-2" placeholder="Consumer user ID" />
+            <input value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full rounded border px-3 py-2" placeholder="Customer user ID" />
           </label>
           <label className="text-sm">
             <span className="mb-1 block">Action</span>
@@ -78,7 +78,7 @@ export default function WalletAdminPanel() {
               <div className="flex justify-between gap-3">
                 <div>
                   <div className="font-medium">{String(wallet.userCode || 'ID unavailable')}</div>
-                  <div className="text-sm text-stone-700">{String(wallet.userName || 'Consumer')}</div>
+                  <div className="text-sm text-stone-700">{String(wallet.userName || 'Customer')}</div>
                   <div className="text-sm text-stone-600">Currency: {String(wallet.currency || 'INR')}</div>
                 </div>
                 <div className="text-sm font-medium">₹{Number(wallet.balance || 0).toFixed(2)}</div>

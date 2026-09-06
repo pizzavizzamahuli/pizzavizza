@@ -2,6 +2,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { listOrders } from '@/src/models/order';
 import Link from 'next/link';
+import { orderStatusLabel } from '@/src/utils/display-labels';
 
 export default async function AdminOrdersPage() {
   const user = await getSessionUser();
@@ -19,7 +20,7 @@ export default async function AdminOrdersPage() {
           <li key={o.orderNumber} className="rounded border p-3 flex justify-between">
             <div>
               <div className="font-medium">{o.orderNumber}</div>
-              <div className="text-sm text-stone-500">{o.customerSnapshot.name} • {o.orderStatus}</div>
+              <div className="text-sm text-stone-500">{o.customerSnapshot.name} • {orderStatusLabel(o.orderStatus)}</div>
             </div>
             <div className="text-right">
               <div>₹{o.totalAmount.toFixed(2)}</div>

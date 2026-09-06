@@ -47,14 +47,14 @@ export async function createNotification(input: Omit<NotificationDocument, '_id'
   }
 }
 
-export async function listNotifications(recipientId: string, limit = 50) {
+export async function listNotifications(recipientId: string, limit = 50, audience?: NotificationAudience) {
   const collection = await getNotificationsCollection();
-  return collection.find({ recipientId }).sort({ createdAt: -1 }).limit(Math.min(Math.max(limit, 1), 100)).toArray();
+  return collection.find({ recipientId, ...(audience ? { audience } : {}) }).sort({ createdAt: -1 }).limit(Math.min(Math.max(limit, 1), 100)).toArray();
 }
 
-export async function countUnreadNotifications(recipientId: string) {
+export async function countUnreadNotifications(recipientId: string, audience?: NotificationAudience) {
   const collection = await getNotificationsCollection();
-  return collection.countDocuments({ recipientId, readAt: null });
+  return collection.countDocuments({ recipientId, readAt: null, ...(audience ? { audience } : {}) });
 }
 
 export async function markNotificationRead(id: string, recipientId: string) {

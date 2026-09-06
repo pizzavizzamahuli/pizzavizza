@@ -21,6 +21,8 @@ export async function GET() {
     id: s.id,
     restaurantName: s.restaurantName,
     logo: s.logo,
+    homeImage: s.homeImage || null,
+    homeDescription: s.homeDescription || null,
     ...(user.role === 'MAIN_ADMIN' ? { poweredByName: s.poweredByName || null, poweredByUrl: s.poweredByUrl || null } : {}),
     menuImage: s.menuImage,
     phone: s.phone,
@@ -126,6 +128,8 @@ export async function PUT(request: Request) {
     const sanitized: Partial<RestaurantSettingsDocument> = {
       restaurantName: typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined,
       logo: typeof updates.logo === 'string' ? updates.logo.trim() : undefined,
+      homeImage: typeof updates.homeImage === 'string' ? updates.homeImage.trim() : undefined,
+      homeDescription: typeof updates.homeDescription === 'string' ? updates.homeDescription.trim().slice(0, 500) : updates.homeDescription === null ? null : undefined,
       ...(isMainAdmin ? { poweredByName, poweredByUrl } : {}),
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,

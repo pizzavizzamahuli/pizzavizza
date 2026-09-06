@@ -4,6 +4,7 @@ import { getSessionUser } from '@/src/auth/session';
 import { listOrdersForUser } from '@/src/models/order';
 import { listDiningBookingsForUser } from '@/src/models/dining-booking';
 import { CustomerShell } from '@/src/app-shell';
+import { bookingStatusLabel, orderStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 
 function formatCurrency(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -38,8 +39,8 @@ export default async function OrdersPage() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm text-stone-500">{order.orderNumber}</p>
-                    <h2 className="mt-1 text-xl font-semibold text-stone-900">{order.orderStatus}</h2>
-                    <p className="mt-2 text-sm text-stone-600">Payment: {order.paymentStatus}</p>
+                    <h2 className="mt-1 text-xl font-semibold text-stone-900">{orderStatusLabel(order.orderStatus)}</h2>
+                    <p className="mt-2 text-sm text-stone-600">Payment: {paymentStatusLabel(order.paymentStatus)}</p>
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-lg font-semibold text-stone-900">{formatCurrency(order.totalAmount)}</p>
@@ -73,7 +74,7 @@ export default async function OrdersPage() {
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-lg font-semibold text-stone-900">{formatCurrency(booking.finalAmount)}</p>
-                      <p className="text-sm text-stone-500">{booking.bookingStatus}</p>
+                      <p className="text-sm text-stone-500">{bookingStatusLabel(booking.bookingStatus)}</p>
                       <Link href={`/account/bookings/${booking.bookingNumber}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-amber-700">View reservation</Link>
                     </div>
                   </div>

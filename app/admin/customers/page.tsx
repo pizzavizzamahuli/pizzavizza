@@ -9,6 +9,7 @@ import { getWalletBalance } from '@/src/models/wallet';
 import { findReferralByUser } from '@/src/models/referral';
 import { getIdString } from '@/src/lib/id';
 import { ensureUserCode } from '@/src/services/user-service';
+import { displayLabel } from '@/src/utils/display-labels';
 
 export default async function AdminCustomersPage({ searchParams }: { searchParams?: Promise<{ userId?: string }> }) {
   const admin = await requireAdminAccess();
@@ -73,7 +74,7 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
                   <p className="mt-1 text-sm text-stone-500">{customer.mobile || 'No mobile on file'}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">{customer.accountStatus}</span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">{displayLabel(customer.accountStatus)}</span>
                   <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-medium text-stone-600">{customer.orders.length} orders</span>
                   <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-medium text-stone-600">{customer.bookings.length} bookings</span>
                 </div>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/src/auth/session';
 import { LogoutButton } from '@/src/components/auth/logout-button';
 import { CustomerShell } from '@/src/app-shell';
+import { bookingStatusLabel, orderStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 import { listOrdersForUser } from '@/src/models/order';
 import { listDiningBookingsForUser } from '@/src/models/dining-booking';
 import { listAddressesForUser } from '@/src/models/address';
@@ -46,7 +47,7 @@ export default async function AccountPage() {
     <CustomerShell>
       <div className="space-y-6">
         <section className="rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">My account</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">My Account</p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-semibold text-stone-900">Welcome back, {user.name}</h1>
@@ -69,7 +70,7 @@ export default async function AccountPage() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Account information</p>
-              <dl className="mt-3 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt className="text-stone-500">Email</dt><dd className="text-right font-medium">{user.email}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Mobile</dt><dd className="text-right font-medium">{user.mobile || 'Not added'}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Role</dt><dd className="text-right font-medium">{user.role === 'CUSTOMER' ? 'Consumer' : user.role.replaceAll('_', ' ')}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Created</dt><dd className="text-right font-medium">{user.createdAt.toLocaleString()}</dd></div></dl>
+              <dl className="mt-3 space-y-2 text-sm"><div className="flex justify-between gap-3"><dt className="text-stone-500">Email</dt><dd className="text-right font-medium">{user.email}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Mobile</dt><dd className="text-right font-medium">{user.mobile || 'Not added'}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Role</dt><dd className="text-right font-medium">{user.role === 'CUSTOMER' ? 'Customer' : user.role.replaceAll('_', ' ')}</dd></div><div className="flex justify-between gap-3"><dt className="text-stone-500">Created</dt><dd className="text-right font-medium">{user.createdAt.toLocaleString()}</dd></div></dl>
             </div>
             <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Security status</p>
@@ -108,7 +109,7 @@ export default async function AccountPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Link href="/menu" className="rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-amber-300 hover:bg-amber-50">
                 <p className="font-semibold text-stone-900">Browse menu</p>
-                <p className="mt-1 text-sm text-stone-600">Order your favourites and add them to your cart.</p>
+                <p className="mt-1 text-sm text-stone-600">Order your favorites and add them to your cart.</p>
               </Link>
               <Link href="/account/orders" className="rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-amber-300 hover:bg-amber-50">
                 <p className="font-semibold text-stone-900">View orders</p>
@@ -155,7 +156,7 @@ export default async function AccountPage() {
                   <li key={order.orderNumber} className="flex items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                     <div>
                       <p className="font-semibold text-stone-900">{order.orderNumber}</p>
-                      <p className="text-sm text-stone-600">{order.orderStatus} • {order.paymentStatus}</p>
+                      <p className="text-sm text-stone-600">{orderStatusLabel(order.orderStatus)} • {paymentStatusLabel(order.paymentStatus)}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-stone-900">{formatCurrency(order.totalAmount)}</p>
@@ -180,7 +181,7 @@ export default async function AccountPage() {
                   <li key={booking.bookingNumber} className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
                     <p className="font-semibold text-stone-900">{booking.roomSnapshot.name}</p>
                     <p className="mt-1 text-sm text-stone-600">{booking.bookingDate} • {booking.startTime} to {booking.endTime}</p>
-                    <p className="mt-2 text-sm text-stone-600">{booking.bookingStatus} • {formatCurrency(booking.finalAmount)}</p>
+                    <p className="mt-2 text-sm text-stone-600">{bookingStatusLabel(booking.bookingStatus)} • {formatCurrency(booking.finalAmount)}</p>
                   </li>
                 ))}
               </ul>

@@ -4,6 +4,7 @@ import { listBookings } from '@/src/services/dining-service';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ManualBookingForm from '@/src/components/admin/manual-booking-form';
+import { bookingStatusLabel } from '@/src/utils/display-labels';
 
 export default async function AdminBookingsPage({ searchParams }: { searchParams?: Promise<{ date?: string; status?: string }> }) {
   const user = await getSessionUser();
@@ -37,7 +38,7 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
                 </div>
                 <div className="text-left sm:text-right">
                   <p className="text-sm text-stone-500">{booking.customerSnapshot.name}</p>
-                  <p className="text-sm text-stone-500">{booking.bookingStatus}</p>
+                  <p className="text-sm text-stone-500">{bookingStatusLabel(booking.bookingStatus)}</p>
                   <p className="text-sm text-stone-500">Guests: {booking.guestCount} • ₹{booking.finalAmount.toFixed(2)}</p>
                   <Link href={`/admin/bookings/${booking.bookingNumber}`} className="mt-2 inline-flex rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
                     View

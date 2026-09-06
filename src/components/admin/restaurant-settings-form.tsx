@@ -15,6 +15,8 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [menuFile, setMenuFile] = useState<File | null>(null);
   const [menuPreview, setMenuPreview] = useState<string | null>(null);
+  const [homeFile, setHomeFile] = useState<File | null>(null);
+  const [homePreview, setHomePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!logoFile) {
@@ -37,6 +39,17 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
     setMenuPreview(preview);
     return () => { URL.revokeObjectURL(preview); };
   }, [menuFile]);
+
+  useEffect(() => {
+    if (!homeFile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHomePreview(null);
+      return;
+    }
+    const preview = URL.createObjectURL(homeFile);
+    setHomePreview(preview);
+    return () => { URL.revokeObjectURL(preview); };
+  }, [homeFile]);
 
   useEffect(() => {
     let mounted = true;
@@ -91,8 +104,10 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
     try {
       const previousLogo = settings.logo || null;
       const previousMenuImage = settings.menuImage || null;
+      const previousHomeImage = settings.homeImage || null;
       let nextLogo = settings.logo || null;
       let nextMenuImage = settings.menuImage || null;
+      let nextHomeImage = settings.homeImage || null;
       if (logoFile) {
         const body = new FormData();
         body.append('logo', logoFile);
@@ -109,9 +124,17 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Menu upload failed');
         nextMenuImage = uploadData.data;
       }
+      if (homeFile) {
+        const body = new FormData();
+        body.append('homeImage', homeFile);
+        const uploadResponse = await fetch('/api/admin/settings/restaurant/home-image', { method: 'POST', body });
+        const uploadData = await uploadResponse.json();
+        if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.error || 'Homepage image upload failed.');
+        nextHomeImage = uploadData.data;
+      }
       const res = await fetch('/api/admin/settings/restaurant', {
         method: 'PUT',
-        body: JSON.stringify({ ...settings, logo: nextLogo, menuImage: nextMenuImage }),
+        body: JSON.stringify({ ...settings, logo: nextLogo, homeImage: nextHomeImage, homeDescription: settings.homeDescription || null, menuImage: nextMenuImage }),
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
@@ -119,11 +142,15 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       setSettings(data.data);
       setLogoFile(null);
       setMenuFile(null);
+      setHomeFile(null);
       if (previousLogo && previousLogo !== nextLogo) {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousLogo)}`, { method: 'DELETE' });
       }
       if (previousMenuImage && previousMenuImage !== nextMenuImage) {
         await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousMenuImage)}`, { method: 'DELETE' });
+      }
+      if (previousHomeImage && previousHomeImage !== nextHomeImage) {
+        await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousHomeImage)}`, { method: 'DELETE' });
       }
       alert('Saved');
     } catch (e: unknown) {
@@ -178,6 +205,18 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           <input id="restaurant-menu-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setMenuFile(event.target.files?.[0] || null)} />
           <label htmlFor="restaurant-menu-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose menu image</label>
           {(menuFile || settings.menuImage) ? <button type="button" onClick={() => { setMenuFile(null); setSettings({ ...settings, menuImage: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove menu</button> : null}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <label className="block text-sm font-medium">Homepage Image</label>
+        <p className="mt-1 text-xs text-stone-500">Upload the image shown in the customer homepage hero. The full image stays visible on mobile.</p>
+        {(homePreview || settings.homeImage) ? <img src={homePreview || settings.homeImage} alt="Homepage preview" className="mt-3 max-h-72 w-full rounded-xl border border-stone-200 bg-white object-contain" /> : null}
+        <textarea value={settings.homeDescription || ''} onChange={(event) => setSettings({ ...settings, homeDescription: event.target.value })} rows={3} maxLength={500} className="input mt-3 w-full" placeholder="Short description for the customer homepage" />
+        <div className="mt-3">
+          <input id="restaurant-home-picker" type="file" accept="image/*" className="sr-only" onChange={(event) => setHomeFile(event.target.files?.[0] || null)} />
+          <label htmlFor="restaurant-home-picker" className="inline-flex cursor-pointer rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Choose homepage image</label>
+          {(homeFile || settings.homeImage) ? <button type="button" onClick={() => { setHomeFile(null); setSettings({ ...settings, homeImage: null }); }} className="ml-2 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700">Remove homepage image</button> : null}
         </div>
       </div>
 
@@ -318,7 +357,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-        <h2 className="text-sm font-semibold text-stone-900">Customer support</h2>
+        <h2 className="text-sm font-semibold text-stone-900">Customer Support</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm"><span className="mb-1 block">Help &amp; Support email</span><input className="input" type="email" value={settings.supportEmail || ''} onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })} placeholder="support@example.com" /></label>
           <label className="text-sm"><span className="mb-1 block">WhatsApp support number</span><input className="input" inputMode="tel" value={settings.whatsappSupportNumber || ''} onChange={(e) => setSettings({ ...settings, whatsappSupportNumber: e.target.value })} placeholder="+91XXXXXXXXXX" /></label>

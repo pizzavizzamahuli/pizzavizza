@@ -45,7 +45,7 @@ export function RegisterForm() {
     <div className="mx-auto max-w-2xl rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Register</p>
       <h1 className="mt-3 text-3xl font-semibold text-stone-900">Create your account</h1>
-      <p className="mt-3 text-sm text-stone-600">This foundation phase supports customer registration and secure sessions.</p>
+      <p className="mt-3 text-sm text-stone-600">Create an account to manage your orders, reservations, and secure account details.</p>
 
       <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
         <div>
@@ -74,7 +74,7 @@ export function RegisterForm() {
         {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
 
         <button type="submit" disabled={isSubmitting} className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60">
-          {isSubmitting ? 'Creating account...' : 'Create account'}
+          {isSubmitting ? 'Creating account…' : 'Create account'}
         </button>
       </form>
 

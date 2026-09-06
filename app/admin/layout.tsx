@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { requireAdminPanelAccess } from '@/src/auth/guard';
 import { AuthorizationService, type PermissionName } from '@/src/config/permissions';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
+import { displayLabel } from '@/src/utils/display-labels';
 
 export const metadata: Metadata = { title: 'Pizza Vizza Admin', description: 'Administrative foundation for Pizza Vizza' };
 
@@ -35,7 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2">{visibleItems.map((item) => <Link key={item.href} href={item.href} className="block min-h-11 shrink-0 rounded-lg px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950 lg:min-h-0 lg:py-2">{item.label}</Link>)}</nav>
         </aside>
         <div className="flex-1">
-          <header className="border-b border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-medium text-amber-600">Control centre</p><h2 className="text-lg font-semibold">Administration</h2></div><div className="flex flex-wrap items-center gap-2"><Link href="/" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">Consumer dashboard</Link><NotificationBell admin /><div className="rounded-full border border-stone-200 px-3 py-1 text-sm text-stone-600">{user.role}</div></div></div></header>
+          <header className="border-b border-stone-200 bg-white px-4 py-4 shadow-sm sm:px-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-medium text-amber-600">Control centre</p><h2 className="text-lg font-semibold">Administration</h2></div><div className="flex flex-wrap items-center gap-2"><Link href="/" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">Customer dashboard</Link><NotificationBell admin /><div className="rounded-full border border-stone-200 px-3 py-1 text-sm text-stone-600">{displayLabel(user.role)}</div></div></div></header>
           <main className="min-w-0 p-3 sm:p-6">{children}</main>
         </div>
       </div>

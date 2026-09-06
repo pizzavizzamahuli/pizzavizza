@@ -36,7 +36,7 @@ export default function DiningRoomManager({ initialRooms }: { initialRooms: Admi
               <div className="min-w-0"><p className="break-words text-lg font-semibold text-stone-900">{room.name}</p><p className="text-sm text-stone-500">{room.slug}</p></div>
               <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditingRoom(room)} className="min-h-11 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700">Edit</button><button type="button" onClick={() => archiveRoom(room).catch(() => setMessage('Unable to deactivate room'))} className="min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700">Deactivate</button></div>
             </div>
-            <div className="mt-3 grid gap-2 text-sm text-stone-600 sm:grid-cols-2"><div>Capacity: {room.capacityMin}–{room.capacityMax}</div><div>Duration: {room.bookingDurationMinutes} mins</div><div>Price: ₹{room.price}</div><div>Type: {room.pricingType}</div></div>
+            <div className="mt-3 grid gap-2 text-sm text-stone-600 sm:grid-cols-2"><div>Capacity: {room.capacityMin}–{room.capacityMax}</div><div>Duration: {room.bookingDurationMinutes} minutes</div><div>Price: ₹{room.price}</div><div>Type: {room.pricingType}</div></div>
           </article>
         ))}
       </div>

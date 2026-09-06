@@ -34,7 +34,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               <div className="text-3xl font-semibold text-stone-900">₹{product.discountPrice ?? product.price}</div>
               {product.discountPrice ? <div className="mt-1 text-sm text-stone-500 line-through">₹{product.price}</div> : null}
               <div className="grid gap-2 text-sm text-stone-600">
-                <div>Prep time: {product.preparationTime ?? 'N/A'} mins</div>
+                <div>Prep time: {product.preparationTime ?? 'N/A'} minutes</div>
                 <div>Availability: {product.isAvailable ? 'Available' : 'Unavailable'}</div>
               </div>
               <div className="mt-2">

@@ -10,6 +10,7 @@ import PaymentStatusActions from '@/src/components/admin/payment-status-actions'
 import DeliveryRouteMap from '@/src/components/admin/delivery-route-map';
 import GoogleMapsActions from '@/src/components/admin/google-maps-actions';
 import AddOrderItemsForm from '@/src/components/admin/add-order-items-form';
+import { displayLabel, orderStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 
 export default async function AdminOrderDetail({ params }: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -48,8 +49,8 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
         </div>
         <div className="rounded-3xl border border-stone-200 bg-white p-6">
           <p className="text-sm text-stone-500">Payment</p>
-          <p className="mt-2 font-medium">{order.paymentMethod || 'COD'}</p>
-          <p className="text-sm text-stone-500">Status: {order.paymentStatus}</p>
+          <p className="mt-2 font-medium">{displayLabel(order.paymentMethod)}</p>
+          <p className="text-sm text-stone-500">Status: {paymentStatusLabel(order.paymentStatus)}</p>
           <p className="text-sm text-stone-500">Wallet used: ₹{order.walletAmount.toFixed(2)}</p>
           {order.couponCode ? <p className="text-sm text-stone-500">Coupon: {order.couponCode}</p> : null}
           {order.paymentProofUrl && (
@@ -143,7 +144,7 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
       </div>
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Order status</h2>
-        <p className="mt-2 font-medium">{order.orderStatus}</p>
+        <p className="mt-2 font-medium">{orderStatusLabel(order.orderStatus)}</p>
         <div className="mt-4">
           <OrderStatusActions orderNumber={order.orderNumber} nextStatuses={nextStatuses} />
         </div>

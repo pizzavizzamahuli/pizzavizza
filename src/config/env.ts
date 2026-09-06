@@ -21,6 +21,9 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
   ENABLE_FORCE_LOGIN: z.coerce.boolean().default(false),
   ENABLE_REQUEST_LOG: z.coerce.boolean().default(false),
 });

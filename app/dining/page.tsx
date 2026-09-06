@@ -37,7 +37,7 @@ export default async function DiningHomePage() {
                   ))}
                 </div>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-sm text-stone-500">Duration {room.bookingDurationMinutes} mins</span>
+                  <span className="text-sm text-stone-500">Duration: {room.bookingDurationMinutes} minutes</span>
                   <Link href={`/dining/${room.slug}`} className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">
                     Book now
                   </Link>

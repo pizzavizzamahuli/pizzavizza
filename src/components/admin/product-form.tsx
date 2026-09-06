@@ -335,7 +335,7 @@ export function ProductForm({
         <input type="number" min="0" step="0.01" value={form.discountPrice} onChange={(e) => updateField('discountPrice', e.target.value)} className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2" placeholder="Optional offer" />
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-stone-700">Prep time (mins)</label>
+        <label className="mb-2 block text-sm font-medium text-stone-700">Prep time (minutes)</label>
         <input type="number" min="0" value={form.preparationTime} onChange={(e) => updateField('preparationTime', e.target.value)} className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2" placeholder="15" />
       </div>
       <div>

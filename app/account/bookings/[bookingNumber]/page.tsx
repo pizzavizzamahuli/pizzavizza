@@ -7,6 +7,7 @@ import BookingCancelButton from '@/src/components/dining/booking-cancel-button';
 import BookingSlipActions from '@/src/components/dining/booking-slip-actions';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
+import { bookingStatusLabel, paymentStatusLabel } from '@/src/utils/display-labels';
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ bookingNumber: string }> }) {
   const user = await getSessionUser();
@@ -32,8 +33,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <div><dt className="font-semibold text-stone-900">Date and time</dt><dd>{booking.bookingDate}, {booking.startTime} to {booking.endTime}</dd></div>
             <div><dt className="font-semibold text-stone-900">Guests</dt><dd>{booking.guestCount}</dd></div>
             <div><dt className="font-semibold text-stone-900">Amount</dt><dd>₹{booking.finalAmount.toFixed(2)}</dd></div>
-            <div><dt className="font-semibold text-stone-900">Reservation status</dt><dd>{booking.bookingStatus}</dd></div>
-            <div><dt className="font-semibold text-stone-900">Payment status</dt><dd>{booking.paymentStatus}</dd></div>
+            <div><dt className="font-semibold text-stone-900">Reservation status</dt><dd>{bookingStatusLabel(booking.bookingStatus)}</dd></div>
+            <div><dt className="font-semibold text-stone-900">Payment status</dt><dd>{paymentStatusLabel(booking.paymentStatus)}</dd></div>
             <div><dt className="font-semibold text-stone-900">Payment option</dt><dd>{booking.paymentMethod || 'Not selected'}</dd></div>
           </dl>
           {restaurantMapUrl ? (

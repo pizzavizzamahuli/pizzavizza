@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/src/auth/session';
 import { UserRole } from '@/src/types';
 import { AuthorizationService, PermissionName } from '@/src/config/permissions';
@@ -58,5 +59,21 @@ export async function requirePermission(permission: PermissionName) {
     redirect('/login');
   }
 
+  return user;
+}
+
+export async function requireAdminPermission(permission: PermissionName) {
+  const user = await requireAdminPanelAccess();
+
+  if (!AuthorizationService.canAccess(user.role, permission, user.permissions)) {
+    notFound();
+  }
+
+  return user;
+}
+
+export async function requireMainAdmin() {
+  const user = await requireAuth();
+  if (user.role !== 'MAIN_ADMIN') redirect('/admin');
   return user;
 }

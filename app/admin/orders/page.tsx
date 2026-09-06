@@ -6,7 +6,7 @@ import { orderStatusLabel } from '@/src/utils/display-labels';
 
 export default async function AdminOrdersPage() {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'orders.view')) {
+  if (!user || !AuthorizationService.canAccess(user.role, 'orders.view', user.permissions)) {
     return (<div className="p-8">Unauthorized</div>);
   }
 

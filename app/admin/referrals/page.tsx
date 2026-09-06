@@ -1,8 +1,8 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import ReferralAdminPanel from '@/src/components/admin/referral-admin-panel';
 
 export default async function AdminReferralsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('referrals.view');
 
   return (
     <div className="mx-auto max-w-5xl p-8 space-y-6">

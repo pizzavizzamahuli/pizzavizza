@@ -45,11 +45,6 @@ export async function getReferralsCollection() {
     await collection.createIndex({ code: 1 }, { unique: true });
     await collection.createIndex({ referrerUserId: 1 });
     await collection.createIndex({ referredUserId: 1 });
-    try {
-      await collection.createIndex({ referrerUserId: 1 }, { unique: true });
-    } catch (error) {
-      console.warn('Could not create unique referral owner index:', error);
-    }
     return collection;
   })();
 

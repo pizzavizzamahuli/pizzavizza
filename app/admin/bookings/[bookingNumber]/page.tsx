@@ -6,7 +6,7 @@ import { BookingStatusActions } from '@/src/components/admin/booking-actions';
 
 export default async function AdminBookingDetailPage({ params }: { params: Promise<{ bookingNumber: string }> }) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'bookings.view')) return notFound();
+  if (!user || !AuthorizationService.canAccess(user.role, 'bookings.view', user.permissions)) return notFound();
 
   const { bookingNumber } = await params;
   const booking = await findDiningBookingByBookingNumber(bookingNumber);

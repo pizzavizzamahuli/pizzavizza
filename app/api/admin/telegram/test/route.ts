@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { AuthorizationService } from '@/src/config/permissions';
 import { safeNotify } from '@/src/services/telegram-service';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+  if (!user || user.role !== 'MAIN_ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

@@ -94,6 +94,10 @@ export async function PUT(request: Request) {
     const payload = await request.json();
     const updates = payload as Record<string, unknown>;
     const isMainAdmin = user.role === 'MAIN_ADMIN';
+    const telegramUpdateKeys = ['telegramEnabled', 'telegramOrderNotificationsEnabled', 'telegramBookingNotificationsEnabled', 'telegramPaymentNotificationsEnabled'];
+    if (!isMainAdmin && telegramUpdateKeys.some((key) => Object.prototype.hasOwnProperty.call(updates, key))) {
+      return NextResponse.json({ error: 'Only the Main Admin can manage Telegram settings.' }, { status: 403 });
+    }
     const hasPoweredByUpdate = Object.prototype.hasOwnProperty.call(updates, 'poweredByName') || Object.prototype.hasOwnProperty.call(updates, 'poweredByUrl');
     if (hasPoweredByUpdate && !isMainAdmin) {
       return NextResponse.json({ error: 'Only the Main Admin can update Powered By settings.' }, { status: 403 });

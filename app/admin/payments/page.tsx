@@ -1,8 +1,8 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import PaymentAdminPanel from '@/src/components/admin/payment-admin-panel';
 
 export default async function AdminPaymentsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('payments.view');
 
   return (
     <div className="mx-auto max-w-4xl p-8 space-y-6">

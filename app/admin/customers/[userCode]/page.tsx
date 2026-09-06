@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { findUserByUserCode } from '@/src/models/user';
 import { listOrders } from '@/src/models/order';
 import { listDiningBookings } from '@/src/models/dining-booking';
@@ -8,7 +8,7 @@ import { getWalletBalance, getWalletLedger } from '@/src/models/wallet';
 import { ensureUserCode } from '@/src/services/user-service';
 
 export default async function AdminCustomerDetailsPage({ params }: { params: Promise<{ userCode: string }> }) {
-  const admin = await requireAdminAccess();
+  const admin = await requireAdminPermission('customers.view');
   const { userCode } = await params;
   const customer = await findUserByUserCode(userCode);
   if (!customer || (admin.role !== 'MAIN_ADMIN' && customer.role !== 'CUSTOMER')) return notFound();

@@ -13,7 +13,7 @@ import { displayLabel } from '@/src/utils/display-labels';
 
 export default async function AdminCustomersPage({ searchParams }: { searchParams?: Promise<{ userId?: string }> }) {
   const admin = await requireAdminAccess();
-  if (!AuthorizationService.canAccess(admin.role, 'customers.view')) return null;
+  if (!AuthorizationService.canAccess(admin.role, 'customers.view', admin.permissions)) return null;
   const params = searchParams ? await searchParams : {};
   const usersCollection = await getUsersCollection();
   const users = await usersCollection

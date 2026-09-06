@@ -1,9 +1,9 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { listOrders } from '@/src/models/order';
 import { listDiningBookings } from '@/src/models/dining-booking';
 
 export default async function AdminReportsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('orders.view');
   const [orders, bookings] = await Promise.all([listOrders(), listDiningBookings()]);
   const paidOrders = orders.filter((order) => order.paymentStatus === 'PAID' || order.paymentMethod === 'COD');
   const deliveredOrders = orders.filter((order) => ['DELIVERED', 'COMPLETED'].includes(order.orderStatus));

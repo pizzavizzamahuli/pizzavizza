@@ -1,10 +1,10 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { adminListCategories } from '@/src/services/menu-service';
 import { CategoryForm } from '@/src/components/admin/category-form';
 
 
 export default async function AdminCategoriesPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('categories.view');
   const categories = await adminListCategories();
 
   return (

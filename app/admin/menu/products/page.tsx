@@ -1,4 +1,4 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { adminListProducts, adminListCategories, adminListCustomizationGroups } from '@/src/services/menu-service';
 import { AdminProductManager } from '@/src/components/admin/product-manager';
 import { type Category, type ProductLike, type CustomizationGroup } from '@/src/components/admin/product-form';
@@ -40,7 +40,7 @@ function toSerializableCategory(doc: Awaited<ReturnType<typeof adminListCategori
 }
 
 export default async function AdminProductsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('menu.view');
   const products: ProductLike[] = (await adminListProducts()).map((product) => toSerializableProduct(product)).filter((item): item is ProductLike => Boolean(item));
   const categories: Category[] = (await adminListCategories()).map((category) => toSerializableCategory(category)).filter((item): item is Category => Boolean(item));
   const customizationGroups: CustomizationGroup[] = (await adminListCustomizationGroups()).map((group) => ({

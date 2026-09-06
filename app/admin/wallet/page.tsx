@@ -1,8 +1,8 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import WalletAdminPanel from '@/src/components/admin/wallet-admin-panel';
 
 export default async function AdminWalletPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('wallet.view');
 
   return (
     <div className="mx-auto max-w-5xl p-8 space-y-6">

@@ -15,9 +15,13 @@ export default async function AdminPage() {
     countDiningBookings({ bookingStatus: 'CONFIRMED' }),
   ]);
   const customerCount = await usersCollection.countDocuments({ role: 'CUSTOMER' });
-  const completedOrders = orders.filter((order) => ['DELIVERED', 'COMPLETED'].includes(order.orderStatus));
-  const pendingOrders = orders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.orderStatus));
-  const pendingPayments = orders.filter((order) => order.paymentStatus === 'PENDING' || order.paymentStatus === 'AWAITING_VERIFICATION');
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const todayOrders = orders.filter((order) => new Date(order.createdAt).getTime() >= dayStart.getTime());
+  const completedOrders = todayOrders.filter((order) => ['DELIVERED', 'COMPLETED'].includes(order.orderStatus));
+  const pendingOrders = todayOrders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'].includes(order.orderStatus));
+  const pendingPayments = todayOrders.filter((order) => order.paymentStatus === 'PENDING' || order.paymentStatus === 'AWAITING_VERIFICATION');
+  const activeDeliveries = todayOrders.filter((order) => order.orderStatus === 'OUT_FOR_DELIVERY');
   const revenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
   const recentOrders = orders.slice(0, 5);
 
@@ -31,11 +35,15 @@ export default async function AdminPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Orders', orders.length.toString()],
-          ['Revenue', `₹${revenue.toFixed(2)}`],
+          ["Today's Orders", todayOrders.length.toString()],
+          ["Today's Revenue", `₹${revenue.toFixed(2)}`],
           ['Pending Orders', pendingOrders.length.toString()],
-          ['Pending Payments', pendingPayments.length.toString()],
-          ['Dining Bookings', String(pendingBookings + confirmedBookings)],
+          ['Preparing', todayOrders.filter((order) => order.orderStatus === 'PREPARING').length.toString()],
+          ['Ready', todayOrders.filter((order) => order.orderStatus === 'READY').length.toString()],
+          ['Out for Delivery', activeDeliveries.length.toString()],
+          ['Payment Pending', pendingPayments.length.toString()],
+          ['Bookings Pending', String(pendingBookings)],
+          ['Bookings Confirmed', String(confirmedBookings)],
           ['Customers', customerCount.toString()],
         ].map(([title, value]) => (
           <article key={title} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">

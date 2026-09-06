@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { ChatbotToggle } from '@/src/components/chatbot/chatbot-toggle';
 import { ServiceWorkerCleanup } from '@/src/components/pwa/service-worker-cleanup';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getSessionUser } from '@/src/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +20,7 @@ export const metadata: Metadata = {
   icons: [
     {
       rel: 'icon',
-      url: '/icon-192.png',
+      url: '/icon-512.png',
     },
     {
       rel: 'apple-touch-icon',
@@ -27,12 +29,13 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const [settings, user] = await Promise.all([getRestaurantSettings().catch(() => null), getSessionUser().catch(() => null)]);
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <ServiceWorkerCleanup />
-        <ChatbotToggle />
+        <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />
         {children}
       </body>
     </html>

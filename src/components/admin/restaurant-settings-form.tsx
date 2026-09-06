@@ -182,23 +182,23 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+    <div className="min-w-0 space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="min-w-0">
           <label className="block text-sm font-medium">Restaurant Name</label>
-          <input className="input" value={settings.restaurantName || ''} onChange={(e) => setSettings({ ...settings, restaurantName: e.target.value })} />
+          <input className="input w-full min-w-0" value={settings.restaurantName || ''} onChange={(e) => setSettings({ ...settings, restaurantName: e.target.value })} />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-sm font-medium">Phone</label>
-          <input className="input" value={settings.phone || ''} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
+          <input className="input w-full min-w-0" value={settings.phone || ''} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
         </div>
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
         <h2 className="text-sm font-semibold text-stone-900">Delivery assignment</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="text-sm"><span className="mb-1 block">Assignment mode</span><select className="input" value={settings.deliveryAssignmentMode || 'MANUAL'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentMode: e.target.value })}><option value="MANUAL">Manual assignment</option><option value="AUTOMATIC">Automatic assignment</option><option value="MANUAL_FALLBACK">Automatic with manual fallback</option></select></label>
-          <label className="text-sm"><span className="mb-1 block">Assignment strategy</span><select className="input" value={settings.deliveryAssignmentStrategy || 'LOWEST_WORKLOAD'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentStrategy: e.target.value })}><option value="LOWEST_WORKLOAD">Lowest active workload</option><option value="ROUND_ROBIN">Round robin</option><option value="LEAST_RECENT">Least recently assigned</option></select></label>
+        <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+          <label className="min-w-0 text-sm"><span className="mb-1 block">Assignment mode</span><select className="input w-full min-w-0" value={settings.deliveryAssignmentMode || 'MANUAL'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentMode: e.target.value })}><option value="MANUAL">Manual assignment</option><option value="AUTOMATIC">Automatic assignment</option><option value="MANUAL_FALLBACK">Automatic with manual fallback</option></select></label>
+          <label className="min-w-0 text-sm"><span className="mb-1 block">Assignment strategy</span><select className="input w-full min-w-0" value={settings.deliveryAssignmentStrategy || 'LOWEST_WORKLOAD'} onChange={(e) => setSettings({ ...settings, deliveryAssignmentStrategy: e.target.value })}><option value="LOWEST_WORKLOAD">Lowest active workload</option><option value="ROUND_ROBIN">Round robin</option><option value="LEAST_RECENT">Least recently assigned</option></select></label>
         </div>
         <p className="mt-3 text-xs text-stone-500">Automatic assignment runs only for READY, payment-eligible delivery orders. Staff must be selected below and available.</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">{(settings.deliveryStaff || []).map((staff: { id: string; name: string; status: string }) => <label key={staff.id} className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 text-sm"><input type="checkbox" checked={(settings.deliveryAssignmentEligibleStaffIds || []).includes(staff.id)} onChange={(e) => setSettings({ ...settings, deliveryAssignmentEligibleStaffIds: e.target.checked ? [...(settings.deliveryAssignmentEligibleStaffIds || []), staff.id] : (settings.deliveryAssignmentEligibleStaffIds || []).filter((id: string) => id !== staff.id) })} /><span className="flex-1">{staff.name}</span><span className="text-xs text-stone-500">{staff.status}</span></label>)}</div>
@@ -328,7 +328,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
         <h2 className="text-sm font-semibold text-stone-900">Website Controls</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-3">
           <label className="flex items-center space-x-2">
             <input type="checkbox" checked={settings.deliveryEnabled} onChange={(e) => setSettings({ ...settings, deliveryEnabled: e.target.checked })} />
             <span>Delivery Enabled</span>

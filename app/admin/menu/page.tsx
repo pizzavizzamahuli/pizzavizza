@@ -1,8 +1,8 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import Link from 'next/link';
 
 export default async function AdminMenuIndexPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('menu.view');
 
   return (
     <div className="mx-auto max-w-4xl p-8 space-y-6">

@@ -1,10 +1,10 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { adminListCustomizationGroups } from '@/src/services/menu-service';
 import { CustomizationGroupForm } from '@/src/components/admin/customization-group-form';
 import { CustomizationGroupList } from '@/src/components/admin/customization-group-list';
 
 export default async function AdminCustomizationGroupsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('menu.view');
   const groups = await adminListCustomizationGroups();
   const serializableGroups = groups.map((group) => ({
     id: group.id ?? group._id?.toHexString() ?? '',

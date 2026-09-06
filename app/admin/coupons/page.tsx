@@ -1,8 +1,8 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import CouponAdminPanel from '@/src/components/admin/coupon-admin-panel';
 
 export default async function AdminCouponsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('coupons.view');
 
   return (
     <div className="mx-auto max-w-5xl p-8 space-y-6">

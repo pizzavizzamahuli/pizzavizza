@@ -1,9 +1,9 @@
-import { requireAdminAccess } from '@/src/auth/guard';
+import { requireAdminPermission } from '@/src/auth/guard';
 import { adminListDiningRooms } from '@/src/services/dining-service';
 import DiningRoomManager from '@/src/components/admin/dining-room-manager';
 
 export default async function AdminDiningRoomsPage() {
-  await requireAdminAccess();
+  await requireAdminPermission('bookings.view');
   const rooms = await adminListDiningRooms();
   const serializableRooms = rooms.map((room) => ({
     ...room,

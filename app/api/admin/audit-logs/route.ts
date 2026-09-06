@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { AuthorizationService } from '@/src/config/permissions';
 import { getAuditLogCollection } from '@/src/models/audit-log';
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
+  if (!user || user.role !== 'MAIN_ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

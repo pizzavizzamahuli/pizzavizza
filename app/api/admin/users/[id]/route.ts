@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { AuthorizationService } from '@/src/config/permissions';
 import { getUserById, updateUser, updateUserPassword, isValidMobile } from '@/src/services/user-service';
 import { recordAudit } from '@/src/models/audit-log';
 import { UserRole, AccountStatus } from '@/src/types';
@@ -12,7 +11,7 @@ const editableStatuses: AccountStatus[] = ['ACTIVE', 'DISABLED', 'SUSPENDED'];
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+    if (!user || !['MAIN_ADMIN', 'ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -25,7 +24,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (String(targetUser.role) === 'MAIN_ADMIN' || targetUser.protected) {
       return NextResponse.json({ error: 'Main admin account cannot be modified.' }, { status: 403 });
     }
-    const canManageTarget = user.role === 'MAIN_ADMIN';
+    const canManageTarget = user.role === 'MAIN_ADMIN' || user.role === 'ADMIN';
     if (!canManageTarget) return NextResponse.json({ error: 'Only Main Admin can manage staff accounts.' }, { status: 403 });
 
     const body = await request.json();
@@ -114,7 +113,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+    if (!user || !['MAIN_ADMIN', 'ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

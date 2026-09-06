@@ -25,7 +25,7 @@ function validAppearance(input: unknown): input is Partial<WebsiteAppearance> {
 }
 
 function isAllowed(user: { role: string; permissions?: string[] }, permission: 'view' | 'edit') {
-  return AuthorizationService.canAccess(user.role, permission === 'view' ? 'settings.view' : 'settings.manage', user.permissions);
+  return user.role === 'MAIN_ADMIN' && AuthorizationService.canAccess(user.role, permission === 'view' ? 'settings.view' : 'settings.manage', user.permissions);
 }
 
 export async function GET() {

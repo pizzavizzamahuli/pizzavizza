@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { AuthorizationService } from '@/src/config/permissions';
 import { createUser, findUserByEmail, setPasswordResetForUser, getUserById, hashPassword, isValidMobile, ensureUserCode } from '@/src/services/user-service';
 import { UserRole } from '@/src/types';
 import type { UserDocument } from '@/src/models/user';
@@ -16,7 +15,7 @@ export async function GET(request: Request) {
     }
 
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
+    if (!user || !['MAIN_ADMIN', 'ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
     }
 
     const user = await getSessionUser();
-    if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+    if (!user || !['MAIN_ADMIN', 'ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

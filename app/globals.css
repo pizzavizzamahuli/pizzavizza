@@ -131,10 +131,10 @@ a[href^="tel:"] {
   }
 
   footer {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }
 }
 
 .mobile-safe-bottom {
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
 }

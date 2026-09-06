@@ -10,6 +10,7 @@ import {
   listDiningRooms,
   createDiningRoom,
   updateDiningRoom,
+  deleteDiningRoom,
 } from '@/src/models/dining-room';
 import {
   DiningBookingDocument,
@@ -93,6 +94,10 @@ export async function adminCreateDiningRoom(input: unknown) {
 export async function adminUpdateDiningRoom(id: string, input: unknown) {
   const data = DiningRoomUpdateSchema.parse(input);
   return updateDiningRoom(id, data as Partial<DiningRoomDocument>);
+}
+
+export async function adminDeleteDiningRoom(id: string) {
+  return deleteDiningRoom(id);
 }
 
 export async function getDiningRoomById(id: string) {

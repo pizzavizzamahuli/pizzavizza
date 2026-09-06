@@ -101,3 +101,11 @@ export async function updateDiningRoom(id: string, updates: Partial<DiningRoomDo
   await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...updates, updatedAt: now } });
   return findDiningRoomById(id);
 }
+
+export async function deleteDiningRoom(id: string) {
+  const col = await getDiningRoomsCollection();
+  const room = await findDiningRoomById(id);
+  if (!room?._id) return null;
+  await col.deleteOne({ _id: room._id });
+  return room;
+}

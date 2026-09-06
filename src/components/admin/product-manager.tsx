@@ -7,6 +7,8 @@ import { ProductForm, type Category, type CustomizationGroup, type ProductLike }
 export function AdminProductManager({ categories, initialProducts, customizationGroups }: { categories: Category[]; initialProducts: ProductLike[]; customizationGroups: CustomizationGroup[] }) {
   const [products, setProducts] = useState<ProductLike[]>(initialProducts);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const editingProduct = useMemo(
     () => products.find((product) => getIdString(product._id || product.id) === editingId) || null,
@@ -23,6 +25,25 @@ export function AdminProductManager({ categories, initialProducts, customization
       return [product, ...current];
     });
     setEditingId(null);
+  }
+
+  async function deleteProduct(product: ProductLike) {
+    const productId = getIdString(product._id || product.id);
+    if (!productId || !window.confirm(`Delete ${product.name}?\n\nIts product record, text, and unused images will be permanently removed.`)) return;
+    setDeletingId(productId);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/admin/menu/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: productId }) });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.error || 'Unable to delete product');
+      setProducts((current) => current.filter((item) => getIdString(item._id || item.id) !== productId));
+      if (editingId === productId) setEditingId(null);
+      setMessage('Product deleted successfully.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to delete product');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -54,13 +75,7 @@ export function AdminProductManager({ categories, initialProducts, customization
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEditingId(productId || product.slug)}
-                  className="rounded-full border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700"
-                >
-                  Edit
-                </button>
+                <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditingId(productId || product.slug)} className="rounded-full border border-stone-300 px-3 py-1.5 text-xs font-semibold text-stone-700">Edit</button><button type="button" disabled={deletingId === productId} onClick={() => void deleteProduct(product)} className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:opacity-50">{deletingId === productId ? 'Deleting...' : 'Delete'}</button></div>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -81,6 +96,7 @@ export function AdminProductManager({ categories, initialProducts, customization
           );
         })}
       </div>
+      {message ? <p className="text-sm text-stone-600" role="status">{message}</p> : null}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export class AuthorizationService {
       ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'telegram', 'kitchen'],
       // Add telegram to admin privileges if desired; granular control is enforced via permission checks.
       ADMIN_TELEGRAM: ['telegram'],
-      MANAGER: ['orders', 'bookings', 'delivery', 'kitchen', 'customers'],
+      MANAGER: ['orders', 'bookings', 'delivery', 'kitchen', 'customers', 'menu'],
       KITCHEN_STAFF: ['kitchen'],
       DELIVERY_STAFF: ['delivery'],
     };

@@ -126,3 +126,11 @@ export async function updateProduct(id: string, updates: Partial<ProductDocument
   await col.updateOne({ _id: new ObjectId(id) }, { $set: updatePayload });
   return findProductById(id);
 }
+
+export async function deleteProduct(id: string) {
+  const col = await getProductsCollection();
+  const product = await findProductById(id);
+  if (!product?._id) return null;
+  await col.deleteOne({ _id: product._id });
+  return product;
+}

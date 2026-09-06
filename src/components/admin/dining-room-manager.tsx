@@ -7,6 +7,7 @@ export default function DiningRoomManager({ initialRooms }: { initialRooms: Admi
   const [rooms, setRooms] = useState(initialRooms);
   const [editingRoom, setEditingRoom] = useState<AdminDiningRoom | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   function handleSaved(room: AdminDiningRoom) {
     setRooms((current) => {
@@ -25,6 +26,28 @@ export default function DiningRoomManager({ initialRooms }: { initialRooms: Admi
     setMessage('Dining room deactivated.');
   }
 
+  async function deleteRoom(room: AdminDiningRoom) {
+    if (!room._id) {
+      setMessage('Unable to delete dining room: missing room id.');
+      return;
+    }
+    if (!window.confirm(`Delete ${room.name}?\n\nThe room, description, and unused images will be permanently removed.`)) return;
+    setDeletingId(room._id);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/dining/rooms/${room._id}`, { method: 'DELETE' });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error(json.error || 'Unable to delete dining room');
+      setRooms((current) => current.filter((item) => item._id !== room._id));
+      if (editingRoom?._id === room._id) setEditingRoom(null);
+      setMessage('Dining room deleted successfully.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to delete dining room');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <>
       <DiningRoomForm key={editingRoom?._id || 'new'} editingRoom={editingRoom} onSaved={handleSaved} onCancel={() => setEditingRoom(null)} />
@@ -34,7 +57,7 @@ export default function DiningRoomManager({ initialRooms }: { initialRooms: Admi
           <article key={room._id} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0"><p className="break-words text-lg font-semibold text-stone-900">{room.name}</p><p className="text-sm text-stone-500">{room.slug}</p></div>
-              <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditingRoom(room)} className="min-h-11 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700">Edit</button><button type="button" onClick={() => archiveRoom(room).catch(() => setMessage('Unable to deactivate room'))} className="min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700">Deactivate</button></div>
+              <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setEditingRoom(room)} className="min-h-11 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700">Edit</button><button type="button" onClick={() => archiveRoom(room).catch(() => setMessage('Unable to deactivate room'))} className="min-h-11 rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700">Deactivate</button><button type="button" disabled={deletingId === room._id} onClick={() => void deleteRoom(room)} className="min-h-11 rounded-full border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-50">{deletingId === room._id ? 'Deleting...' : 'Delete permanently'}</button></div>
             </div>
             <div className="mt-3 grid gap-2 text-sm text-stone-600 sm:grid-cols-2"><div>Capacity: {room.capacityMin}–{room.capacityMax}</div><div>Duration: {room.bookingDurationMinutes} minutes</div><div>Price: ₹{room.price}</div><div>Type: {room.pricingType}</div></div>
           </article>

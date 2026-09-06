@@ -21,10 +21,10 @@ export async function requireAuth() {
 export async function requireAdminAccess() {
   const user = await requireAuth();
 
-  const adminRoles = ['MAIN_ADMIN', 'ADMIN'];
+  const adminRoles = ['MAIN_ADMIN', 'ADMIN', 'MANAGER'];
 
   if (!adminRoles.includes(user.role)) {
-    redirect(user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
+    redirect(user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
   }
 
   return user;
@@ -32,7 +32,7 @@ export async function requireAdminAccess() {
 
   export async function requireAdminPanelAccess() {
     const user = await requireAuth();
-    if (!['MAIN_ADMIN', 'ADMIN'].includes(user.role)) redirect(user.role === 'MANAGER' ? '/manager' : user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
+    if (!['MAIN_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) redirect(user.role === 'KITCHEN_STAFF' ? '/kitchen' : user.role === 'DELIVERY_STAFF' ? '/delivery' : '/account');
     return user;
   }
 

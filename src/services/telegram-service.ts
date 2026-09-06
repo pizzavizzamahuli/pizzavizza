@@ -2,6 +2,8 @@ import { env } from '@/src/config/env';
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
 import { listActiveTelegramAdmins } from '@/src/models/telegram-admin';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getUserById } from '@/src/services/user-service';
+import { AuthorizationService, type PermissionName } from '@/src/config/permissions';
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
 
@@ -66,11 +68,29 @@ export async function safeNotify(chatId: string | number, text: string, options?
   }
 }
 
+export async function safeAnswerCallbackQuery(callbackQueryId: string, text?: string) {
+  try {
+    return await sendTelegramApi('answerCallbackQuery', { callback_query_id: callbackQueryId, text, show_alert: false });
+  } catch (error) {
+    console.error('Telegram callback acknowledgement failed', error);
+    return null;
+  }
+}
+
 async function safeNotifyEvent(chatId: string | number, eventKey: string, text: string, options?: Record<string, unknown>) {
   if (!(await claimTelegramNotification(chatId, eventKey))) return null;
   const result = await safeNotify(chatId, text, options);
   if (!result) await releaseTelegramNotification(chatId, eventKey);
   return result;
+}
+
+async function listAuthorizedTelegramRecipients(permission: PermissionName) {
+  const linked = await listActiveTelegramAdmins();
+  const recipients = await Promise.all(linked.map(async (entry) => {
+    const user = await getUserById(entry.userId);
+    return user && AuthorizationService.canAccess(user.role, permission, user.permissions) ? entry : null;
+  }));
+  return recipients.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 }
 
 type OrderLike = {
@@ -96,7 +116,7 @@ export async function notifyNewOrder(order: OrderLike) {
     const settings = await getRestaurantSettings();
     if (!settings.telegramEnabled || !settings.telegramOrderNotificationsEnabled) return;
 
-    const admins = await listActiveTelegramAdmins();
+    const admins = await listAuthorizedTelegramRecipients('telegram.viewOrders');
     if (!admins || admins.length === 0) return;
 
     const summaryLines: string[] = [];
@@ -149,7 +169,7 @@ export async function notifyNewBooking(booking: BookingLike) {
     const settings = await getRestaurantSettings();
     if (!settings.telegramEnabled || !settings.telegramBookingNotificationsEnabled) return;
 
-    const admins = await listActiveTelegramAdmins();
+    const admins = await listAuthorizedTelegramRecipients('telegram.viewBookings');
     if (!admins || admins.length === 0) return;
 
     const lines: string[] = [];
@@ -175,7 +195,7 @@ export async function notifyPaymentProof(order: OrderLike) {
     const settings = await getRestaurantSettings();
     if (!settings.telegramEnabled || !settings.telegramPaymentNotificationsEnabled) return;
 
-    const admins = await listActiveTelegramAdmins();
+    const admins = await listAuthorizedTelegramRecipients('telegram.viewPayments');
     if (!admins || admins.length === 0) return;
 
     const captionLines: string[] = [];

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/src/config/env';
-import { findTelegramAdminByChat, createTelegramAdmin, activateTelegramAdmin } from '@/src/models/telegram-admin';
+import { findTelegramAdminByChat, linkTelegramAdmin } from '@/src/models/telegram-admin';
 import { consumeLinkCode } from '@/src/models/telegram-link-code';
-import { safeNotify } from '@/src/services/telegram-service';
+import { safeAnswerCallbackQuery, safeNotify } from '@/src/services/telegram-service';
 import { recordTelegramAudit } from '@/src/models/telegram-audit';
 import {
   findOrderByOrderNumber,
@@ -25,6 +25,9 @@ import type { DiningBookingDocument, DiningBookingStatus } from '@/src/models/di
 import { getUserById } from '@/src/services/user-service';
 import { AuthorizationService } from '@/src/config/permissions';
 import { ObjectId } from 'mongodb';
+import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
+import { isOrderPaymentCleared } from '@/src/services/payment-service';
+import { claimTelegramUpdate } from '@/src/models/telegram-update';
 
 type TelegramChat = {
   id: number | string;
@@ -60,6 +63,7 @@ type TelegramCallbackQuery = {
 };
 
 type TelegramPayload = {
+  update_id?: number;
   message?: TelegramMessage;
   edited_message?: TelegramMessage;
   callback_query?: TelegramCallbackQuery;
@@ -202,6 +206,9 @@ export async function POST(request: Request) {
     }
 
     const payload = rawPayload as TelegramPayload;
+    if (typeof payload.update_id === 'number' && !(await claimTelegramUpdate(payload.update_id))) {
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
     const message = payload.message ?? payload.edited_message ?? payload.callback_query ?? null;
     if (!message) return NextResponse.json({ ok: true });
 
@@ -252,12 +259,10 @@ export async function POST(request: Request) {
 
       const userId = consumed.record.userId;
       // Create or update telegram admin mapping
-      const existing = await findTelegramAdminByChat(String(chatId));
-      if (existing) {
-        // activate
-        await activateTelegramAdmin(existing._id!.toHexString());
-      } else {
-        await createTelegramAdmin({ userId, telegramChatId: String(chatId), telegramUserId: String(message.from?.id || ''), status: 'ACTIVE', linkedAt: new Date() });
+      const linked = await linkTelegramAdmin(userId, String(message.from?.id || ''), String(chatId));
+      if (!linked) {
+        await safeNotify(chatId, 'This Telegram chat is already linked to another account. Revoke it before linking a new account.');
+        return NextResponse.json({ ok: true });
       }
 
       await safeNotify(chatId, 'Successfully linked your Telegram chat to Pizza Vizza admin account.');
@@ -270,6 +275,8 @@ export async function POST(request: Request) {
       const data = cb.data || '';
       const fromId = String(cb.from?.id || '');
 
+      if (cb.id) await safeAnswerCallbackQuery(cb.id, 'Processing…');
+
       await recordTelegramAudit({ telegramUserId: fromId, action: 'callback_received', payload: cb as Record<string, unknown>, timestamp: new Date() });
 
       // Expected formats: payment:verify:<orderNumber> | payment:reject:<orderNumber> | order:view:<orderNumber>
@@ -278,7 +285,7 @@ export async function POST(request: Request) {
         const [domain, action, target] = parts;
 
         const linked = await findTelegramAdminByChat(String(cb.message?.chat?.id || fromId));
-        if (!linked || linked.status !== 'ACTIVE') {
+        if (!linked || linked.status !== 'ACTIVE' || (linked.telegramUserId && linked.telegramUserId !== fromId)) {
           await safeNotify(fromId, 'You are not authorized to perform this action.');
           return NextResponse.json({ ok: true });
         }
@@ -306,7 +313,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: true });
           }
 
+          if (!['PENDING', 'AWAITING_VERIFICATION'].includes(order.paymentStatus)) {
+            await safeNotify(fromId, `Order ${target} is not awaiting payment verification.`);
+            return NextResponse.json({ ok: true });
+          }
+
           await updateOrderByOrderNumber(target, { paymentStatus: 'PAID' });
+          void notifyUser(order.userId, { type: 'PAYMENT_APPROVED', title: 'Payment verified', message: `Payment for order ${target} has been verified.`, href: `/account/orders/${target}`, relatedType: 'order', relatedId: target, eventKey: `telegram:payment:verified:${target}` }).catch((error) => console.error('Telegram payment notification failed', error));
+          void notifyAdmins({ type: 'PAYMENT_APPROVED', title: 'Payment verified', message: `Payment for order ${target} was verified via Telegram.`, href: `/admin/orders/${target}`, relatedType: 'order', relatedId: target, permission: 'payments.view', eventKey: `telegram:payment:admin:${target}` }).catch((error) => console.error('Telegram admin notification failed', error));
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'payment_verified', targetType: 'order', targetId: target, timestamp: new Date() });
           await safeNotify(fromId, `Order ${target} marked as PAID.`);
           return NextResponse.json({ ok: true });
@@ -324,7 +338,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: true });
           }
 
+          if (['PAID', 'REFUNDED'].includes(order.paymentStatus)) {
+            await safeNotify(fromId, `Order ${target} payment cannot be rejected from its current state.`);
+            return NextResponse.json({ ok: true });
+          }
+
           await updateOrderByOrderNumber(target, { paymentStatus: 'FAILED' });
+          void notifyUser(order.userId, { type: 'PAYMENT_REJECTED', title: 'Payment rejected', message: `Payment for order ${target} was rejected.`, href: `/account/orders/${target}`, relatedType: 'order', relatedId: target, eventKey: `telegram:payment:rejected:${target}` }).catch((error) => console.error('Telegram payment notification failed', error));
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'payment_rejected', targetType: 'order', targetId: target, timestamp: new Date() });
           await safeNotify(fromId, `Order ${target} payment marked as FAILED.`);
           return NextResponse.json({ ok: true });
@@ -369,6 +389,7 @@ export async function POST(request: Request) {
           }
 
           await updateOrderStatusByOrderNumber(target, nextStatus, appUser._id?.toHexString() || 'telegram', `Telegram status update to ${nextStatus}`);
+          void notifyUser(order.userId, { type: `ORDER_${nextStatus}`, title: `Order ${nextStatus.toLowerCase()}`, message: `Your order ${target} is now ${nextStatus.toLowerCase()}.`, href: `/account/orders/${target}`, relatedType: 'order', relatedId: target, eventKey: `telegram:order:${target}:${nextStatus}` }).catch((error) => console.error('Telegram order notification failed', error));
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'order_status_updated', targetType: 'order', targetId: target, timestamp: new Date(), payload: { newStatus: nextStatus } });
           await safeNotify(fromId, `Order ${target} status updated to ${nextStatus}.`);
           return NextResponse.json({ ok: true });
@@ -387,7 +408,10 @@ export async function POST(request: Request) {
           const assigned = await assignDeliveryStaff(target, staff._id!.toHexString(), staff.name, appUser._id?.toHexString() || 'telegram', order.deliveryStaffId || null);
           if (!assigned) { await safeNotify(fromId, 'Assignment changed concurrently. Please refresh the order.'); return NextResponse.json({ ok: true }); }
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'delivery_assigned', targetType: 'order', targetId: target, timestamp: new Date(), payload: { staffId } });
-          await safeNotify(fromId, `Order ${target} assigned to ${staff.name}.`);
+            void notifyUser(staff._id!.toHexString(), { type: 'DELIVERY_ASSIGNED', title: 'Delivery assigned', message: `Order ${target} has been assigned to you.`, href: '/delivery', relatedType: 'order', relatedId: target, eventKey: `telegram:delivery:${target}:${staff._id!.toHexString()}` }).catch((error) => console.error('Telegram delivery notification failed', error));
+            void notifyUser(order.userId, { type: 'DELIVERY_ASSIGNED', title: 'Delivery assigned', message: `A delivery staff member has been assigned to order ${target}.`, href: `/account/orders/${target}`, relatedType: 'order', relatedId: target, eventKey: `telegram:delivery:customer:${target}` }).catch((error) => console.error('Telegram customer notification failed', error));
+            void notifyAdmins({ type: 'DELIVERY_ASSIGNED', title: 'Delivery assignment updated', message: `Order ${target} was assigned to ${staff.name}.`, href: `/admin/orders/${target}`, relatedType: 'order', relatedId: target, permission: 'delivery.view', eventKey: `telegram:delivery:admin:${target}:${staff._id!.toHexString()}` }).catch((error) => console.error('Telegram admin notification failed', error));
+            await safeNotify(fromId, `Order ${target} assigned to ${staff.name}.`);
           return NextResponse.json({ ok: true });
         }
 
@@ -436,6 +460,7 @@ export async function POST(request: Request) {
               { previousStatus: booking.bookingStatus, newStatus: nextStatus, performedBy: appUser._id!.toHexString(), note: `Telegram status update to ${nextStatus}`, createdAt: new Date() },
             ],
           });
+          void notifyUser(booking.userId, { type: `BOOKING_${nextStatus}`, title: `Booking ${nextStatus.toLowerCase()}`, message: `Your dining booking ${target} is now ${nextStatus.toLowerCase()}.`, href: `/account/bookings/${target}`, relatedType: 'booking', relatedId: target, eventKey: `telegram:booking:${target}:${nextStatus}` }).catch((error) => console.error('Telegram booking notification failed', error));
           await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: fromId, action: 'booking_status_updated', targetType: 'booking', targetId: target, timestamp: new Date(), payload: { newStatus: nextStatus } });
           await safeNotify(fromId, `Booking ${target} status updated to ${nextStatus}.`);
           return NextResponse.json({ ok: true });
@@ -451,7 +476,8 @@ export async function POST(request: Request) {
       const orderNumber = parts[1];
       const staffId = parts[2];
       const linked = await findTelegramAdminByChat(String(chatId));
-      const appUser = linked ? await getUserById(linked.userId) : null;
+      const fromUserId = String(message.from?.id || '');
+      const appUser = linked && (!linked.telegramUserId || linked.telegramUserId === fromUserId) ? await getUserById(linked.userId) : null;
       if (!linked || linked.status !== 'ACTIVE' || !appUser || !AuthorizationService.canAccess(appUser.role, 'telegram.manageDelivery')) {
         await safeNotify(chatId, 'You are not authorized to manage delivery assignments.');
         return NextResponse.json({ ok: true });
@@ -461,8 +487,18 @@ export async function POST(request: Request) {
       let staff = null;
       try { staff = await (await import('@/src/models/user')).getUsersCollection().then((collection) => collection.findOne({ _id: new ObjectId(staffId), role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' })); } catch { staff = null; }
       if (!order || !staff) { await safeNotify(chatId, !order ? `Order not found: ${orderNumber}` : 'Active delivery staff member not found.'); return NextResponse.json({ ok: true }); }
-      await updateOrderByOrderNumber(orderNumber, { deliveryStaffId: staff._id!.toHexString(), deliveryStaffName: staff.name });
+      if (order.fulfillmentType !== 'DELIVERY' || order.orderStatus !== 'READY' || !isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) {
+        await safeNotify(chatId, 'Only payment-cleared READY delivery orders can be assigned.');
+        return NextResponse.json({ ok: true });
+      }
+      const assigned = await assignDeliveryStaff(orderNumber, staff._id!.toHexString(), staff.name, appUser._id?.toHexString() || 'telegram', order.deliveryStaffId || null);
+      if (!assigned) {
+        await safeNotify(chatId, 'Assignment changed concurrently. Please refresh the order.');
+        return NextResponse.json({ ok: true });
+      }
       await recordTelegramAudit({ performedByUserId: appUser._id?.toHexString() || null, telegramUserId: chatId, action: 'delivery_assigned', targetType: 'order', targetId: orderNumber, timestamp: new Date(), payload: { staffId } });
+      void notifyUser(staff._id!.toHexString(), { type: 'DELIVERY_ASSIGNED', title: 'Delivery assigned', message: `Order ${orderNumber} has been assigned to you.`, href: '/delivery', relatedType: 'order', relatedId: orderNumber, eventKey: `telegram:command:delivery:${orderNumber}:${staff._id!.toHexString()}` }).catch((error) => console.error('Telegram delivery notification failed', error));
+      void notifyUser(order.userId, { type: 'DELIVERY_ASSIGNED', title: 'Delivery assigned', message: `A delivery staff member has been assigned to order ${orderNumber}.`, href: `/account/orders/${orderNumber}`, relatedType: 'order', relatedId: orderNumber, eventKey: `telegram:command:delivery:customer:${orderNumber}` }).catch((error) => console.error('Telegram customer notification failed', error));
       await safeNotify(chatId, `Order ${orderNumber} assigned to ${staff.name}.`);
       return NextResponse.json({ ok: true });
     }
@@ -477,7 +513,7 @@ export async function POST(request: Request) {
       }
 
       const linked = await findTelegramAdminByChat(String(chatId));
-      if (!linked || linked.status !== 'ACTIVE') {
+      if (!linked || linked.status !== 'ACTIVE' || (linked.telegramUserId && linked.telegramUserId !== String(message.from?.id || ''))) {
         await safeNotify(chatId, 'You are not authorized to use this bot.');
         return NextResponse.json({ ok: true });
       }
@@ -508,7 +544,7 @@ export async function POST(request: Request) {
       }
 
       const linked = await findTelegramAdminByChat(String(chatId));
-      if (!linked || linked.status !== 'ACTIVE') {
+      if (!linked || linked.status !== 'ACTIVE' || (linked.telegramUserId && linked.telegramUserId !== String(message.from?.id || ''))) {
         await safeNotify(chatId, 'You are not authorized to use this bot.');
         return NextResponse.json({ ok: true });
       }
@@ -545,7 +581,7 @@ export async function POST(request: Request) {
       }
 
       const linked = await findTelegramAdminByChat(String(chatId));
-      if (!linked || linked.status !== 'ACTIVE') {
+      if (!linked || linked.status !== 'ACTIVE' || (linked.telegramUserId && linked.telegramUserId !== String(message.from?.id || ''))) {
         await safeNotify(chatId, 'You are not authorized to use this bot.');
         return NextResponse.json({ ok: true });
       }
@@ -576,7 +612,7 @@ export async function POST(request: Request) {
       }
 
       const linked = await findTelegramAdminByChat(String(chatId));
-      if (!linked || linked.status !== 'ACTIVE') {
+      if (!linked || linked.status !== 'ACTIVE' || (linked.telegramUserId && linked.telegramUserId !== String(message.from?.id || ''))) {
         await safeNotify(chatId, 'You are not authorized to use this bot.');
         return NextResponse.json({ ok: true });
       }

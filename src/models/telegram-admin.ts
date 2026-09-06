@@ -30,6 +30,7 @@ export async function getTelegramAdminsCollection() {
     const collection = db.collection<TelegramAdminDocument>(TELEGRAM_ADMINS_COLLECTION);
     await collection.createIndex({ userId: 1 });
     await collection.createIndex({ telegramChatId: 1 });
+    await collection.createIndex({ telegramUserId: 1 });
     return collection;
   })();
 
@@ -68,6 +69,20 @@ export async function createTelegramAdmin(doc: Partial<TelegramAdminDocument>) {
 
   const res = await col.insertOne(toInsert as TelegramAdminDocument);
   return { ...toInsert, _id: res.insertedId, id: res.insertedId.toHexString() } as TelegramAdminDocument;
+}
+
+export async function linkTelegramAdmin(userId: string, telegramUserId: string, telegramChatId: string) {
+  const col = await getTelegramAdminsCollection();
+  const now = new Date();
+  const existingChat = await col.findOne({ telegramChatId });
+  if (existingChat && existingChat.userId !== userId && existingChat.status === 'ACTIVE') return null;
+  const existingUser = await col.findOne({ userId });
+  const result = await col.findOneAndUpdate(
+    existingUser ? { _id: existingUser._id } : { telegramChatId },
+    { $set: { userId, telegramUserId, telegramChatId, status: 'ACTIVE', linkedAt: now, updatedAt: now }, $setOnInsert: { createdAt: now } },
+    { upsert: true, returnDocument: 'after' },
+  );
+  return result;
 }
 
 export async function activateTelegramAdmin(id: string) {

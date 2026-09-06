@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { createLinkCode } from '@/src/models/telegram-link-code';
+import { getUserById } from '@/src/services/user-service';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
     const payload = await request.json();
     const targetUserId = typeof payload.userId === 'string' ? payload.userId : undefined;
     if (!targetUserId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    const targetUser = await getUserById(targetUserId);
+    if (!targetUser || !['MAIN_ADMIN', 'ADMIN', 'MANAGER'].includes(targetUser.role)) {
+      return NextResponse.json({ error: 'Only authorized administrative accounts can be linked to Telegram.' }, { status: 400 });
+    }
 
     const { raw, record } = await createLinkCode(targetUserId, 300); // 5 minutes
 

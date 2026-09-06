@@ -13,6 +13,7 @@ export const permissionDefinitions = {
   delivery: ['delivery.view', 'delivery.manage'],
   admins: ['admins.view', 'admins.manage'],
   settings: ['settings.view', 'settings.manage'],
+  restaurant: ['restaurant.view', 'restaurant.manage'],
   kitchen: ['kitchen.view', 'kitchen.manage'],
 } as const;
 
@@ -28,7 +29,7 @@ export class AuthorizationService {
 
     // Define role-based permission mapping
     const rolePermissions: Record<string, Array<string>> = {
-      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'telegram', 'kitchen'],
+      ADMIN: ['orders', 'customers', 'menu', 'categories', 'products', 'coupons', 'wallet', 'referrals', 'delivery', 'bookings', 'settings', 'restaurant', 'telegram', 'kitchen'],
       // Add telegram to admin privileges if desired; granular control is enforced via permission checks.
       ADMIN_TELEGRAM: ['telegram'],
       MANAGER: ['orders', 'bookings', 'delivery', 'kitchen', 'customers', 'menu'],

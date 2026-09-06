@@ -7,6 +7,7 @@ import { getProductsForCustomer } from '@/src/services/menu-service';
 import { getAvailableDiningRooms } from '@/src/services/dining-service';
 import AddToCartButton from '@/src/components/add-to-cart-button';
 import ImageCarousel from '@/src/components/image-carousel';
+import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
 
 function restaurantAddress(settings: Awaited<ReturnType<typeof getRestaurantSettings>>) {
   return [settings.addressLine1, settings.addressLine2, settings.landmark, settings.city, settings.state, settings.postalCode].filter(Boolean).join(', ');
@@ -25,6 +26,7 @@ export default async function Home() {
   const restaurantMapUrl = typeof restaurantSettings.latitude === 'number' && typeof restaurantSettings.longitude === 'number'
     ? generateMapLink(restaurantSettings.latitude, restaurantSettings.longitude, restaurantSettings.restaurantName)
     : null;
+  const availability = getRestaurantAvailability(restaurantSettings);
 
   return (
     <CustomerShell>
@@ -47,6 +49,8 @@ export default async function Home() {
           {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
         </div>
       </section>
+
+      <section className={`mt-4 rounded-2xl border px-4 py-3 text-sm sm:px-5 ${availability.status === 'OPEN' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}><p className="font-semibold">{availability.status === 'OPEN' ? '🟢 Restaurant is currently open' : '🔴 Restaurant is currently closed'}</p><p className="mt-1">{availability.reasonMessage}{availability.openTime && availability.closeTime ? ` Today: ${availability.openTime} - ${availability.closeTime}.` : ''}</p></section>
 
       {menuProducts.length ? <section className="mt-6 sm:mt-8">
         <div className="flex flex-wrap items-end justify-between gap-3">

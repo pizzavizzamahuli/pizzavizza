@@ -9,6 +9,23 @@ export type DistanceUnit = 'KM' | 'MILES';
 export type DeliveryChargeType = 'FREE' | 'FIXED' | 'DISTANCE_BASED';
 export type DeliveryAssignmentMode = 'MANUAL' | 'AUTOMATIC' | 'MANUAL_FALLBACK';
 export type DeliveryAssignmentStrategy = 'LOWEST_WORKLOAD' | 'ROUND_ROBIN' | 'LEAST_RECENT';
+export type RestaurantDayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+export interface RestaurantDaySchedule {
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface RestaurantSpecialDate {
+  date: string;
+  isOpen: boolean;
+  openTime?: string | null;
+  closeTime?: string | null;
+  label?: string | null;
+}
+
+export type RestaurantWeeklySchedule = Record<RestaurantDayKey, RestaurantDaySchedule>;
 
 
 export interface RestaurantLocationSnapshot {
@@ -51,6 +68,13 @@ export interface RestaurantSettingsDocument {
   supportEmail?: string | null;
   whatsappSupportNumber?: string | null;
   workingHours?: string | null;
+  restaurantTimezone?: string;
+  weeklySchedule?: RestaurantWeeklySchedule;
+  specialDates?: RestaurantSpecialDate[];
+  manualAvailabilityOverride?: 'OPEN' | 'CLOSED' | null;
+  manualAvailabilityReason?: string | null;
+  manualAvailabilityChangedAt?: Date | null;
+  manualAvailabilityChangedBy?: string | null;
   deliveryAssignmentMode: DeliveryAssignmentMode;
   deliveryAssignmentStrategy: DeliveryAssignmentStrategy;
   deliveryAssignmentEligibleStaffIds: string[];
@@ -104,6 +128,16 @@ export interface RestaurantSettingsDocument {
 
 const RESTAURANT_SETTINGS_COLLECTION = 'restaurant_settings';
 
+export const defaultWeeklySchedule: RestaurantWeeklySchedule = {
+  monday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  tuesday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  wednesday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  thursday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  friday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  saturday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+  sunday: { isOpen: true, openTime: '11:00', closeTime: '23:00' },
+};
+
 let restaurantSettingsCollectionPromise: Promise<Collection<RestaurantSettingsDocument>> | null = null;
 
 export async function getRestaurantSettingsCollection() {
@@ -133,6 +167,7 @@ export async function getRestaurantSettings() {
     };
     const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([key]) => settings[key as keyof RestaurantSettingsDocument] === undefined));
     const now = new Date();
+    const weeklySchedule = { ...defaultWeeklySchedule, ...(settings.weeklySchedule || {}) };
     const homepageImages = Array.isArray(settings.homepageImages) && settings.homepageImages.length
       ? settings.homepageImages
       : settings.homeImage
@@ -141,7 +176,7 @@ export async function getRestaurantSettings() {
     if (Object.keys(missingDefaults).length || !Array.isArray(settings.homepageImages)) {
       await col.updateOne({ _id: settings._id }, { $set: { ...missingDefaults, homepageImages, updatedAt: now } });
     }
-    return { ...defaults, ...settings, ...missingDefaults, homepageImages } as RestaurantSettingsDocument;
+    return { ...defaults, ...settings, ...missingDefaults, homepageImages, weeklySchedule, specialDates: settings.specialDates || [], restaurantTimezone: settings.restaurantTimezone || 'Asia/Kolkata' } as RestaurantSettingsDocument;
   }
 
   const now = new Date();
@@ -160,6 +195,13 @@ export async function getRestaurantSettings() {
     supportEmail: null,
     whatsappSupportNumber: null,
     workingHours: null,
+    restaurantTimezone: 'Asia/Kolkata',
+    weeklySchedule: defaultWeeklySchedule,
+    specialDates: [],
+    manualAvailabilityOverride: null,
+    manualAvailabilityReason: null,
+    manualAvailabilityChangedAt: null,
+    manualAvailabilityChangedBy: null,
     deliveryAssignmentMode: 'MANUAL',
     deliveryAssignmentStrategy: 'LOWEST_WORKLOAD',
     deliveryAssignmentEligibleStaffIds: [],

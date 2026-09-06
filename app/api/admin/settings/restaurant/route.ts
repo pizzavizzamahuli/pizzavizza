@@ -9,6 +9,8 @@ import { deleteCloudinaryResource, extractCloudinaryPublicId } from '@/src/utils
 import fs from 'fs';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
+import { defaultWeeklySchedule, type RestaurantWeeklySchedule } from '@/src/models/restaurant-settings';
+import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -69,6 +71,12 @@ export async function GET() {
     onlinePaymentEnabled: s.onlinePaymentEnabled,
     deliveryWhatsAppNumber: s.deliveryWhatsAppNumber,
     chatbotEnabled: s.chatbotEnabled ?? true,
+    restaurantTimezone: s.restaurantTimezone || 'Asia/Kolkata',
+    weeklySchedule: s.weeklySchedule || defaultWeeklySchedule,
+    specialDates: s.specialDates || [],
+    manualAvailabilityOverride: s.manualAvailabilityOverride || null,
+    manualAvailabilityReason: s.manualAvailabilityReason || null,
+    availability: getRestaurantAvailability(s),
     telegramEnabled: s.telegramEnabled,
     telegramOrderNotificationsEnabled: s.telegramOrderNotificationsEnabled,
     telegramBookingNotificationsEnabled: s.telegramBookingNotificationsEnabled,
@@ -94,6 +102,19 @@ export async function PUT(request: Request) {
     const payload = await request.json();
     const updates = payload as Record<string, unknown>;
     const isMainAdmin = user.role === 'MAIN_ADMIN';
+    const availabilityKeys = ['weeklySchedule', 'restaurantTimezone', 'manualAvailabilityOverride', 'manualAvailabilityReason'];
+    if (!isMainAdmin && availabilityKeys.some((key) => Object.prototype.hasOwnProperty.call(updates, key)) && !AuthorizationService.canAccess(user.role, 'restaurant.manage', user.permissions)) {
+      return NextResponse.json({ error: 'You do not have permission to manage restaurant availability.' }, { status: 403 });
+    }
+    const weeklySchedule = Array.isArray(updates.weeklySchedule) ? undefined : (updates.weeklySchedule && typeof updates.weeklySchedule === 'object' ? Object.fromEntries(Object.entries(defaultWeeklySchedule).map(([day, fallback]) => { const value = (updates.weeklySchedule as Record<string, unknown>)[day]; const item = value && typeof value === 'object' ? value as Record<string, unknown> : {}; return [day, { isOpen: item.isOpen !== false, openTime: typeof item.openTime === 'string' && /^\d{2}:\d{2}$/.test(item.openTime) ? item.openTime : fallback.openTime, closeTime: typeof item.closeTime === 'string' && /^\d{2}:\d{2}$/.test(item.closeTime) ? item.closeTime : fallback.closeTime }]; })) as RestaurantWeeklySchedule : undefined);
+    const specialDates = Array.isArray(updates.specialDates) ? updates.specialDates.map((value) => {
+      if (!value || typeof value !== 'object') return null;
+      const item = value as Record<string, unknown>;
+      if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) return null;
+      return { date: item.date, isOpen: item.isOpen === true, openTime: typeof item.openTime === 'string' && /^\d{2}:\d{2}$/.test(item.openTime) ? item.openTime : null, closeTime: typeof item.closeTime === 'string' && /^\d{2}:\d{2}$/.test(item.closeTime) ? item.closeTime : null, label: typeof item.label === 'string' ? item.label.trim().slice(0, 100) || null : null };
+    }).filter((value): value is { date: string; isOpen: boolean; openTime: string | null; closeTime: string | null; label: string | null } => Boolean(value)).slice(0, 100) : undefined;
+    const manualAvailabilityOverride = updates.manualAvailabilityOverride === 'OPEN' || updates.manualAvailabilityOverride === 'CLOSED' ? updates.manualAvailabilityOverride : updates.manualAvailabilityOverride === null ? null : undefined;
+    const manualAvailabilityReason = typeof updates.manualAvailabilityReason === 'string' ? updates.manualAvailabilityReason.trim().slice(0, 200) || null : updates.manualAvailabilityReason === null ? null : undefined;
     const telegramUpdateKeys = ['telegramEnabled', 'telegramOrderNotificationsEnabled', 'telegramBookingNotificationsEnabled', 'telegramPaymentNotificationsEnabled'];
     if (!isMainAdmin && telegramUpdateKeys.some((key) => Object.prototype.hasOwnProperty.call(updates, key))) {
       return NextResponse.json({ error: 'Only the Main Admin can manage Telegram settings.' }, { status: 403 });
@@ -158,6 +179,13 @@ export async function PUT(request: Request) {
       homeImage: typeof updates.homeImage === 'string' ? updates.homeImage.trim() : undefined,
       homeDescription: typeof updates.homeDescription === 'string' ? updates.homeDescription.trim().slice(0, 500) : updates.homeDescription === null ? null : undefined,
       homepageImages,
+      restaurantTimezone: typeof updates.restaurantTimezone === 'string' && updates.restaurantTimezone.trim() ? updates.restaurantTimezone.trim() : undefined,
+      weeklySchedule,
+      specialDates,
+      manualAvailabilityOverride,
+      manualAvailabilityReason,
+      manualAvailabilityChangedAt: manualAvailabilityOverride !== undefined ? new Date() : undefined,
+      manualAvailabilityChangedBy: manualAvailabilityOverride !== undefined ? user._id?.toHexString() || user.email : undefined,
       ...(isMainAdmin ? { poweredByName, poweredByUrl } : {}),
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,

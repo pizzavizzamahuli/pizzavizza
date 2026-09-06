@@ -31,6 +31,8 @@ import { getUserById } from '@/src/services/user-service';
 import { findDiningAvailabilityBlockForRoom } from '@/src/models/dining-availability-block';
 import { isDiningSlotAvailable } from '@/src/services/dining-availability-service';
 import { touchDiningAvailabilityLock } from '@/src/models/dining-availability-lock';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { assertRestaurantOpenForBooking } from '@/src/services/restaurant-availability';
 
 export async function formatDiningBookingNumber(session?: import('mongodb').ClientSession) {
   const seq = await getNextSequence('dining_bookings', session);
@@ -299,6 +301,7 @@ export async function createDiningBookingForUser({
   couponCode?: string | null;
   idempotencyKey?: string | null;
 }) {
+  const restaurantSettings = await getRestaurantSettings();
   const room = await findDiningRoomById(roomId);
   if (!room) throw new Error('Room not found');
   const user = await getUserById(userId);
@@ -310,6 +313,8 @@ export async function createDiningBookingForUser({
 
   const effectiveDuration = Math.max(15, Number(durationMinutes) || room.bookingDurationMinutes || 60);
   const effectiveRoomCount = Math.max(1, Number(roomCount) || 1);
+  const requestedEndTime = calculateBookingEndTime(startTime, effectiveDuration);
+  assertRestaurantOpenForBooking(restaurantSettings, bookingDate, startTime, requestedEndTime);
   validateBookingInput({ room, bookingDate, startTime, guestCount, roomCount: effectiveRoomCount, durationMinutes: effectiveDuration });
   const availability = await checkDiningRoomAvailability({
     roomId,

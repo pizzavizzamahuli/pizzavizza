@@ -5,15 +5,21 @@ import { countDiningBookings } from '@/src/models/dining-booking';
 import { LogoutButton } from '@/src/components/auth/logout-button';
 import { orderStatusLabel, paymentStatusLabel, displayLabel } from '@/src/utils/display-labels';
 import Link from 'next/link';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
+import RestaurantAvailabilityCard from '@/src/components/admin/restaurant-availability-card';
+import { AuthorizationService } from '@/src/config/permissions';
 
 export default async function AdminPage() {
   const user = await requireAdminAccess();
-  const [orders, usersCollection, pendingBookings, confirmedBookings] = await Promise.all([
+  const [orders, usersCollection, pendingBookings, confirmedBookings, settings] = await Promise.all([
     listOrders(),
     getUsersCollection(),
     countDiningBookings({ bookingStatus: 'PENDING' }),
     countDiningBookings({ bookingStatus: 'CONFIRMED' }),
+    getRestaurantSettings(),
   ]);
+  const availability = getRestaurantAvailability(settings);
   const customerCount = await usersCollection.countDocuments({ role: 'CUSTOMER' });
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
@@ -32,6 +38,8 @@ export default async function AdminPage() {
         <h1 className="mt-2 text-3xl font-semibold text-stone-900">Pizza Vizza Admin</h1>
         <p className="mt-3 text-sm text-stone-600">Welcome back, {user.name}. Live store activity is summarized below.</p>
       </section>
+
+      <RestaurantAvailabilityCard initialAvailability={availability} canManage={AuthorizationService.canAccess(user.role, 'restaurant.manage', user.permissions)} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[

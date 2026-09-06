@@ -7,6 +7,7 @@ import { getUserById } from '@/src/services/user-service';
 import { findAddressById } from '@/src/models/address';
 import type { ClientSession } from 'mongodb';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { assertRestaurantOpen } from '@/src/services/restaurant-availability';
 import { checkDeliveryEligibilityAsync } from '@/src/services/delivery-service';
 import { calculatePromotions } from '@/src/services/promo-service';
 import { normalizePaymentMethod, resolveInitialPaymentState } from '@/src/services/payment-service';
@@ -110,6 +111,7 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
   if (!user) throw new Error('User not found');
 
   const settings = await getRestaurantSettings();
+  assertRestaurantOpen(settings, 'Pizza Vizza is currently closed. Your order cannot be accepted right now.');
   if (!settings.referralEnabled && opts.referralCode) {
     throw new Error('Referral programme is currently unavailable');
   }

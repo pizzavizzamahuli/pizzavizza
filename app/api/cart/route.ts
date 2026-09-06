@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       type SetCartItemPayload = {
         productId: string;
         quantity: number;
-        selectedOptions?: Array<{ optionId: string }>;
+        selectedOptions?: Array<{ optionId: string; quantity?: number }>;
         selectedOptionIds?: string[];
       };
       const items = body.items as Array<SetCartItemPayload>;
@@ -60,19 +60,20 @@ export async function POST(request: Request) {
         const selectedOptionIds = Array.isArray(item.selectedOptionIds)
           ? item.selectedOptionIds.filter((id) => typeof id === 'string')
           : Array.isArray(item.selectedOptions)
-          ? (item.selectedOptions as Array<{ optionId: string }>).
+            ? (item.selectedOptions as Array<{ optionId: string; quantity?: number }>).
               filter((opt) => opt && typeof opt.optionId === 'string')
-              .map((opt) => opt.optionId)
+              .map((opt) => ({ optionId: opt.optionId, quantity: opt.quantity || 1 }))
           : [];
         return {
           productId: item.productId,
           quantity: item.quantity,
-          selectedOptions: selectedOptionIds.map((optionId) => ({
+          selectedOptions: selectedOptionIds.map((selection) => ({
             groupId: '',
             groupName: '',
-            optionId,
+            optionId: typeof selection === 'string' ? selection : selection.optionId,
             optionName: '',
             price: 0,
+            quantity: typeof selection === 'string' ? 1 : selection.quantity,
           })),
         };
       });
@@ -83,9 +84,9 @@ export async function POST(request: Request) {
     const productId = typeof body.productId === 'string' ? (body.productId as string) : '';
     const quantity = typeof body.quantity === 'number' ? (body.quantity as number) : Number(body.quantity || 1);
     const selectedOptions = Array.isArray(body.selectedOptions)
-      ? (body.selectedOptions as Array<{ optionId: string }>).
+      ? (body.selectedOptions as Array<{ optionId: string; quantity?: number }>).
           filter((opt) => opt && typeof opt.optionId === 'string')
-          .map((opt) => opt.optionId)
+          .map((opt) => ({ optionId: opt.optionId, quantity: Math.max(1, Math.floor(Number(opt.quantity || 1))) }))
       : [];
     const res = await addToCart(userIdForAction, productId, Number(quantity || 1), selectedOptions);
     return NextResponse.json({ success: true, data: res });

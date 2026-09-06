@@ -13,7 +13,7 @@ import { normalizePaymentMethod, resolveInitialPaymentState } from '@/src/servic
 import { adjustWalletBalance } from '@/src/models/wallet';
 import { reserveCouponUsage } from '@/src/models/coupon';
 import { getDatabaseClient } from '@/src/config/database';
-import { calculateCustomizationForProduct, getEffectiveProductPrice } from '@/src/services/customization-service';
+import { calculateCustomizationForProduct, getEffectiveProductPrice, type CustomizationSelection } from '@/src/services/customization-service';
 import { findDiningBookingByBookingNumber } from '@/src/models/dining-booking';
 import { notifyOrderPlaced } from '@/src/services/notification-service';
 
@@ -21,6 +21,7 @@ export type OrderItemPayload = {
   productId: string;
   quantity: number;
   selectedOptionIds?: string[];
+  selectedOptions?: Array<{ optionId: string; quantity?: number }>;
 };
 
 export async function formatOrderNumber(session?: ClientSession) {
@@ -30,12 +31,12 @@ export async function formatOrderNumber(session?: ClientSession) {
   return `PV-${year}-${num}`;
 }
 
-function normalizeOrderItemForIdempotency(item: { productId?: string; quantity?: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId?: string }> }) {
+function normalizeOrderItemForIdempotency(item: { productId?: string; quantity?: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId?: string; quantity?: number }> }) {
   const productId = String(item.productId || '').trim();
   const selectedOptionIds = Array.isArray(item.selectedOptionIds)
-    ? item.selectedOptionIds.map((id) => String(id)).filter(Boolean)
+    ? item.selectedOptionIds.map((id) => `${String(id)}:1`).filter(Boolean)
     : Array.isArray(item.selectedOptions)
-      ? item.selectedOptions.map((opt) => String(opt.optionId || '')).filter(Boolean)
+      ? item.selectedOptions.map((opt) => `${String(opt.optionId || '')}:${Math.max(1, Number(opt.quantity || 1))}`).filter(Boolean)
       : [];
 
   return {
@@ -45,7 +46,7 @@ function normalizeOrderItemForIdempotency(item: { productId?: string; quantity?:
   };
 }
 
-export function buildOrderIdempotencyKey(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null }) {
+export function buildOrderIdempotencyKey(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string; quantity?: number }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null }) {
   const normalizedItems = (opts.items || []).map((item) => normalizeOrderItemForIdempotency(item));
   const payload = {
     userId,
@@ -72,7 +73,8 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
     if (!product.isAvailable) throw new Error(`Product ${product.name} is not available`);
 
     const quantity = Math.max(1, Math.floor(it.quantity));
-    const customization = await calculateCustomizationForProduct(product, it.selectedOptionIds || []);
+    const customizationSelections = it.selectedOptions || it.selectedOptionIds || [];
+    const customization = await calculateCustomizationForProduct(product, customizationSelections as CustomizationSelection);
     const basePrice = getEffectiveProductPrice(product);
     const unitPrice = basePrice + customization.customizationTotal;
     const line = unitPrice * quantity;
@@ -87,6 +89,9 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
       subtotal: line,
       customizationTotal: customization.customizationTotal,
       selectedOptions: customization.selectedOptions,
+      selectedSize: customization.selectedSize,
+      removedToppings: customization.removedToppings,
+      addedExtras: customization.addedExtras,
     });
   }
 
@@ -100,7 +105,7 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
   return { subtotal, deliveryCharge, additionalCharges, discount, walletAmount, total, itemSnapshots };
 }
 
-export async function createOrderForUser(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; reservationBookingNumber?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null; transactionId?: string | null; paymentProofUrl?: string | null; idempotencyKey?: string | null }) {
+export async function createOrderForUser(userId: string, opts: { items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string; quantity?: number }> }>; fulfillmentType: 'DELIVERY' | 'PICKUP'; addressId?: string | null; customerNote?: string | null; reservationBookingNumber?: string | null; couponCode?: string | null; walletAmount?: number | null; referralCode?: string | null; paymentMethod?: string | null; transactionId?: string | null; paymentProofUrl?: string | null; idempotencyKey?: string | null }) {
   const user = await getUserById(userId);
   if (!user) throw new Error('User not found');
 
@@ -137,12 +142,12 @@ export async function createOrderForUser(userId: string, opts: { items?: Array<{
     const normalizedItems = (itemsSource as Array<Record<string, unknown>>).map((item) => ({
       productId: String(item.productId || ''),
       quantity: typeof item.quantity === 'number' ? item.quantity : Number(item.quantity || 1),
-      selectedOptionIds: Array.isArray(item.selectedOptions)
+      selectedOptions: Array.isArray(item.selectedOptions)
         ? (item.selectedOptions as Array<Record<string, unknown>>)
-            .map((opt) => String(opt.optionId || opt.optionId || ''))
-            .filter(Boolean)
+            .map((opt) => ({ optionId: String(opt.optionId || ''), quantity: Math.max(1, Number(opt.quantity || 1)) }))
+            .filter((opt) => opt.optionId)
         : Array.isArray(item.selectedOptionIds)
-        ? (item.selectedOptionIds as string[]).map((id) => String(id)).filter(Boolean)
+        ? (item.selectedOptionIds as string[]).map((id) => ({ optionId: String(id), quantity: 1 })).filter((opt) => opt.optionId)
         : [],
     })) as OrderItemPayload[];
 

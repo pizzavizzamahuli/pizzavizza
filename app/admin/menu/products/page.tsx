@@ -46,6 +46,7 @@ export default async function AdminProductsPage() {
   const customizationGroups: CustomizationGroup[] = (await adminListCustomizationGroups()).map((group) => ({
     id: toPlainIdString((group as { id?: unknown }).id),
     name: group.name,
+    groupType: group.groupType,
   }));
 
   return (

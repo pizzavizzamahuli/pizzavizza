@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 type AddToCartButtonProps = {
   productId: string;
   selectedOptionIds?: string[];
+  selectedOptions?: Array<{ optionId: string; quantity?: number }>;
   disabled?: boolean;
   bookingNumber?: string | null;
   onAdded?: () => void;
   quantity?: number;
 };
 
-export default function AddToCartButton({ productId, selectedOptionIds = [], disabled, bookingNumber = null, onAdded, quantity = 1 }: AddToCartButtonProps) {
+export default function AddToCartButton({ productId, selectedOptionIds = [], selectedOptions, disabled, bookingNumber = null, onAdded, quantity = 1 }: AddToCartButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function AddToCartButton({ productId, selectedOptionIds = [], dis
         body: JSON.stringify({
           productId,
           quantity: Math.max(1, Math.floor(quantity)),
-          selectedOptions: selectedOptionIds.map((optionId) => ({ optionId })),
+          selectedOptions: selectedOptions || selectedOptionIds.map((optionId) => ({ optionId, quantity: 1 })),
         }),
       });
 

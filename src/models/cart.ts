@@ -7,6 +7,11 @@ export interface CartItemOption {
   optionId: string;
   optionName: string;
   price: number;
+  quantity?: number;
+  groupType?: string;
+  defaultIncluded?: boolean;
+  included?: boolean;
+  removable?: boolean;
 }
 
 export interface CartItem {
@@ -17,6 +22,9 @@ export interface CartItem {
   unitPrice?: number | null; // optional convenience, server will re-calc on checkout
   quantity: number;
   selectedOptions?: CartItemOption[];
+  selectedSize?: { optionId: string; name: string; price: number } | null;
+  removedToppings?: Array<{ optionId: string; name: string; price: number }>;
+  addedExtras?: Array<{ optionId: string; name: string; price: number; quantity: number }>;
 }
 
 export interface CartDocument {

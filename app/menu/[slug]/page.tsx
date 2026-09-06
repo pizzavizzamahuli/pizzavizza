@@ -56,9 +56,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <section>
           <ProductCustomizationForm
             productId={product._id?.toHexString() || product.slug}
+            basePrice={product.discountPrice ?? product.price}
             groups={customizationGroups.map((group) => ({
               id: group.id || group._id?.toHexString() || '',
               name: group.name,
+              groupType: group.groupType,
               description: group.description ?? null,
               required: group.required,
               minSelections: group.minSelections,
@@ -66,8 +68,13 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               options: group.options.map((option) => ({
                 id: option.id,
                 name: option.name,
+                description: option.description,
                 price: option.price,
+                imageUrl: option.imageUrl,
                 isActive: option.isActive,
+                defaultIncluded: option.defaultIncluded,
+                included: option.included,
+                removable: option.removable,
               })),
             }))}
           />

@@ -22,6 +22,7 @@ import {
   findCustomizationGroupsByIds,
   listCustomizationGroups,
   CustomizationGroupDocument,
+  normalizeCustomizationGroupType,
 } from '@/src/models/customization-group';
 
 export const CategorySchema = z.object({
@@ -109,12 +110,12 @@ export async function adminGetCustomizationGroup(id: string) {
 
 export async function adminCreateCustomizationGroup(input: unknown) {
   const data = input as Partial<CustomizationGroupDocument>;
-  return createCustomizationGroup(data);
+  return createCustomizationGroup({ ...data, groupType: normalizeCustomizationGroupType(data.groupType) });
 }
 
 export async function adminUpdateCustomizationGroup(id: string, input: unknown) {
   const data = input as Partial<CustomizationGroupDocument>;
-  return updateCustomizationGroup(id, data);
+  return updateCustomizationGroup(id, { ...data, groupType: normalizeCustomizationGroupType(data.groupType) });
 }
 
 export async function adminDeleteCustomizationGroup(id: string) {

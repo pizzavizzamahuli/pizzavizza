@@ -7,7 +7,7 @@ import { createRazorpayOrder } from '@/src/services/razorpay-service';
 type CheckoutPayload = {
   fulfillmentType: 'DELIVERY' | 'PICKUP';
   addressId?: string | null;
-  items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>;
+  items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string; quantity?: number }> }>;
   customerNote?: string | null;
   reservationBookingNumber?: string | null;
   couponCode?: string | null;

@@ -25,6 +25,11 @@ export interface OrderItemOptionSnapshot {
   optionId: string;
   optionName: string;
   price: number;
+  quantity?: number;
+  groupType?: string;
+  defaultIncluded?: boolean;
+  included?: boolean;
+  removable?: boolean;
 }
 
 export interface OrderItemSnapshot {
@@ -36,6 +41,9 @@ export interface OrderItemSnapshot {
   subtotal: number;
   customizationTotal?: number;
   selectedOptions?: OrderItemOptionSnapshot[];
+  selectedSize?: { optionId: string; name: string; price: number } | null;
+  removedToppings?: Array<{ optionId: string; name: string; price: number }>;
+  addedExtras?: Array<{ optionId: string; name: string; price: number; quantity: number }>;
 }
 
 export interface CustomerSnapshot {

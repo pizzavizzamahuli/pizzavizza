@@ -107,7 +107,7 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-3 pb-24 pt-4 sm:px-6 sm:py-10 md:pb-10">{children}</main>
       <GlobalFooter settings={restaurantSettings} />
     </div>
   );

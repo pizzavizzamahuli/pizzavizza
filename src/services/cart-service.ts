@@ -2,14 +2,14 @@ import { ObjectId } from 'mongodb';
 import { CartItem } from '@/src/models/cart';
 import { findCartByUserId, updateCartItems, clearCart } from '@/src/models/cart';
 import { findProductById, findProductBySlug } from '@/src/models/product';
-import { buildCartItemKey, calculateCustomizationForProduct, getEffectiveProductPrice } from '@/src/services/customization-service';
+import { buildCartItemKey, calculateCustomizationForProduct, getEffectiveProductPrice, type CustomizationSelection } from '@/src/services/customization-service';
 
 export async function getCartForUser(userId: string) {
   const cart = await findCartByUserId(userId);
   return cart;
 }
 
-export async function addToCart(userId: string, productId: string, quantity: number = 1, selectedOptionIds: string[] = []) {
+export async function addToCart(userId: string, productId: string, quantity: number = 1, selectedOptionIds: CustomizationSelection = []) {
   if (quantity <= 0) throw new Error('Quantity must be > 0');
 
   const existingCart = await findCartByUserId(userId);
@@ -40,6 +40,9 @@ export async function addToCart(userId: string, productId: string, quantity: num
       unitPrice,
       quantity,
       selectedOptions: customization.selectedOptions,
+      selectedSize: customization.selectedSize,
+      removedToppings: customization.removedToppings,
+      addedExtras: customization.addedExtras,
     });
   }
 
@@ -54,17 +57,20 @@ export async function setCartItems(userId: string, items: CartItem[]) {
     const product = await findProductById(it.productId);
     if (!product) continue;
     if (!product.isAvailable) continue;
-    const selectedOptionIds = it.selectedOptions?.map((opt) => opt.optionId) || [];
-    const customization = await calculateCustomizationForProduct(product, selectedOptionIds);
+    const selections = it.selectedOptions?.map((opt) => ({ optionId: opt.optionId, quantity: opt.quantity || 1 })) || [];
+    const customization = await calculateCustomizationForProduct(product, selections);
     const basePrice = getEffectiveProductPrice(product);
     safeItems.push({
       productId: it.productId,
-      itemKey: buildCartItemKey(it.productId, selectedOptionIds),
+      itemKey: buildCartItemKey(it.productId, selections),
       name: product.name,
       image: product.image || null,
       unitPrice: basePrice + customization.customizationTotal,
       quantity: qty,
       selectedOptions: customization.selectedOptions,
+      selectedSize: customization.selectedSize,
+      removedToppings: customization.removedToppings,
+      addedExtras: customization.addedExtras,
     });
   }
   return updateCartItems(userId, safeItems);

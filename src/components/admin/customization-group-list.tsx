@@ -5,14 +5,19 @@ import { useEffect, useState } from 'react';
 type CustomizationOptionEditor = {
   id: string;
   name: string;
+  description: string;
   price: string;
+  imageUrl: string;
   isActive: boolean;
+  defaultIncluded: boolean;
+  removable: boolean;
 };
 
 type CustomizationGroupSummary = {
   id: string;
   name: string;
   description?: string | null;
+  groupType?: 'SIZE' | 'TOPPINGS' | 'EXTRAS' | 'OTHER';
   isActive?: boolean;
   required?: boolean;
   options?: { id: string; name: string }[];
@@ -24,8 +29,12 @@ type CustomizationGroupDetail = Omit<CustomizationGroupSummary, 'options'> & {
   options?: Array<{
     id: string;
     name?: string | null;
+    description?: string | null;
     price?: number | null;
+    imageUrl?: string | null;
     isActive?: boolean;
+    defaultIncluded?: boolean;
+    removable?: boolean;
   }>;
 };
 
@@ -39,6 +48,7 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
     id: string;
     name: string;
     description: string;
+    groupType: 'SIZE' | 'TOPPINGS' | 'EXTRAS' | 'OTHER';
     required: boolean;
     isActive: boolean;
     minSelections: string;
@@ -62,6 +72,7 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
           id: group.id,
           name: group.name || '',
           description: group.description || '',
+          groupType: group.groupType || 'OTHER',
           required: Boolean(group.required),
           isActive: group.isActive !== false,
           minSelections: group.minSelections != null ? String(group.minSelections) : '',
@@ -69,8 +80,12 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
           options: (group.options || []).map((option) => ({
             id: option.id,
             name: option.name || '',
+            description: option.description || '',
             price: String(option.price ?? 0),
+            imageUrl: option.imageUrl || '',
             isActive: option.isActive !== false,
+            defaultIncluded: option.defaultIncluded === true,
+            removable: option.removable !== false,
           })),
         });
       })
@@ -85,8 +100,12 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
   const createEmptyOption = () => ({
     id: crypto?.randomUUID?.() ?? String(Date.now()) + Math.random(),
     name: '',
+    description: '',
     price: '0',
+    imageUrl: '',
     isActive: true,
+    defaultIncluded: false,
+    removable: true,
   });
 
   const openEditor = (groupId: string) => {
@@ -159,13 +178,19 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
         .map((option) => ({
           id: option.id,
           name: option.name.trim(),
+          description: option.description.trim() || undefined,
           price: Number(option.price || 0),
+          imageUrl: option.imageUrl.trim() || undefined,
           isActive: option.isActive,
+          defaultIncluded: option.defaultIncluded,
+          included: option.defaultIncluded,
+          removable: option.removable,
         }));
 
       const payload = {
         name: editGroup.name.trim(),
         description: editGroup.description.trim() || undefined,
+        groupType: editGroup.groupType,
         required: editGroup.required,
         isActive: editGroup.isActive,
         minSelections: editGroup.minSelections === '' ? undefined : Number(editGroup.minSelections),
@@ -205,6 +230,7 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
                   <div className="text-lg font-semibold text-stone-900">{group.name}</div>
                   <div className="text-sm text-stone-500">{group.description || 'No description'}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-500">
+                    <span className="rounded-full bg-amber-50 px-2 py-1 font-semibold text-amber-700">{group.groupType === 'SIZE' ? 'SIZE' : group.groupType === 'TOPPINGS' ? 'TOPPINGS' : group.groupType === 'EXTRAS' ? 'EXTRAS' : 'LEGACY / REVIEW'}</span>
                     <span className="rounded-full bg-stone-100 px-2 py-1">{group.isActive === false ? 'Inactive' : 'Active'}</span>
                     <span className="rounded-full bg-stone-100 px-2 py-1">{group.required ? 'Required' : 'Optional'}</span>
                     <span className="rounded-full bg-stone-100 px-2 py-1">{group.options?.length ?? 0} options</span>
@@ -282,6 +308,13 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
                     rows={3}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700">Customization type</label>
+                  <select value={editGroup.groupType} disabled className="w-full rounded-xl border border-stone-300 bg-stone-100 px-3 py-2">
+                    <option value="SIZE">Size</option><option value="TOPPINGS">Toppings</option><option value="EXTRAS">Extras</option><option value="OTHER">Legacy / review</option>
+                  </select>
+                  <p className="mt-1 text-xs text-stone-500">Group type is locked after creation so its options cannot be mixed. Create a new group for another type.</p>
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -337,6 +370,8 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
                           onChange={(e) => updateOption(option.id, { name: e.target.value })}
                           className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2"
                         />
+                        <input value={option.description} onChange={(e) => updateOption(option.id, { description: e.target.value })} className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" placeholder="Short description (optional)" />
+                        <input value={option.imageUrl} onChange={(e) => updateOption(option.id, { imageUrl: e.target.value })} className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" placeholder="Image URL (optional)" />
                       </div>
                       <div className="grid gap-3 sm:grid-cols-[1fr,auto]">
                         <div>
@@ -360,6 +395,7 @@ export function CustomizationGroupList({ groups }: { groups: CustomizationGroupS
                             />
                             Active
                           </label>
+                          {editGroup.groupType === 'TOPPINGS' ? <><label className="inline-flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={option.defaultIncluded} onChange={(e) => updateOption(option.id, { defaultIncluded: e.target.checked })} />Included</label><label className="inline-flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={option.removable} onChange={(e) => updateOption(option.id, { removable: e.target.checked })} />Removable</label></> : null}
                           <button type="button" onClick={() => removeOption(option.id)} className="text-sm text-red-600 hover:underline">
                             Remove
                           </button>

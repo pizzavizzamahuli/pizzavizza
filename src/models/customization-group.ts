@@ -2,11 +2,23 @@ import { Collection, ObjectId } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 import { randomUUID } from 'crypto';
 
+export type CustomizationGroupType = 'SIZE' | 'TOPPINGS' | 'EXTRAS' | 'OTHER';
+
+export function normalizeCustomizationGroupType(value: unknown): CustomizationGroupType {
+  if (value === 'SIZE') return 'SIZE';
+  if (value === 'TOPPINGS' || value === 'INCLUDED_TOPPING') return 'TOPPINGS';
+  if (value === 'EXTRAS' || value === 'EXTRA_ADDON') return 'EXTRAS';
+  return 'OTHER';
+}
+
 export interface CustomizationOption {
   id: string;
   name: string;
   description?: string | null;
   price: number;
+  defaultIncluded?: boolean;
+  included?: boolean;
+  removable?: boolean;
   isActive?: boolean;
   imageUrl?: string | null;
   displayOrder?: number;
@@ -17,6 +29,7 @@ export interface CustomizationGroupDocument {
   id?: string;
   name: string;
   description?: string | null;
+  groupType?: CustomizationGroupType;
   isActive?: boolean;
   required?: boolean;
   minSelections?: number | null;
@@ -55,6 +68,9 @@ function normalizeOption(option: Partial<CustomizationOption>) {
     name: (option.name || '').trim(),
     description: option.description ?? null,
     price: Number(option.price ?? 0),
+    defaultIncluded: option.defaultIncluded === true || option.included === true,
+    included: option.included === true || option.defaultIncluded === true,
+    removable: option.removable === true,
     isActive: option.isActive ?? true,
     imageUrl: option.imageUrl ?? null,
     displayOrder: option.displayOrder ?? 0,
@@ -74,6 +90,7 @@ export async function createCustomizationGroup(doc: Partial<CustomizationGroupDo
     id: doc.id?.trim() || randomUUID(),
     name: (doc.name || '').trim(),
     description: doc.description ?? null,
+    groupType: normalizeCustomizationGroupType(doc.groupType),
     isActive: doc.isActive ?? true,
     required: doc.required ?? false,
     minSelections: doc.minSelections ?? null,
@@ -93,11 +110,18 @@ export async function updateCustomizationGroup(id: string, updates: Partial<Cust
   const existing = await findCustomizationGroupById(id);
   if (!existing) throw new Error('Customization group not found');
 
+  const currentType = normalizeCustomizationGroupType(existing.groupType);
+  const requestedType = updates.groupType === undefined ? currentType : normalizeCustomizationGroupType(updates.groupType);
+  if (updates.groupType !== undefined && requestedType !== currentType && existing.options.length > 0) {
+    throw new Error('Customization group type is locked after options are created. Create a new group for another type.');
+  }
+
   const updated: CustomizationGroupDocument = {
     ...existing,
     ...updates,
     name: updates.name !== undefined ? updates.name.trim() : existing.name,
     description: updates.description ?? existing.description,
+    groupType: normalizeCustomizationGroupType(updates.groupType ?? existing.groupType),
     isActive: updates.isActive ?? existing.isActive,
     required: updates.required ?? existing.required,
     minSelections: updates.minSelections ?? existing.minSelections,
@@ -110,6 +134,7 @@ export async function updateCustomizationGroup(id: string, updates: Partial<Cust
   const setDoc = {
     name: updated.name,
     description: updated.description,
+    groupType: updated.groupType,
     isActive: updated.isActive,
     required: updated.required,
     minSelections: updated.minSelections,
@@ -124,21 +149,24 @@ export async function updateCustomizationGroup(id: string, updates: Partial<Cust
 
 export async function findCustomizationGroupById(id: string) {
   const col = await getCustomizationGroupsCollection();
-  return col.findOne({ id });
+  const group = await col.findOne({ id });
+  return group ? { ...group, groupType: normalizeCustomizationGroupType(group.groupType) } : null;
 }
 
 export async function findCustomizationGroupsByIds(ids: string[]) {
   if (!ids || ids.length === 0) return [];
   const col = await getCustomizationGroupsCollection();
-  return col
+  const groups = await col
     .find({ id: { $in: ids } })
     .sort({ displayOrder: 1, name: 1 })
     .toArray();
+  return groups.map((group) => ({ ...group, groupType: normalizeCustomizationGroupType(group.groupType) }));
 }
 
 export async function listCustomizationGroups(filter: Partial<CustomizationGroupDocument> = {}) {
   const col = await getCustomizationGroupsCollection();
-  return col.find(filter).sort({ displayOrder: 1, name: 1 }).toArray();
+  const groups = await col.find(filter).sort({ displayOrder: 1, name: 1 }).toArray();
+  return groups.map((group) => ({ ...group, groupType: normalizeCustomizationGroupType(group.groupType) }));
 }
 
 export async function deleteCustomizationGroup(id: string) {

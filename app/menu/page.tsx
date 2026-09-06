@@ -1,6 +1,4 @@
 import { getAllCategories, getProductsForCustomer } from '@/src/services/menu-service';
-import { ProductDocument } from '@/src/models/product';
-import { CategoryDocument } from '@/src/models/category';
 import MenuCatalog from '@/src/components/menu-catalog';
 
 export default async function MenuPage({
@@ -8,8 +6,27 @@ export default async function MenuPage({
 }: {
   searchParams?: Promise<{ category?: string; bookingNumber?: string }>;
 }) {
-  const categories: CategoryDocument[] = await getAllCategories();
-  const products: ProductDocument[] = await getProductsForCustomer();
+  const categories = (await getAllCategories()).map((category) => ({
+    id: category._id?.toHexString() || category.id || category.slug,
+    name: category.name,
+  }));
+  const products = (await getProductsForCustomer()).map((product) => ({
+    id: product._id?.toHexString() || product.id || product.slug,
+    name: product.name,
+    slug: product.slug,
+    description: product.description ?? null,
+    shortDescription: product.shortDescription ?? null,
+    categoryId: product.categoryId,
+    price: product.price,
+    discountPrice: product.discountPrice ?? null,
+    image: product.image ?? null,
+    images: product.images ?? [],
+    isAvailable: product.isAvailable !== false,
+    isFeatured: product.isFeatured === true,
+    displayOrder: product.displayOrder ?? 0,
+    preparationTime: product.preparationTime ?? null,
+    tags: product.tags ?? [],
+  }));
   const params = searchParams ? await searchParams : {};
   const bookingNumber = params.bookingNumber?.trim();
 

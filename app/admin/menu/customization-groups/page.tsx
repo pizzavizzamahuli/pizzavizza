@@ -10,6 +10,7 @@ export default async function AdminCustomizationGroupsPage() {
     id: group.id ?? group._id?.toHexString() ?? '',
     name: group.name,
     description: group.description ?? null,
+    groupType: group.groupType ?? 'OTHER',
     isActive: group.isActive,
     required: group.required,
     options: group.options?.map((option) => ({ id: option.id, name: option.name })) ?? [],

@@ -5,17 +5,22 @@ import { useState } from 'react';
 type CustomizationOptionDraft = {
   id: string;
   name: string;
+  description: string;
   price: string;
+  imageUrl: string;
   isActive: boolean;
+  defaultIncluded: boolean;
+  removable: boolean;
 };
 
 function createEmptyOption(): CustomizationOptionDraft {
-  return { id: crypto?.randomUUID?.() ?? String(Date.now()) + Math.random(), name: '', price: '0', isActive: true };
+  return { id: crypto?.randomUUID?.() ?? String(Date.now()) + Math.random(), name: '', description: '', price: '0', imageUrl: '', isActive: true, defaultIncluded: false, removable: true };
 }
 
 export function CustomizationGroupForm(): React.ReactElement {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [groupType, setGroupType] = useState<'SIZE' | 'TOPPINGS' | 'EXTRAS'>('SIZE');
   const [required, setRequired] = useState(false);
   const [minSelections, setMinSelections] = useState('');
   const [maxSelections, setMaxSelections] = useState('');
@@ -26,6 +31,14 @@ export function CustomizationGroupForm(): React.ReactElement {
 
   const addOption = () => setOptions((current) => [...current, createEmptyOption()]);
   const removeOption = (id: string) => setOptions((current) => current.filter((option) => option.id !== id));
+  const applyPreset = (preset: 'SIZE' | 'TOPPINGS' | 'EXTRAS') => {
+    const presets = {
+      SIZE: { name: 'Pizza sizes', description: 'Choose the serving size and price.', required: false, min: '', max: '1' },
+      TOPPINGS: { name: 'Included toppings', description: 'Toppings included with this product. Customers can remove them.', required: false, min: '', max: '' },
+      EXTRAS: { name: 'Extra add-ons', description: 'Optional ingredients added to the product.', required: false, min: '', max: '' },
+    }[preset];
+    setGroupType(preset); setName(presets.name); setDescription(presets.description); setRequired(presets.required); setMinSelections(presets.min); setMaxSelections(presets.max);
+  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,13 +51,19 @@ export function CustomizationGroupForm(): React.ReactElement {
         .map((option) => ({
           id: option.id,
           name: option.name.trim(),
+          description: option.description.trim() || undefined,
           price: Number(option.price || 0),
+          imageUrl: option.imageUrl.trim() || undefined,
           isActive: option.isActive,
+          defaultIncluded: option.defaultIncluded,
+          included: option.defaultIncluded,
+          removable: option.removable,
         }));
 
       const payload = {
         name: name.trim(),
         description: description.trim() || undefined,
+        groupType,
         required,
         minSelections: minSelections === '' ? undefined : Number(minSelections),
         maxSelections: maxSelections === '' ? undefined : Number(maxSelections),
@@ -64,6 +83,7 @@ export function CustomizationGroupForm(): React.ReactElement {
       setMessage('Customization group created');
       setName('');
       setDescription('');
+      setGroupType('SIZE');
       setRequired(false);
       setMinSelections('');
       setMaxSelections('');
@@ -83,6 +103,13 @@ export function CustomizationGroupForm(): React.ReactElement {
       <div className="sm:col-span-2">
         <label className="block text-sm font-medium text-stone-700">Group name</label>
         <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2" required />
+      </div>
+      <div className="sm:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-3"><p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Quick setup</p><div className="mt-2 flex flex-wrap gap-2"><button type="button" onClick={() => applyPreset('SIZE')} className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-sm text-amber-900">Size / Variant</button><button type="button" onClick={() => applyPreset('TOPPINGS')} className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-sm text-amber-900">Included toppings</button><button type="button" onClick={() => applyPreset('EXTRAS')} className="rounded-full border border-amber-300 bg-white px-3 py-1.5 text-sm text-amber-900">Extra add-ons</button></div></div>
+      <div>
+        <label className="block text-sm font-medium text-stone-700">Customization type</label>
+        <select value={groupType} onChange={(e) => setGroupType(e.target.value as typeof groupType)} className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2">
+          <option value="SIZE">Size / Variant</option><option value="TOPPINGS">Included toppings</option><option value="EXTRAS">Extra add-ons</option>
+        </select>
       </div>
       <div className="sm:col-span-2">
         <label className="block text-sm font-medium text-stone-700">Description</label>
@@ -128,6 +155,8 @@ export function CustomizationGroupForm(): React.ReactElement {
                   className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2"
                   placeholder={`Option ${index + 1}`}
                 />
+                <input value={option.description} onChange={(e) => setOptions((current) => current.map((item) => (item.id === option.id ? { ...item, description: e.target.value } : item)))} className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" placeholder="Short description (optional)" />
+                <input value={option.imageUrl} onChange={(e) => setOptions((current) => current.map((item) => (item.id === option.id ? { ...item, imageUrl: e.target.value } : item)))} className="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm" placeholder="Image URL (optional)" />
               </div>
               <div className="grid gap-3 sm:grid-cols-[1fr,auto]">
                 <div>
@@ -151,6 +180,7 @@ export function CustomizationGroupForm(): React.ReactElement {
                     />
                     Active
                   </label>
+                  {groupType === 'TOPPINGS' ? <><label className="inline-flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={option.defaultIncluded} onChange={(e) => setOptions((current) => current.map((item) => (item.id === option.id ? { ...item, defaultIncluded: e.target.checked } : item)))} />Included by default</label><label className="inline-flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={option.removable} onChange={(e) => setOptions((current) => current.map((item) => (item.id === option.id ? { ...item, removable: e.target.checked } : item)))} />Removable</label></> : null}
                   <button type="button" onClick={() => removeOption(option.id)} className="text-sm text-red-600 hover:underline">
                     Remove
                   </button>

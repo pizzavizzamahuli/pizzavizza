@@ -18,6 +18,7 @@ export default function TelegramSettingsPage() {
   const [code, setCode] = useState<string | null>(null);
   const [userId, setUserId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -91,13 +92,40 @@ export default function TelegramSettingsPage() {
       </section>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-        <h2 className="font-medium">Linked Telegram Admins</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-medium">Linked Telegram Admins</h2>
+            <p className="mt-1 text-sm text-stone-500">
+              Status: <span className={links.length > 0 ? 'font-semibold text-emerald-600' : 'font-semibold text-stone-500'}>{links.length > 0 ? 'Connected' : 'Not connected'}</span>
+            </p>
+          </div>
+          <button type="button" onClick={() => setShowHelp((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 bg-stone-50 text-base font-semibold text-stone-700 shadow-sm transition hover:bg-stone-100" aria-label="Show Telegram connection help" aria-expanded={showHelp}>
+            ?
+          </button>
+        </div>
+
+        {showHelp && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-stone-700">
+            <p className="font-medium text-stone-800">How Telegram connection works</p>
+            <ol className="mt-2 list-decimal space-y-2 pl-5">
+              <li>Open your Telegram bot and tap <span className="font-semibold">Start</span>.</li>
+              <li>Enter the website user ID in the field below (this is your public website user code, for example 123456).</li>
+              <li>Generate the one-time code and copy it.</li>
+              <li>Send <span className="font-semibold">/link &lt;code&gt;</span> inside Telegram.</li>
+              <li>Once the bot confirms the link, this page will show the admin as connected.</li>
+            </ol>
+          </div>
+        )}
+
         <div className="mt-4 space-y-3">
           {links.length === 0 && <div className="text-sm text-stone-500">No linked Telegram chats yet.</div>}
           {links.map((l) => (
             <div key={l.id} className="flex flex-col gap-3 rounded-xl border border-stone-200 p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <div className="font-medium">Chat: {l.telegramChatId}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Chat: {l.telegramChatId}</span>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Connected</span>
+                </div>
                 <div className="text-sm text-stone-500">Status: {l.status} • User: {l.userId}</div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">

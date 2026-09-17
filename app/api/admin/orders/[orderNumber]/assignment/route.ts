@@ -7,6 +7,7 @@ import { notifyUser, notifyAdmins } from '@/src/services/notification-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
 import { createDeliveryAuditEvent } from '@/src/models/delivery-audit';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { buildDeliveryStaffLookupFilter } from '@/src/utils/delivery-staff-ids';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -24,9 +25,11 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     let staff = null;
     try {
       const staffCollection = await getUsersCollection();
-      const identityFilters: Array<Record<string, unknown>> = [{ id: payload.staffId }];
-      if (ObjectId.isValid(payload.staffId)) identityFilters.push({ _id: new ObjectId(payload.staffId) });
-      staff = await staffCollection.findOne({ $and: [{ $or: identityFilters }, { $or: [{ staffStatus: { $in: ['AVAILABLE', 'BUSY'] } }, { staffStatus: { $exists: false } }] }], role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' } as never);
+      const lookupFilter = buildDeliveryStaffLookupFilter(payload.staffId);
+      staff = await staffCollection.findOne({
+        ...lookupFilter,
+        $and: [{ $or: [{ staffStatus: { $in: ['AVAILABLE', 'BUSY'] } }, { staffStatus: { $exists: false } }] }],
+      } as never);
     } catch {
       staff = null;
     }

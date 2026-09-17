@@ -4,7 +4,7 @@ import { getRestaurantSettings, updateRestaurantSettings } from '@/src/models/re
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { createDeliveryAuditEvent } from '@/src/models/delivery-audit';
-import { ObjectId } from 'mongodb';
+import { buildDeliveryStaffLookupFilter } from '@/src/utils/delivery-staff-ids';
 
 export async function autoAssignDeliveryStaff(orderNumber: string) {
   const [order, settings] = await Promise.all([findOrderByOrderNumber(orderNumber), getRestaurantSettings()]);
@@ -16,14 +16,8 @@ export async function autoAssignDeliveryStaff(orderNumber: string) {
     await notifyAdmins({ type: 'DELIVERY_ASSIGNMENT_PENDING', title: 'Delivery assignment pending', message: `Select eligible delivery staff for ${orderNumber} in Delivery Settings.`, href: `/admin/orders/${orderNumber}`, relatedType: 'order', relatedId: orderNumber, permission: 'delivery.view', eventKey: `delivery-pending-no-staff:${orderNumber}` }).catch(() => undefined);
     return null;
   }
-  const eligibleObjectIds = eligibleIds.flatMap((id) => { try { return [new ObjectId(id)]; } catch { return []; } });
   const users = await (await getUsersCollection()).find({
-    role: 'DELIVERY_STAFF',
-    accountStatus: 'ACTIVE',
-    $or: [
-      ...(eligibleObjectIds.length ? [{ _id: { $in: eligibleObjectIds } }] : []),
-      { id: { $in: eligibleIds } },
-    ],
+    ...buildDeliveryStaffLookupFilter(eligibleIds),
     staffStatus: { $in: ['AVAILABLE', 'BUSY'] },
   }).toArray();
   if (!users.length) {

@@ -19,6 +19,7 @@ export default function TelegramSettingsPage() {
   const [userId, setUserId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
   useEffect(() => {
     fetchSettings();
@@ -71,6 +72,19 @@ export default function TelegramSettingsPage() {
     const res = await fetch(`/api/admin/telegram/links/${id}`, { method: 'DELETE' });
     const j = await res.json();
     if (j.success) fetchLinks();
+  }
+
+  async function copyCode() {
+    if (!code) return;
+
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopyStatus('copied');
+      window.setTimeout(() => setCopyStatus('idle'), 1500);
+    } catch {
+      setCopyStatus('idle');
+      setMessage('Clipboard access is blocked in this browser. Please copy the code manually.');
+    }
   }
 
   async function sendTest(chatId: string) {
@@ -157,8 +171,13 @@ export default function TelegramSettingsPage() {
         {message ? <p className="mt-3 text-sm text-stone-600" role="status">{message}</p> : null}
         {code && (
           <div className="mt-4 rounded border bg-stone-50 p-3">
-            <div className="text-sm text-stone-500">One-time code (copy and paste into Telegram):</div>
-            <div className="mt-2 font-medium">{code}</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm text-stone-500">One-time code (copy and paste into Telegram):</div>
+              <button type="button" onClick={() => { void copyCode(); }} className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-stone-700">
+                {copyStatus === 'copied' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <div className="mt-2 font-medium break-all">{code}</div>
           </div>
         )}
       </section>

@@ -94,8 +94,45 @@ export default function TelegramSettingsPage() {
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-4xl space-y-5 p-4 sm:space-y-6 sm:p-8">
-      <h1 className="text-2xl font-semibold">Telegram Integration</h1>
+    <div className="mx-auto min-w-0 max-w-5xl space-y-5 p-4 sm:space-y-6 sm:p-8">
+      <div className="rounded-3xl border border-stone-200 bg-gradient-to-br from-stone-50 via-white to-amber-50 p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Telegram Integration</p>
+            <h1 className="mt-2 text-2xl font-semibold text-stone-900">Connection status</h1>
+          </div>
+          <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-semibold ${links.length > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+            {links.length > 0 ? '🟢 Connected' : '🔴 Not Connected'}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-xl bg-stone-50 p-3">
+                <span className="text-sm font-medium text-stone-600">Bot Username</span>
+                <span className="font-mono text-sm font-semibold text-stone-900">{links[0]?.telegramUserId ? `@${links[0].telegramUserId}` : '__'}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-stone-50 p-3">
+                <span className="text-sm font-medium text-stone-600">Admin Chat ID</span>
+                <span className="font-mono text-sm font-semibold text-stone-900">{links[0]?.telegramChatId || '__'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+            <p className="text-sm font-semibold text-stone-700">Quick actions</p>
+            <div className="mt-3 grid gap-2">
+              <button type="button" className="min-h-11 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-50">
+                Test Connection
+              </button>
+              <button type="button" className="min-h-11 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700">
+                Save & Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="font-medium">Integration</h2>

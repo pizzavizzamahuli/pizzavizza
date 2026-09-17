@@ -26,7 +26,7 @@ function getPopupClasses(style: NotificationPopupStyle, admin: boolean) {
   }
 
   if (style === 'premium-material') {
-    return `${base} border-amber-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(255,247,237,0.92),rgba(254,243,199,0.82))] shadow-[0_24px_60px_rgba(120,53,15,0.18)] ${adminClass}`;
+    return `${base} border-amber-200/90 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(255,247,237,0.94),rgba(254,243,199,0.82),rgba(255,237,213,0.7))] shadow-[0_28px_70px_rgba(120,53,15,0.2)] ring-1 ring-amber-200/80 ${adminClass}`;
   }
 
   return `${base} border-stone-200 bg-white ${adminClass}`;

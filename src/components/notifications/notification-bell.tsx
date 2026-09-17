@@ -83,12 +83,12 @@ export function NotificationBell({ admin = false }: { admin?: boolean }) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative z-[70]">
       <button type="button" aria-label="Notifications" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-lg text-stone-700 transition hover:border-amber-300 hover:bg-amber-50">
         <span aria-hidden="true">&#128276;</span>
         {unreadCount > 0 ? <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold leading-4 text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
       </button>
-      {open ? <div className={`fixed left-3 right-3 top-[4.5rem] z-[60] max-h-[calc(100vh-6rem)] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))] ${admin ? 'lg:w-96' : ''}`}>
+      {open ? <div className={`fixed inset-x-3 top-16 z-[80] max-h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))] ${admin ? 'lg:w-96' : ''}`}>
         <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3"><div><h2 className="font-semibold text-stone-900">Notifications</h2><p className="text-xs text-stone-500">{unreadCount} unread</p></div><button type="button" onClick={() => void markAllRead()} className="text-xs font-semibold text-amber-700 hover:text-amber-900">Mark all read</button></div>
         {pushConfigured && !pushEnabled ? <div className="border-b border-amber-100 bg-amber-50 px-4 py-3"><p className="text-xs text-amber-900">Stay updated with order and account notifications.</p><button type="button" onClick={() => void enablePush()} disabled={pushBusy} className="mt-2 rounded-full bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60">{pushBusy ? 'Enabling…' : 'Enable notifications'}</button></div> : null}
         <div className="max-h-[calc(100vh-13rem)] overflow-y-auto sm:max-h-96">

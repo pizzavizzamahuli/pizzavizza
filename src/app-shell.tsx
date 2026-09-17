@@ -69,7 +69,7 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen text-stone-900" style={themeStyle}>
-      <header className="border-b bg-white/90 md:backdrop-blur" style={{ backgroundColor: appearance.colors.headerBackground, color: appearance.colors.headerText, borderColor: appearance.colors.border }}>
+      <header className="relative z-50 border-b bg-white/90 md:backdrop-blur" style={{ backgroundColor: appearance.colors.headerBackground, color: appearance.colors.headerText, borderColor: appearance.colors.border }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <Link href="/" className="flex min-w-0 items-center gap-2.5">

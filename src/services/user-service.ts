@@ -161,7 +161,23 @@ export async function findUserByLoginIdentifier(identifier: string) {
 
 export async function getUserById(id: string) {
   const collection = await getUsersCollection();
-  return collection.findOne({ _id: new ObjectId(id) });
+  const trimmed = id?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const queries: Array<Record<string, unknown>> = [];
+
+  if (ObjectId.isValid(trimmed)) {
+    const objectId = new ObjectId(trimmed);
+    queries.push({ _id: objectId });
+  }
+
+  queries.push({ userCode: trimmed });
+  queries.push({ id: trimmed });
+
+  return collection.findOne({ $or: queries });
 }
 
 export async function countUsers() {

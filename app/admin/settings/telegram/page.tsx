@@ -111,9 +111,9 @@ export default function TelegramSettingsPage() {
 
       <section className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="font-medium">Generate one-time link code</h2>
-        <p className="text-sm text-stone-500">Enter application user id to generate a one-time linking code for that admin.</p>
+        <p className="text-sm text-stone-500">Enter the website user ID (the public user code, like 123456) to generate a one-time linking code for that admin.</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <input id="userId" value={userId} onChange={(event) => setUserId(event.target.value)} placeholder="User ID" className="min-h-11 min-w-0 rounded-xl border border-stone-300 px-3 py-2" />
+          <input id="userId" value={userId} onChange={(event) => setUserId(event.target.value)} placeholder="Website user ID" className="min-h-11 min-w-0 rounded-xl border border-stone-300 px-3 py-2" />
           <button type="button" onClick={() => { if (userId.trim()) void generateCodeFor(userId.trim()); }} disabled={!userId.trim()} className="min-h-11 rounded-full bg-amber-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">Generate</button>
         </div>
         {message ? <p className="mt-3 text-sm text-stone-600" role="status">{message}</p> : null}

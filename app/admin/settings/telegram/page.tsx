@@ -23,6 +23,12 @@ export default function TelegramSettingsPage() {
   useEffect(() => {
     fetchSettings();
     fetchLinks();
+
+    const interval = window.setInterval(() => {
+      void fetchLinks();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   async function fetchSettings() {
@@ -54,7 +60,8 @@ export default function TelegramSettingsPage() {
     const j = await res.json();
     if (j.success) {
       setCode(j.data.code);
-      setMessage('Link code generated.');
+      setMessage('Link code generated. Send /link <code> in Telegram and then refresh the status.');
+      void fetchLinks();
     } else {
       setMessage(j.error || 'Unable to generate link code.');
     }
@@ -99,9 +106,12 @@ export default function TelegramSettingsPage() {
               Status: <span className={links.length > 0 ? 'font-semibold text-emerald-600' : 'font-semibold text-stone-500'}>{links.length > 0 ? 'Connected' : 'Not connected'}</span>
             </p>
           </div>
-          <button type="button" onClick={() => setShowHelp((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 bg-stone-50 text-base font-semibold text-stone-700 shadow-sm transition hover:bg-stone-100" aria-label="Show Telegram connection help" aria-expanded={showHelp}>
-            ?
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => { void fetchLinks(); }} className="rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-50">Refresh status</button>
+            <button type="button" onClick={() => setShowHelp((value) => !value)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-stone-300 bg-stone-50 text-base font-semibold text-stone-700 shadow-sm transition hover:bg-stone-100" aria-label="Show Telegram connection help" aria-expanded={showHelp}>
+              ?
+            </button>
+          </div>
         </div>
 
         {showHelp && (

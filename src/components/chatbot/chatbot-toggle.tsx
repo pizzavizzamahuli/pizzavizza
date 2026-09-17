@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type ChatbotUser = { name?: string | null; role?: string | null };
 type ChatbotToggleProps = { enabled: boolean; user: ChatbotUser | null; restaurantName: string };
@@ -21,20 +21,30 @@ function getRoleCopy(user: ChatbotUser | null, restaurantName: string) {
 
 export function ChatbotToggle({ enabled, user, restaurantName }: ChatbotToggleProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<Position | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const saved = window.localStorage.getItem(positionStorageKey);
-      return saved ? JSON.parse(saved) as Position : null;
-    } catch {
-      return null;
-    }
-  });
+  const [position, setPosition] = useState<Position | null>(null);
   const [dragging, setDragging] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef<Position | null>(position);
   const dragRef = useRef({ active: false, pointerId: -1, moved: false, frame: 0, offset: { x: 0, y: 0 }, next: { x: 0, y: 0 } });
   const copy = useMemo(() => getRoleCopy(user, restaurantName), [restaurantName, user]);
+
+  useEffect(() => {
+    let timeout = 0;
+    try {
+      const saved = window.localStorage.getItem(positionStorageKey);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as Partial<Position>;
+      if (typeof parsed.x !== 'number' || typeof parsed.y !== 'number') return;
+      const next = { x: parsed.x, y: parsed.y };
+      timeout = window.setTimeout(() => {
+        setPosition(next);
+        positionRef.current = next;
+      }, 0);
+    } catch {
+      // Ignore storage restrictions or invalid saved positions.
+    }
+    return () => { if (timeout) window.clearTimeout(timeout); };
+  }, []);
 
   if (!enabled) return null;
 

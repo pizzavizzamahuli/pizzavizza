@@ -35,8 +35,8 @@ export async function POST(request: Request) {
       const result = await response.json();
       if (!response.ok || !result.secure_url) throw new Error(result.error?.message || 'Menu upload failed');
       return NextResponse.json({ success: true, data: result.secure_url });
-    } catch (error) {
-      if (error instanceof Error && !error.message.includes('not configured')) throw error;
+    } catch {
+      // Keep settings saves working when Cloudinary is unavailable or misconfigured.
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'branding');
       await fs.promises.mkdir(uploadsDir, { recursive: true });
       const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;

@@ -9,21 +9,16 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
     const formData = await request.formData();
-    const file = formData.get('homeImage');
-    if (!(file instanceof File) || !file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Please select a homepage image file.' }, { status: 400 });
-    }
-
+    const file = formData.get('aboutImage');
+    if (!(file instanceof File) || !file.type.startsWith('image/')) return NextResponse.json({ error: 'Please select an About image file.' }, { status: 400 });
     try {
       const { cloudName, apiKey } = await getCloudinaryConfig();
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const folder = 'pizza-vizza/branding';
+      const folder = 'pizza-vizza/branding/about';
       const signature = await createCloudinarySignature({ folder, timestamp });
       const body = new FormData();
       body.append('file', file, file.name);
@@ -33,17 +28,17 @@ export async function POST(request: Request) {
       body.append('folder', folder);
       const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body });
       const result = await response.json();
-      if (!response.ok || !result.secure_url) throw new Error(result.error?.message || 'Homepage image upload failed.');
+      if (!response.ok || !result.secure_url) throw new Error(result.error?.message || 'About image upload failed.');
       return NextResponse.json({ success: true, data: result.secure_url });
     } catch {
-      // Keep settings saves working when Cloudinary is unavailable or misconfigured.
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'branding');
+      // Keep admin uploads working when Cloudinary is unavailable or misconfigured.
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'branding', 'about');
       await fs.promises.mkdir(uploadsDir, { recursive: true });
       const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
       await fs.promises.writeFile(path.join(uploadsDir, safeName), Buffer.from(await file.arrayBuffer()));
-      return NextResponse.json({ success: true, data: `/uploads/branding/${safeName}` });
+      return NextResponse.json({ success: true, data: `/uploads/branding/about/${safeName}` });
     }
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Homepage image upload failed.' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'About image upload failed.' }, { status: 500 });
   }
 }

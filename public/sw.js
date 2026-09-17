@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pizzavizza-v3';
+const CACHE_VERSION = 'pizzavizza-v4';
 const CACHE_NAME = `${CACHE_VERSION}-static`;
 const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
@@ -66,6 +66,18 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.destination === 'style' || request.destination === 'script' || request.destination === 'image' || request.destination === 'font') {
+    if (request.destination === 'image') {
+      event.respondWith(
+        fetch(request, { cache: 'no-store' }).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return networkResponse;
+        }).catch(() => caches.match(request).then((cached) => cached || new Response('', { status: 404 })))
+      );
+      return;
+    }
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
@@ -80,9 +92,6 @@ self.addEventListener('fetch', (event) => {
             return networkResponse;
           })
           .catch(() => {
-            if (request.destination === 'image') {
-              return caches.match('/icon-192.png');
-            }
             return caches.match(OFFLINE_URL);
           });
       })

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { RestaurantSettingsDocument, getRestaurantSettings, updateRestaurantSettings, type HomepageImageDocument } from '@/src/models/restaurant-settings';
+import { RestaurantSettingsDocument, getRestaurantSettings, updateRestaurantSettings, type AboutImageDocument, type HomepageImageDocument } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
 import { recordAudit } from '@/src/models/audit-log';
 import { getProductsCollection } from '@/src/models/product';
@@ -31,6 +31,9 @@ export async function GET() {
     homeImage: s.homeImage || null,
     homeDescription: s.homeDescription || null,
     homepageImages: (s.homepageImages || []).filter((image) => image.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
+    aboutHeading: s.aboutHeading || 'Good food, made for good company.',
+    aboutDescription: s.aboutDescription || 'Drop in for a relaxed meal, order your favorites online, or let us bring the taste of Pizza Vizza to you.',
+    aboutImages: (s.aboutImages || []).filter((image) => image.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
     ...(user.role === 'MAIN_ADMIN' ? { poweredByName: s.poweredByName || null, poweredByUrl: s.poweredByUrl || null } : {}),
     menuImage: s.menuImage,
     phone: s.phone,
@@ -111,6 +114,9 @@ export async function PUT(request: Request) {
       if (!value || typeof value !== 'object') return null;
       const item = value as Record<string, unknown>;
       if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) return null;
+      const [year, month, day] = item.date.split('-').map(Number);
+      const calendarDate = new Date(Date.UTC(year, month - 1, day));
+      if (calendarDate.getUTCFullYear() !== year || calendarDate.getUTCMonth() !== month - 1 || calendarDate.getUTCDate() !== day) return null;
       return { date: item.date, isOpen: item.isOpen === true, openTime: typeof item.openTime === 'string' && /^\d{2}:\d{2}$/.test(item.openTime) ? item.openTime : null, closeTime: typeof item.closeTime === 'string' && /^\d{2}:\d{2}$/.test(item.closeTime) ? item.closeTime : null, label: typeof item.label === 'string' ? item.label.trim().slice(0, 100) || null : null };
     }).filter((value): value is { date: string; isOpen: boolean; openTime: string | null; closeTime: string | null; label: string | null } => Boolean(value)).slice(0, 100) : undefined;
     const manualAvailabilityOverride = updates.manualAvailabilityOverride === 'OPEN' || updates.manualAvailabilityOverride === 'CLOSED' ? updates.manualAvailabilityOverride : updates.manualAvailabilityOverride === null ? null : undefined;
@@ -172,6 +178,23 @@ export async function PUT(request: Request) {
         };
       }).filter((item): item is HomepageImageDocument => Boolean(item))
       : undefined;
+    const aboutImages = Array.isArray(updates.aboutImages)
+      ? updates.aboutImages.map((item, index): AboutImageDocument | null => {
+        if (!item || typeof item !== 'object') return null;
+        const value = item as Record<string, unknown>;
+        if (typeof value.id !== 'string' || typeof value.imageUrl !== 'string' || !value.imageUrl.trim()) return null;
+        const now = new Date();
+        return {
+          id: value.id,
+          imageUrl: value.imageUrl.trim(),
+          description: typeof value.description === 'string' && value.description.trim() ? value.description.trim().slice(0, 500) : null,
+          sortOrder: typeof value.sortOrder === 'number' ? value.sortOrder : index,
+          isActive: value.isActive !== false,
+          createdAt: value.createdAt ? new Date(String(value.createdAt)) : now,
+          updatedAt: now,
+        };
+      }).filter((item): item is AboutImageDocument => Boolean(item))
+      : undefined;
 
     const sanitized: Partial<RestaurantSettingsDocument> = {
       restaurantName: typeof updates.restaurantName === 'string' ? updates.restaurantName.trim() : undefined,
@@ -179,6 +202,9 @@ export async function PUT(request: Request) {
       homeImage: typeof updates.homeImage === 'string' ? updates.homeImage.trim() : undefined,
       homeDescription: typeof updates.homeDescription === 'string' ? updates.homeDescription.trim().slice(0, 500) : updates.homeDescription === null ? null : undefined,
       homepageImages,
+      aboutHeading: typeof updates.aboutHeading === 'string' ? updates.aboutHeading.trim().slice(0, 160) : updates.aboutHeading === null ? null : undefined,
+      aboutDescription: typeof updates.aboutDescription === 'string' ? updates.aboutDescription.trim().slice(0, 1000) : updates.aboutDescription === null ? null : undefined,
+      aboutImages,
       restaurantTimezone: typeof updates.restaurantTimezone === 'string' && updates.restaurantTimezone.trim() ? updates.restaurantTimezone.trim() : undefined,
       weeklySchedule,
       specialDates,
@@ -251,6 +277,18 @@ export async function PUT(request: Request) {
           const publicId = extractCloudinaryPublicId(imageUrl);
           if (publicId) await deleteCloudinaryResource(publicId);
         }
+      }
+    }
+    const previousAboutUrls = new Set((before.aboutImages || []).map((image) => image.imageUrl));
+    const currentAboutUrls = new Set((updated.aboutImages || []).map((image) => image.imageUrl));
+    for (const imageUrl of previousAboutUrls) {
+      if (currentAboutUrls.has(imageUrl) || [updated.logo, updated.menuImage, ...(updated.homepageImages || []).map((image) => image.imageUrl)].includes(imageUrl)) continue;
+      if (imageUrl.startsWith('/')) {
+        const localPath = path.join(process.cwd(), 'public', imageUrl.replace(/^\//, ''));
+        await fs.promises.unlink(localPath).catch((error: unknown) => { if ((error as { code?: string })?.code !== 'ENOENT') throw error; });
+      } else {
+        const publicId = extractCloudinaryPublicId(imageUrl);
+        if (publicId) await deleteCloudinaryResource(publicId);
       }
     }
     revalidatePath('/');

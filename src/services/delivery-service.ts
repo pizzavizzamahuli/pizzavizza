@@ -71,10 +71,11 @@ export function calculateDeliveryCharge(
 
   if (settings.deliveryChargeType === 'DISTANCE_BASED') {
     const validDistance = typeof distance === 'number' ? Math.max(0, distance) : 0;
+    const distanceInKm = settings.deliveryRadiusUnit === 'MILES' ? validDistance * 1.60934 : validDistance;
     const baseDistance = Math.max(0, settings.deliveryBaseDistance ?? 5);
     const baseCharge = Math.max(0, settings.deliveryBaseCharge ?? value);
     const extraPerKm = Math.max(0, settings.deliveryAdditionalChargePerKm ?? value);
-    const extraDistance = Math.max(0, Math.ceil(validDistance - baseDistance));
+    const extraDistance = Math.max(0, Math.ceil(distanceInKm - baseDistance));
     return Number((baseCharge + extraDistance * extraPerKm).toFixed(2));
   }
 

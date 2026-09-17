@@ -16,7 +16,16 @@ export async function autoAssignDeliveryStaff(orderNumber: string) {
     await notifyAdmins({ type: 'DELIVERY_ASSIGNMENT_PENDING', title: 'Delivery assignment pending', message: `Select eligible delivery staff for ${orderNumber} in Delivery Settings.`, href: `/admin/orders/${orderNumber}`, relatedType: 'order', relatedId: orderNumber, permission: 'delivery.view', eventKey: `delivery-pending-no-staff:${orderNumber}` }).catch(() => undefined);
     return null;
   }
-  const users = await (await getUsersCollection()).find({ role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE', _id: { $in: eligibleIds.flatMap((id) => { try { return [new ObjectId(id)]; } catch { return []; } }) }, staffStatus: { $in: ['AVAILABLE', 'BUSY'] } }).toArray();
+  const eligibleObjectIds = eligibleIds.flatMap((id) => { try { return [new ObjectId(id)]; } catch { return []; } });
+  const users = await (await getUsersCollection()).find({
+    role: 'DELIVERY_STAFF',
+    accountStatus: 'ACTIVE',
+    $or: [
+      ...(eligibleObjectIds.length ? [{ _id: { $in: eligibleObjectIds } }] : []),
+      { id: { $in: eligibleIds } },
+    ],
+    staffStatus: { $in: ['AVAILABLE', 'BUSY'] },
+  }).toArray();
   if (!users.length) {
     await (await import('@/src/models/order')).updateOrderByOrderNumber(orderNumber, { deliveryAssignmentStatus: 'PENDING' });
     await notifyAdmins({ type: 'DELIVERY_ASSIGNMENT_PENDING', title: 'Delivery assignment pending', message: `No eligible delivery staff is available for ${orderNumber}.`, href: `/admin/orders/${orderNumber}`, relatedType: 'order', relatedId: orderNumber, permission: 'delivery.view', eventKey: `delivery-pending:${orderNumber}` }).catch(() => undefined);

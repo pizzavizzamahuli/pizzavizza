@@ -8,7 +8,7 @@ import AppearanceEditor from '@/src/components/admin/appearance-editor';
 
 export default async function AdminSettingsPage() {
   const user = await requireAdminPermission('settings.view');
-  const canManageSettings = user.role === 'MAIN_ADMIN';
+  const canManageRestaurantSettings = user.role === 'MAIN_ADMIN' || user.role === 'ADMIN';
   const canAccessUserManagement = user.role === 'MAIN_ADMIN' || user.role === 'ADMIN';
 
   return (
@@ -16,7 +16,7 @@ export default async function AdminSettingsPage() {
       <h1 className="text-2xl font-semibold">Settings</h1>
       <p className="text-sm text-stone-600">Manage staff access, reset flows, and future restaurant settings from this console.</p>
       <div className="space-y-3">
-        {canManageSettings ? <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+        {user.role === 'MAIN_ADMIN' ? <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
             Website Appearance
             <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
@@ -48,7 +48,7 @@ export default async function AdminSettingsPage() {
           </summary>
           <div className="border-t border-stone-200 p-4 sm:p-5"><SecretSettingsForm /></div>
         </details> : null}
-        {canManageSettings ? <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
+        {canManageRestaurantSettings ? <details className="group rounded-2xl border border-stone-200 bg-white shadow-sm">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-lg font-semibold text-stone-900 [&::-webkit-details-marker]:hidden">
             Legal Pages
             <span className="text-sm font-normal text-stone-500 group-open:hidden">Open section</span>
@@ -58,7 +58,7 @@ export default async function AdminSettingsPage() {
         </details> : null}
       </div>
       <div className="grid min-w-0 gap-5 lg:gap-6">
-        {canManageSettings ? <div className="rounded-3xl border border-stone-200 bg-white p-6">
+        {canManageRestaurantSettings ? <div className="rounded-3xl border border-stone-200 bg-white p-6">
           <h2 className="text-lg font-semibold">Restaurant Settings</h2>
           <RestaurantSettingsForm isMainAdmin={user.role === 'MAIN_ADMIN'} />
         </div> : null}

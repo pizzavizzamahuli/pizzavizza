@@ -155,7 +155,65 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       const nextHomeDescription = nextHomepageImages[0]?.description || null;
       const res = await fetch('/api/admin/settings/restaurant', {
         method: 'PUT',
-        body: JSON.stringify({ ...settings, logo: nextLogo, homeImage: nextHomeImage, homeDescription: nextHomeDescription, homepageImages: nextHomepageImages, menuImage: nextMenuImage }),
+        body: JSON.stringify({
+          restaurantName: settings.restaurantName,
+          logo: nextLogo,
+          homeImage: nextHomeImage,
+          homeDescription: nextHomeDescription,
+          homepageImages: nextHomepageImages,
+          menuImage: nextMenuImage,
+          phone: settings.phone,
+          email: settings.email,
+          poweredByName: settings.poweredByName,
+          poweredByUrl: settings.poweredByUrl,
+          deliveryAssignmentMode: settings.deliveryAssignmentMode,
+          deliveryAssignmentStrategy: settings.deliveryAssignmentStrategy,
+          deliveryAssignmentEligibleStaffIds: settings.deliveryAssignmentEligibleStaffIds,
+          aboutHeading: settings.aboutHeading,
+          aboutDescription: settings.aboutDescription,
+          aboutImages: settings.aboutImages,
+          addressLine1: settings.addressLine1,
+          addressLine2: settings.addressLine2,
+          landmark: settings.landmark,
+          city: settings.city,
+          state: settings.state,
+          postalCode: settings.postalCode,
+          country: settings.country,
+          googleMapsUrl: settings.googleMapsUrl,
+          latitude: settings.latitude,
+          longitude: settings.longitude,
+          deliveryEnabled: settings.deliveryEnabled,
+          pickupEnabled: settings.pickupEnabled,
+          deliveryRadius: settings.deliveryRadius,
+          deliveryRadiusUnit: settings.deliveryRadiusUnit,
+          deliveryChargeType: settings.deliveryChargeType,
+          deliveryChargeValue: settings.deliveryChargeValue,
+          deliveryBaseDistance: settings.deliveryBaseDistance,
+          deliveryBaseCharge: settings.deliveryBaseCharge,
+          deliveryAdditionalChargePerKm: settings.deliveryAdditionalChargePerKm,
+          freeDeliveryEnabled: settings.freeDeliveryEnabled,
+          freeDeliveryMinimumOrder: settings.freeDeliveryMinimumOrder,
+          codEnabled: settings.codEnabled,
+          manualPaymentEnabled: settings.manualPaymentEnabled,
+          manualPaymentUpiId: settings.manualPaymentUpiId,
+          manualPaymentQrUrl: settings.manualPaymentQrUrl,
+          manualPaymentBankDetails: settings.manualPaymentBankDetails,
+          onlinePaymentEnabled: settings.onlinePaymentEnabled,
+          deliveryWhatsAppNumber: settings.deliveryWhatsAppNumber,
+          chatbotEnabled: settings.chatbotEnabled,
+          referralEnabled: settings.referralEnabled,
+          referralReferrerRewardAmount: settings.referralReferrerRewardAmount,
+          referralReferredRewardAmount: settings.referralReferredRewardAmount,
+          referralMinimumOrderAmount: settings.referralMinimumOrderAmount,
+          supportEmail: settings.supportEmail,
+          whatsappSupportNumber: settings.whatsappSupportNumber,
+          workingHours: settings.workingHours,
+          restaurantTimezone: settings.restaurantTimezone,
+          weeklySchedule: settings.weeklySchedule,
+          specialDates: settings.specialDates,
+          manualAvailabilityOverride: settings.manualAvailabilityOverride,
+          manualAvailabilityReason: settings.manualAvailabilityReason,
+        }),
         headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
@@ -337,15 +395,15 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         <h2 className="text-sm font-semibold text-stone-900">Website Controls</h2>
         <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-3">
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={settings.deliveryEnabled} onChange={(e) => setSettings({ ...settings, deliveryEnabled: e.target.checked })} />
+            <input type="checkbox" checked={!!settings.deliveryEnabled} onChange={(e) => setSettings({ ...settings, deliveryEnabled: e.target.checked })} />
             <span>Delivery Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={settings.pickupEnabled} onChange={(e) => setSettings({ ...settings, pickupEnabled: e.target.checked })} />
+            <input type="checkbox" checked={!!settings.pickupEnabled} onChange={(e) => setSettings({ ...settings, pickupEnabled: e.target.checked })} />
             <span>Pickup Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={settings.onlinePaymentEnabled} onChange={(e) => setSettings({ ...settings, onlinePaymentEnabled: e.target.checked })} />
+            <input type="checkbox" checked={!!settings.onlinePaymentEnabled} onChange={(e) => setSettings({ ...settings, onlinePaymentEnabled: e.target.checked })} />
             <span>Online Payment Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
@@ -353,7 +411,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
             <span>Chatbot Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={settings.codEnabled} onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked })} />
+            <input type="checkbox" checked={!!settings.codEnabled} onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked })} />
             <span>COD Enabled</span>
           </label>
           <label className="flex items-center space-x-2">

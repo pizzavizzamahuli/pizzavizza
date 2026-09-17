@@ -6,7 +6,7 @@ export function ServiceWorkerRegistration() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || process.env.NODE_ENV === 'development') return;
+    if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
 
     const registerServiceWorker = async () => {

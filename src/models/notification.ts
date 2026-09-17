@@ -62,7 +62,7 @@ export async function markNotificationRead(id: string, recipientId: string) {
   return collection.updateOne({ _id: new ObjectId(id), recipientId }, { $set: { readAt: new Date() } });
 }
 
-export async function markAllNotificationsRead(recipientId: string) {
+export async function markAllNotificationsRead(recipientId: string, audience?: NotificationAudience) {
   const collection = await getNotificationsCollection();
-  return collection.updateMany({ recipientId, readAt: null }, { $set: { readAt: new Date() } });
+  return collection.updateMany({ recipientId, readAt: null, ...(audience ? { audience } : {}) }, { $set: { readAt: new Date() } });
 }

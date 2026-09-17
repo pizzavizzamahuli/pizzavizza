@@ -23,6 +23,7 @@ import {
 } from '@/src/models/dining-booking';
 import type { DiningBookingDocument, DiningBookingStatus } from '@/src/models/dining-booking';
 import { getUserById } from '@/src/services/user-service';
+import { getRestaurantName } from '@/src/services/brand-service';
 import { AuthorizationService } from '@/src/config/permissions';
 import { ObjectId } from 'mongodb';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
@@ -86,9 +87,9 @@ function isDiningBookingStatus(value: string): value is DiningBookingStatus {
 
 const markdownEscape = (value: string) => String(value || '').replace(/([_\*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 
-function buildOrderDetailLines(order: OrderDocument) {
+function buildOrderDetailLines(order: OrderDocument, restaurantName: string) {
   const lines: string[] = [];
-  lines.push('*Pizza Vizza*');
+  lines.push(`*${markdownEscape(restaurantName)}*`);
   lines.push('');
   lines.push(`*Order:* ${markdownEscape(order.orderNumber)}`);
   lines.push('');
@@ -125,9 +126,9 @@ function buildOrderDetailLines(order: OrderDocument) {
   return lines;
 }
 
-function buildBookingDetailLines(booking: DiningBookingDocument) {
+function buildBookingDetailLines(booking: DiningBookingDocument, restaurantName: string) {
   const lines: string[] = [];
-  lines.push('*Pizza Vizza*');
+  lines.push(`*${markdownEscape(restaurantName)}*`);
   lines.push('');
   lines.push(`*Booking:* ${markdownEscape(booking.bookingNumber)}`);
   lines.push('');
@@ -173,13 +174,13 @@ function buildBookingActionMarkup(booking: DiningBookingDocument, canManage: boo
 }
 
 async function sendOrderDetails(chatId: string | number, order: OrderDocument, canManage: boolean) {
-  const lines = buildOrderDetailLines(order);
+  const lines = buildOrderDetailLines(order, await getRestaurantName());
   const replyMarkup = buildOrderActionMarkup(order, canManage);
   return safeNotify(chatId, lines.join('\n'), { reply_markup: replyMarkup, disable_web_page_preview: true });
 }
 
 async function sendBookingDetails(chatId: string | number, booking: DiningBookingDocument, canManage: boolean) {
-  const lines = buildBookingDetailLines(booking);
+  const lines = buildBookingDetailLines(booking, await getRestaurantName());
   const replyMarkup = buildBookingActionMarkup(booking, canManage);
   return safeNotify(chatId, lines.join('\n'), { reply_markup: replyMarkup, disable_web_page_preview: true });
 }
@@ -265,7 +266,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      await safeNotify(chatId, 'Successfully linked your Telegram chat to Pizza Vizza admin account.');
+      await safeNotify(chatId, `Successfully linked your Telegram chat to ${await getRestaurantName()} admin account.`);
       return NextResponse.json({ ok: true });
     }
 
@@ -561,7 +562,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      const lines: string[] = ['*Pizza Vizza Order Search Results*', ''];
+      const restaurantName = await getRestaurantName();
+      const lines: string[] = [`*${markdownEscape(restaurantName)} Order Search Results*`, ''];
       const keyboard: Array<Array<Record<string, string>>> = [];
       results.slice(0, 10).forEach((order) => {
         lines.push(`${markdownEscape(order.orderNumber)} — ${markdownEscape(order.customerSnapshot.name || 'Unknown')} — ${markdownEscape(order.orderStatus)}`);
@@ -629,7 +631,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
-      const lines: string[] = ['*Pizza Vizza Booking Search Results*', ''];
+      const restaurantName = await getRestaurantName();
+      const lines: string[] = [`*${markdownEscape(restaurantName)} Booking Search Results*`, ''];
       const keyboard: Array<Array<Record<string, string>>> = [];
       results.slice(0, 10).forEach((booking) => {
         lines.push(`${markdownEscape(booking.bookingNumber)} — ${markdownEscape(booking.customerSnapshot.name || 'Unknown')} — ${markdownEscape(booking.bookingStatus)}`);
@@ -641,7 +644,7 @@ export async function POST(request: Request) {
 
     // Other commands: /start, /help
     if (typeof text === 'string' && (text.startsWith('/start') || text.startsWith('/help'))) {
-      const help = `Pizza Vizza Admin Bot\nCommands:\n/start, /help - show this message\n/link <code> - link your Telegram chat (one-time code)\n/order <ORDER_NUMBER> - lookup order\n/orders <term> - search orders\n/assign <ORDER_NUMBER> <STAFF_ID> - assign delivery\n/booking <BOOKING_NUMBER> - lookup booking\n/bookings <term> - search bookings`;
+      const help = `${await getRestaurantName()} Admin Bot\nCommands:\n/start, /help - show this message\n/link <code> - link your Telegram chat (one-time code)\n/order <ORDER_NUMBER> - lookup order\n/orders <term> - search orders\n/assign <ORDER_NUMBER> <STAFF_ID> - assign delivery\n/booking <BOOKING_NUMBER> - lookup booking\n/bookings <term> - search bookings`;
       await safeNotify(chatId, help);
       return NextResponse.json({ ok: true });
     }

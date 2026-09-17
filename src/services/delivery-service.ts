@@ -169,7 +169,7 @@ export async function checkDeliveryEligibilityAsync(
 
 export function generateDeliveryWhatsAppMessage(order: OrderDocument, settings: RestaurantSettingsDocument) {
   const lines: string[] = [];
-  lines.push(`Pizza Vizza - Delivery Details`);
+  lines.push(`${settings.restaurantName} - Delivery Details`);
   lines.push(`Order: ${order.orderNumber}`);
   lines.push(`Customer: ${order.customerSnapshot.name}`);
   if (order.customerSnapshot.mobile) {

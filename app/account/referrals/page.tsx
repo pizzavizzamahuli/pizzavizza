@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/src/auth/session';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { CustomerShell } from '@/src/app-shell';
 import { createReferral, findReferralByUser } from '@/src/models/referral';
-import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { ReferralShareCard } from '@/src/components/referrals/referral-share-card';
 
 function formatCurrency(value: number) {
@@ -12,6 +12,7 @@ function formatCurrency(value: number) {
 export default async function ReferralsPage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  const restaurantSettings = await getRestaurantSettings();
   const settings = await getRestaurantSettings();
   if (user.role !== 'CUSTOMER' || settings.referralEnabled !== true) redirect('/account');
 
@@ -38,7 +39,7 @@ export default async function ReferralsPage() {
           </div>
 
           <div className="mt-6">
-            <ReferralShareCard code={activeReferral?.code || 'PZVXXXX'} rewardValue={activeReferral?.rewardValue || 50} />
+            <ReferralShareCard code={activeReferral?.code || 'PZVXXXX'} rewardValue={activeReferral?.rewardValue || 50} restaurantName={restaurantSettings.restaurantName} />
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-2">

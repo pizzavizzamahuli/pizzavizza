@@ -70,6 +70,7 @@ export interface RestaurantSettingsDocument {
   logo?: string | null;
   poweredByName?: string | null;
   poweredByUrl?: string | null;
+  footerAddress?: string | null;
   appearance?: WebsiteAppearance;
   homeImage?: string | null;
   homeDescription?: string | null;
@@ -185,6 +186,7 @@ export async function getRestaurantSettings() {
       logo: null,
       poweredByName: null,
       poweredByUrl: null,
+      footerAddress: null,
       homeImage: null,
       homeDescription: null,
       homepageImages: [],
@@ -281,6 +283,7 @@ export async function getRestaurantSettings() {
     logo: null,
     poweredByName: null,
     poweredByUrl: null,
+    footerAddress: null,
     appearance: defaultWebsiteAppearance,
     homeImage: null,
     homeDescription: null,

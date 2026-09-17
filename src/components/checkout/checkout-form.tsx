@@ -19,6 +19,7 @@ type CheckoutSettings = {
   manualPaymentUpiId?: string | null;
   manualPaymentQrUrl?: string | null;
   manualPaymentBankDetails?: string | null;
+  restaurantName?: string;
   deliveryBaseDistance?: number;
   deliveryBaseCharge?: number;
   deliveryAdditionalChargePerKm?: number;
@@ -393,7 +394,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
           key: keyId,
           amount: orderPayload.amount || Math.round((json.data.totalAmount || 0) * 100),
           currency: orderPayload.currency || 'INR',
-          name: 'Pizza Vizza',
+          name: settings.restaurantName || 'Pizza Vizza',
           description: `Order ${json.data.orderNumber}`,
           order_id: orderPayload.id,
           handler: async function (response) {

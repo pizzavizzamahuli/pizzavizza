@@ -11,6 +11,7 @@ type RazorpayWindow = Window & { Razorpay?: RazorpayConstructor };
 
 type Props = {
   bookingNumber: string;
+  restaurantName?: string;
   amount: number;
   razorpayEnabled: boolean;
   manualPaymentEnabled: boolean;
@@ -19,7 +20,7 @@ type Props = {
   manualPaymentBankDetails?: string | null;
 };
 
-export default function ReservationPaymentForm({ bookingNumber, amount, razorpayEnabled, manualPaymentEnabled, manualPaymentUpiId, manualPaymentQrUrl, manualPaymentBankDetails }: Props) {
+export default function ReservationPaymentForm({ bookingNumber, restaurantName = 'Pizza Vizza', amount, razorpayEnabled, manualPaymentEnabled, manualPaymentUpiId, manualPaymentQrUrl, manualPaymentBankDetails }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export default function ReservationPaymentForm({ bookingNumber, amount, razorpay
         key: json.data.keyId,
         amount: Math.round(Number(json.data.amount) * 100),
         currency: 'INR',
-        name: 'Pizza Vizza',
+        name: restaurantName,
         description: `Reservation ${bookingNumber}`,
         order_id: json.data.razorpayOrderId,
         theme: { color: '#d97706' },

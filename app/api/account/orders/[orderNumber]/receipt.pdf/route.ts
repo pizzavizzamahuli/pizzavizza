@@ -176,7 +176,7 @@ export async function GET(_request: Request, context: { params: Promise<{ orderN
   y -= 22;
   page.drawLine({ start: { x: 42, y }, end: { x: 553, y }, thickness: 1, color: rgb(0.88, 0.86, 0.83) });
   y -= 16;
-  page.drawText('Thank you for ordering from Pizza Vizza!', { x: 42, y, size: 9, font, color: rgb(0.42, 0.4, 0.36) });
+  page.drawText(`Thank you for ordering from ${restaurantName}!`, { x: 42, y, size: 9, font, color: rgb(0.42, 0.4, 0.36) });
 
   const bytes = await pdf.save();
   return new NextResponse(bytes as unknown as BodyInit, {

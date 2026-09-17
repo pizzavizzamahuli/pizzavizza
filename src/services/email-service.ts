@@ -1,9 +1,11 @@
 import { env } from '@/src/config/env';
+import { getRestaurantName } from '@/src/services/brand-service';
 
 export async function sendPasswordResetEmail(to: string, name: string, code: string) {
-  const subject = 'Pizza Vizza password reset code';
-  const text = `Hi ${name},\n\nUse the code below to reset your Pizza Vizza password. It will expire in 15 minutes.\n\n${code}\n\nIf you did not request this change, please ignore this message.`;
-  const html = `<p>Hi ${name},</p><p>Use the code below to reset your Pizza Vizza password. It will expire in 15 minutes.</p><p><strong>${code}</strong></p><p>If you did not request this change, please ignore this message.</p>`;
+  const restaurantName = await getRestaurantName();
+  const subject = `${restaurantName} password reset code`;
+  const text = `Hi ${name},\n\nUse the code below to reset your ${restaurantName} password. It will expire in 15 minutes.\n\n${code}\n\nIf you did not request this change, please ignore this message.`;
+  const html = `<p>Hi ${name},</p><p>Use the code below to reset your ${restaurantName} password. It will expire in 15 minutes.</p><p><strong>${code}</strong></p><p>If you did not request this change, please ignore this message.</p>`;
 
   if (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_APP_PASSWORD) {
     try {
@@ -44,9 +46,10 @@ export async function sendPasswordResetEmail(to: string, name: string, code: str
 }
 
 export async function sendEmailVerificationEmail(to: string, name: string, code: string) {
-  const subject = 'Pizza Vizza email verification code';
-  const text = `Hi ${name},\n\nYour Pizza Vizza verification code is ${code}. It will expire in 15 minutes.`;
-  const html = `<p>Hi ${name},</p><p>Your Pizza Vizza verification code is <strong>${code}</strong>. It will expire in 15 minutes.</p>`;
+  const restaurantName = await getRestaurantName();
+  const subject = `${restaurantName} email verification code`;
+  const text = `Hi ${name},\n\nYour ${restaurantName} verification code is ${code}. It will expire in 15 minutes.`;
+  const html = `<p>Hi ${name},</p><p>Your ${restaurantName} verification code is <strong>${code}</strong>. It will expire in 15 minutes.</p>`;
   if (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_APP_PASSWORD) {
     try {
       const nodemailer = await import('nodemailer');
@@ -63,9 +66,10 @@ export async function sendEmailVerificationEmail(to: string, name: string, code:
 }
 
 export async function sendProfileVerificationEmail(to: string, name: string, code: string) {
-  const subject = 'Pizza Vizza profile change verification code';
-  const text = `Hi ${name},\n\nUse ${code} to confirm your Pizza Vizza profile change. It expires in 15 minutes. If you did not request this, secure your account immediately.`;
-  const html = `<p>Hi ${name},</p><p>Use <strong>${code}</strong> to confirm your Pizza Vizza profile change. It expires in 15 minutes.</p><p>If you did not request this, secure your account immediately.</p>`;
+  const restaurantName = await getRestaurantName();
+  const subject = `${restaurantName} profile change verification code`;
+  const text = `Hi ${name},\n\nUse ${code} to confirm your ${restaurantName} profile change. It expires in 15 minutes. If you did not request this, secure your account immediately.`;
+  const html = `<p>Hi ${name},</p><p>Use <strong>${code}</strong> to confirm your ${restaurantName} profile change. It expires in 15 minutes.</p><p>If you did not request this, secure your account immediately.</p>`;
   if (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_APP_PASSWORD) {
     try {
       const nodemailer = await import('nodemailer');

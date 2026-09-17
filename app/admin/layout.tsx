@@ -4,6 +4,7 @@ import { requireAdminPanelAccess } from '@/src/auth/guard';
 import { AuthorizationService, type PermissionName } from '@/src/config/permissions';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
 import { displayLabel } from '@/src/utils/display-labels';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export const metadata: Metadata = { title: 'Pizza Vizza Admin', description: 'Administrative foundation for Pizza Vizza' };
 
@@ -23,13 +24,15 @@ const navSections: Array<{ label: string; items: Array<{ label: string; href: st
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAdminPanelAccess();
+  const restaurantSettings = await getRestaurantSettings();
+  const restaurantName = restaurantSettings.restaurantName || 'Pizza Vizza';
   const visibleSections = navSections.map((section) => ({ ...section, items: section.items.filter((item) => (!item.mainAdminOnly || user.role === 'MAIN_ADMIN') && (!item.permission || AuthorizationService.canAccess(user.role, item.permission, user.permissions))) })).filter((section) => section.items.length);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <div className="flex min-h-screen flex-col lg:flex-row">
         <aside className="w-full border-b border-stone-200 bg-white/90 p-3 lg:w-72 lg:border-b-0 lg:border-r lg:p-4">
-          <div className="mb-4 lg:mb-6"><p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Pizza Vizza</p><h1 className="text-lg font-semibold lg:text-xl">Operations Hub</h1><p className="mt-1 hidden text-sm text-stone-600 lg:mt-2 lg:block">Manage menu, orders, service operations, and store settings in one place.</p></div>
+          <div className="mb-4 lg:mb-6"><p className="truncate text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">{restaurantName}</p><h1 className="text-lg font-semibold lg:text-xl">Operations Hub</h1><p className="mt-1 hidden text-sm text-stone-600 lg:mt-2 lg:block">Manage menu, orders, service operations, and store settings in one place.</p></div>
           <nav className="flex gap-4 overflow-x-auto pb-1 lg:block lg:space-y-5">{visibleSections.map((section) => <div key={section.label} className="shrink-0 lg:space-y-1"><p className="hidden px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400 lg:block">{section.label}</p><div className="flex gap-2 lg:block">{section.items.map((item) => <Link key={item.href} href={item.href} className="block min-h-11 shrink-0 rounded-lg px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950 lg:min-h-0 lg:py-2">{item.label}</Link>)}</div></div>)}</nav>
         </aside>
         <div className="flex-1">

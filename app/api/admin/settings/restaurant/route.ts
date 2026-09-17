@@ -28,6 +28,8 @@ export async function GET() {
     id: s.id,
     restaurantName: s.restaurantName,
     logo: s.logo,
+    appearance: s.appearance || null,
+    footerAddress: s.footerAddress || null,
     homeImage: s.homeImage || null,
     homeDescription: s.homeDescription || null,
     homepageImages: (s.homepageImages || []).filter((image) => image.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -131,6 +133,7 @@ export async function PUT(request: Request) {
     }
     const poweredByName = typeof updates.poweredByName === 'string' ? updates.poweredByName.trim() : updates.poweredByName === null ? null : undefined;
     const poweredByUrl = typeof updates.poweredByUrl === 'string' ? updates.poweredByUrl.trim() : updates.poweredByUrl === null ? null : undefined;
+    const footerAddress = typeof updates.footerAddress === 'string' ? updates.footerAddress.trim().slice(0, 300) || null : updates.footerAddress === null ? null : undefined;
     const supportEmailValue = typeof updates.supportEmail === 'string' ? updates.supportEmail.trim().toLowerCase() : updates.supportEmail === null ? null : undefined;
     const supportEmail = supportEmailValue === '' ? null : supportEmailValue;
     const whatsappSupportValue = typeof updates.whatsappSupportNumber === 'string' ? updates.whatsappSupportNumber.trim() : updates.whatsappSupportNumber === null ? null : undefined;
@@ -213,6 +216,7 @@ export async function PUT(request: Request) {
       manualAvailabilityChangedAt: manualAvailabilityOverride !== undefined ? new Date() : undefined,
       manualAvailabilityChangedBy: manualAvailabilityOverride !== undefined ? user._id?.toHexString() || user.email : undefined,
       ...(isMainAdmin ? { poweredByName, poweredByUrl } : {}),
+      footerAddress,
       menuImage: typeof updates.menuImage === 'string' ? updates.menuImage.trim() : undefined,
       phone: typeof updates.phone === 'string' ? updates.phone.trim() : undefined,
       email: typeof updates.email === 'string' ? updates.email.trim() : undefined,

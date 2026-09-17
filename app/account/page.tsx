@@ -54,7 +54,7 @@ export default async function AccountPage() {
               <p className="mt-2 text-sm text-stone-600">Manage your orders, dining reservations, saved addresses, and wallet rewards from one dashboard.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <ProfileEditor user={user} userCode={userCode} />
+              <ProfileEditor user={{ name: user.name, email: user.email, mobile: user.mobile || null, role: user.role }} userCode={userCode} />
               <Link href="/account/change-password" className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">
                 Change password
               </Link>

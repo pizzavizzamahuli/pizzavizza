@@ -23,6 +23,8 @@ type HomepageImage = {
 export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [poweredBySaving, setPoweredBySaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [settings, setSettings] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -117,6 +119,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
 
   async function save() {
     setSaving(true);
+    setSaveFeedback(null);
     try {
       const previousLogo = settings.logo || null;
       const previousMenuImage = settings.menuImage || null;
@@ -157,6 +160,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         method: 'PUT',
         body: JSON.stringify({
           restaurantName: settings.restaurantName,
+          footerAddress: settings.footerAddress,
           logo: nextLogo,
           homeImage: nextHomeImage,
           homeDescription: nextHomeDescription,
@@ -164,8 +168,6 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           menuImage: nextMenuImage,
           phone: settings.phone,
           email: settings.email,
-          poweredByName: settings.poweredByName,
-          poweredByUrl: settings.poweredByUrl,
           deliveryAssignmentMode: settings.deliveryAssignmentMode,
           deliveryAssignmentStrategy: settings.deliveryAssignmentStrategy,
           deliveryAssignmentEligibleStaffIds: settings.deliveryAssignmentEligibleStaffIds,
@@ -235,14 +237,41 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           await fetch(`/api/admin/menu/delete-image?publicId=${encodeURIComponent(previousImage.imageUrl)}`, { method: 'DELETE' });
         }
       }
-      alert('Saved');
+      setSaveFeedback({ tone: 'success', message: 'Restaurant settings saved successfully.' });
     } catch (e: unknown) {
       const err = e as Record<string, unknown>;
-      alert('Save failed: ' + ((err?.message as string) || String(e)));
+      setSaveFeedback({ tone: 'error', message: 'Save failed: ' + ((err?.message as string) || String(e)) });
     } finally {
       setSaving(false);
     }
   }
+
+  async function savePoweredBy() {
+    if (!isMainAdmin) return;
+    setPoweredBySaving(true);
+    setSaveFeedback(null);
+    try {
+      const response = await fetch('/api/admin/settings/restaurant', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poweredByName: settings.poweredByName, poweredByUrl: settings.poweredByUrl }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Powered By settings save failed.');
+      setSettings(data.data);
+      setSaveFeedback({ tone: 'success', message: 'Powered By settings saved successfully.' });
+    } catch (error) {
+      setSaveFeedback({ tone: 'error', message: `Powered By save failed: ${error instanceof Error ? error.message : String(error)}` });
+    } finally {
+      setPoweredBySaving(false);
+    }
+  }
+
+  const feedbackColors = settings.appearance?.colors || {};
+  const feedbackAccent = saveFeedback?.tone === 'success' ? feedbackColors.success || '#047857' : feedbackColors.error || '#be123c';
+  const feedbackSurface = feedbackColors.surface || '#ffffff';
+  const feedbackText = feedbackColors.heading || '#171717';
+  const feedbackMutedText = feedbackColors.body || '#44403c';
 
   return (
     <div className="min-w-0 space-y-4">
@@ -474,11 +503,19 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           <label className="text-sm"><span className="mb-1 block">Powered By URL</span><input className="input" type="url" value={settings.poweredByUrl || ''} onChange={(e) => setSettings({ ...settings, poweredByUrl: e.target.value })} placeholder="https://example.com" /></label>
         </div>
         {settings.poweredByName && settings.poweredByUrl ? <p className="mt-4 text-sm text-stone-600">Preview: Powered by <a href={settings.poweredByUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-700">{settings.poweredByName}</a></p> : <p className="mt-4 text-xs text-stone-500">Leave both fields configured to show the Powered By link.</p>}
+        <button type="button" className="mt-4 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" onClick={() => void savePoweredBy()} disabled={poweredBySaving}>{poweredBySaving ? 'Saving Powered By...' : 'Save Powered By settings'}</button>
       </div> : null}
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Footer restaurant address</h2>
+        <p className="mt-1 text-xs text-stone-500">This text appears only in the public footer. It does not change map, delivery, or restaurant location settings.</p>
+        <textarea className="input mt-4 min-h-20 w-full" maxLength={300} value={settings.footerAddress || ''} onChange={(event) => setSettings({ ...settings, footerAddress: event.target.value })} placeholder="Enter the address to show in the footer" />
+      </div>
 
       <div>
         <button className="btn" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</button>
       </div>
+      {saveFeedback ? <div role="status" aria-live="polite" className="relative overflow-hidden rounded-2xl border p-4 shadow-lg" style={{ backgroundColor: `color-mix(in srgb, ${feedbackAccent} 9%, ${feedbackSurface})`, borderColor: `color-mix(in srgb, ${feedbackAccent} 42%, ${feedbackSurface})`, color: feedbackText }}><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm" style={{ backgroundColor: feedbackAccent }}>{saveFeedback.tone === 'success' ? '✓' : '!'}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{saveFeedback.tone === 'success' ? 'Saved successfully' : 'Could not save changes'}</p><p className="mt-1 text-sm" style={{ color: feedbackMutedText }}>{saveFeedback.message}</p></div><button type="button" aria-label="Dismiss save message" onClick={() => setSaveFeedback(null)} className="rounded-full px-2 py-1 text-lg leading-none transition hover:bg-black/10" style={{ color: feedbackMutedText }}>×</button></div><div className="absolute inset-x-0 bottom-0 h-1" style={{ backgroundColor: feedbackAccent }} /></div> : null}
     </div>
   );
 }

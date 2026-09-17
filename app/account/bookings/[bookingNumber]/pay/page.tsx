@@ -21,6 +21,7 @@ export default async function ReservationPaymentPage({ params }: { params: Promi
       <section className="mt-6 rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-8">
         <ReservationPaymentForm
           bookingNumber={booking.bookingNumber}
+          restaurantName={settings.restaurantName}
           amount={booking.finalAmount}
           razorpayEnabled={settings.onlinePaymentEnabled}
           manualPaymentEnabled={settings.manualPaymentEnabled}

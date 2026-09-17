@@ -77,7 +77,7 @@ async function createReservationImage(props: BookingSlipActionsProps): Promise<B
   context.fillText(`Payment: ${props.paymentStatus}`, 60, 426);
   context.fillStyle = '#57534e';
   context.font = '18px Arial';
-  context.fillText('Thank you for booking with Pizza Vizza!', 60, 540);
+  context.fillText(`Thank you for booking with ${props.restaurantName}!`, 60, 540);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {

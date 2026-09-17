@@ -2,13 +2,9 @@
 import Link from 'next/link';
 import type { RestaurantSettingsDocument } from '@/src/models/restaurant-settings';
 
-function address(settings: RestaurantSettingsDocument) {
-  return [settings.addressLine1, settings.addressLine2, settings.landmark, settings.city, settings.state, settings.postalCode].filter(Boolean).join(', ');
-}
-
 export default function GlobalFooter({ settings }: { settings: RestaurantSettingsDocument | null }) {
   const name = settings?.restaurantName || 'Pizza Vizza';
-  const restaurantAddress = settings ? address(settings) : '';
+  const restaurantAddress = settings?.footerAddress || '';
   const hasPoweredBy = !!settings?.poweredByName && !!settings?.poweredByUrl;
   const whatsappNumber = settings?.whatsappSupportNumber?.replace(/\D/g, '');
 
@@ -18,7 +14,7 @@ export default function GlobalFooter({ settings }: { settings: RestaurantSetting
         <div className="min-[360px]:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-2.5 sm:gap-3">
             {settings?.logo ? <img src={settings.logo} alt={`${name} logo`} className="h-10 w-10 rounded-full border object-cover sm:h-12 sm:w-12" style={{ borderColor: settings?.appearance?.colors.footerAccent || '#fbbf24' }} /> : <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold sm:h-12 sm:w-12" style={{ backgroundColor: settings?.appearance?.colors.footerAccent || '#fbbf24', color: settings?.appearance?.colors.footerBackground || '#0c0a09' }}>PV</div>}
-            <div><p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: settings?.appearance?.colors.footerAccent || '#fbbf24' }}>{name}</p><p className="mt-1 font-semibold" style={{ color: settings?.appearance?.colors.heading || '#ffffff' }}>Order online • Dine • Pickup</p></div>
+            <div><p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: settings?.appearance?.colors.footerAccent || '#fbbf24' }}>{name}</p><p className="mt-1 font-semibold" style={{ color: settings?.appearance?.colors.footerText || '#d6d3d1' }}>Order online • Dine • Pickup</p></div>
           </div>
           <p className="mt-3 max-w-sm text-sm leading-5 text-stone-400 sm:mt-5 sm:max-w-xs sm:leading-6">Fresh food, easy ordering, and memorable dining experiences from one place.</p>
         </div>

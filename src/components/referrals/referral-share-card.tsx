@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-export function ReferralShareCard({ code, rewardValue }: { code: string; rewardValue: number }) {
+export function ReferralShareCard({ code, rewardValue, restaurantName = 'Pizza Vizza' }: { code: string; rewardValue: number; restaurantName?: string }) {
   const [copied, setCopied] = useState(false);
 
   const referralLink = useMemo(() => {
@@ -10,7 +10,7 @@ export function ReferralShareCard({ code, rewardValue }: { code: string; rewardV
     return `${window.location.origin}/register?ref=${code}`;
   }, [code]);
 
-  const shareText = `Use my Pizza Vizza referral code ${code} and get ₹${rewardValue} in wallet credit when you sign up. ${referralLink}`;
+  const shareText = `Use my ${restaurantName} referral code ${code} and get ₹${rewardValue} in wallet credit when you sign up. ${referralLink}`;
 
   async function copyText(value: string) {
     try {
@@ -32,7 +32,7 @@ export function ReferralShareCard({ code, rewardValue }: { code: string; rewardV
   }
 
   async function shareViaWeb() {
-    const payload = { title: 'Pizza Vizza referral', text: shareText, url: referralLink };
+    const payload = { title: `${restaurantName} referral`, text: shareText, url: referralLink };
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share(payload);
@@ -46,7 +46,7 @@ export function ReferralShareCard({ code, rewardValue }: { code: string; rewardV
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
-  const emailUrl = `mailto:?subject=${encodeURIComponent('Pizza Vizza referral')}&body=${encodeURIComponent(shareText)}`;
+  const emailUrl = `mailto:?subject=${encodeURIComponent(`${restaurantName} referral`)}&body=${encodeURIComponent(shareText)}`;
 
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">

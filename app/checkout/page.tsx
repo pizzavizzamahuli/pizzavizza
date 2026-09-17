@@ -27,6 +27,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams?: Pr
             manualPaymentUpiId: settings.manualPaymentUpiId || null,
             manualPaymentQrUrl: settings.manualPaymentQrUrl || null,
             manualPaymentBankDetails: settings.manualPaymentBankDetails || null,
+            restaurantName: settings.restaurantName,
             deliveryBaseDistance: settings.deliveryBaseDistance,
             deliveryBaseCharge: settings.deliveryBaseCharge,
             deliveryAdditionalChargePerKm: settings.deliveryAdditionalChargePerKm,

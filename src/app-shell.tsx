@@ -99,10 +99,10 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
             <Link href="/cart" className="rounded-full bg-stone-900 px-3 py-2 text-white transition hover:bg-stone-700">
               Cart {cartCount > 0 ? `(${cartCount})` : ''}
             </Link>
-            {user ? <NotificationBell /> : null}
+            {user ? <NotificationBell popupStyle={appearance.notificationStyle} /> : null}
           </nav>
-          <div className="flex shrink-0 items-center gap-1.5 md:hidden">
-            {user ? <NotificationBell /> : null}
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 md:hidden">
+            {user ? <NotificationBell popupStyle={appearance.notificationStyle} /> : null}
             <MobileNavigation cartCount={cartCount} isAdminUser={isAdminUser} />
           </div>
         </div>

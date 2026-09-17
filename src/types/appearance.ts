@@ -1,3 +1,5 @@
+export type NotificationPopupStyle = 'none' | 'light-glass' | 'dark-glass' | 'premium-material';
+
 export interface WebsiteAppearance {
   preset: 'default' | 'warm' | 'dark' | 'elegant' | 'minimal' | 'custom';
   colors: {
@@ -25,6 +27,7 @@ export interface WebsiteAppearance {
   };
   radius: 'sharp' | 'soft' | 'rounded' | 'extra-rounded';
   shadow: 'none' | 'subtle' | 'medium' | 'strong';
+  notificationStyle: NotificationPopupStyle;
   typography: { fontFamily: 'system' | 'serif' | 'modern'; baseFontSize: number; headingWeight: 600 | 700 | 800 };
   header: { height: 'compact' | 'comfortable'; logoSize: 'small' | 'medium' | 'large' };
   footer: { spacing: 'compact' | 'comfortable'; logoSize: 'small' | 'medium' | 'large' };
@@ -45,7 +48,7 @@ export const defaultWebsiteAppearance: WebsiteAppearance = {
     buttonBackground: '#1c1917', buttonText: '#ffffff', buttonHover: '#44403c', link: '#b45309', heading: '#171717', body: '#44403c',
     border: '#e7e5e4', success: '#047857', warning: '#b45309', error: '#be123c', info: '#0369a1',
   },
-  radius: 'rounded', shadow: 'subtle', typography: { fontFamily: 'system', baseFontSize: 16, headingWeight: 700 },
+  radius: 'rounded', shadow: 'subtle', notificationStyle: 'none', typography: { fontFamily: 'system', baseFontSize: 16, headingWeight: 700 },
   header: { height: 'comfortable', logoSize: 'medium' }, footer: { spacing: 'comfortable', logoSize: 'medium' },
 };
 

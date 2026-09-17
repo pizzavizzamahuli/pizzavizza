@@ -3,11 +3,37 @@ import { ObjectId } from 'mongodb';
 export function normalizeDeliveryStaffIds(input: unknown): string[] {
   const values = Array.isArray(input) ? input : [input];
   const ids = values.flatMap((value) => {
-    if (typeof value !== 'string') return [];
-    const trimmed = value.trim();
-    return trimmed ? [trimmed] : [];
+    if (typeof value !== 'string' && typeof value !== 'number') return [];
+    const normalized = String(value).trim();
+    return normalized ? [normalized] : [];
   });
   return [...new Set(ids)];
+}
+
+export function shapeDeliveryStaffId(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (value && typeof value === 'object' && 'toHexString' in value && typeof (value as { toHexString: () => string }).toHexString === 'function') {
+    const hex = (value as { toHexString: () => string }).toHexString();
+    return hex || null;
+  }
+  return null;
+}
+
+export function matchesDeliveryStaffId(staff: { _id?: unknown; id?: unknown }, candidate: unknown): boolean {
+  const values = new Set<string>();
+  const candidateValue = shapeDeliveryStaffId(candidate);
+  if (candidateValue) values.add(candidateValue);
+
+  const staffId = shapeDeliveryStaffId(staff._id) || shapeDeliveryStaffId(staff.id);
+  if (staffId) values.add(staffId);
+
+  if (candidateValue && staffId) {
+    return candidateValue === staffId || candidateValue === staffId.toLowerCase() || candidateValue === staffId.toUpperCase();
+  }
+  return false;
 }
 
 export function buildDeliveryStaffLookupFilter(staffIds: string | string[] | null | undefined) {
@@ -19,7 +45,9 @@ export function buildDeliveryStaffLookupFilter(staffIds: string | string[] | nul
     if (objectIds.length) {
       identityMatches.push({ _id: { $in: objectIds } });
     }
-    identityMatches.push({ id: { $in: ids } });
+    if (ids.length) {
+      identityMatches.push({ id: { $in: ids } });
+    }
   }
 
   const baseFilter: Record<string, unknown> = {

@@ -7,7 +7,7 @@ import { notifyUser, notifyAdmins } from '@/src/services/notification-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
 import { createDeliveryAuditEvent } from '@/src/models/delivery-audit';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
-import { buildDeliveryStaffLookupFilter } from '@/src/utils/delivery-staff-ids';
+import { buildDeliveryStaffLookupFilter, matchesDeliveryStaffId } from '@/src/utils/delivery-staff-ids';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -35,7 +35,9 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     }
     if (!staff) return NextResponse.json({ error: 'Active delivery staff member not found' }, { status: 400 });
     const settings = await getRestaurantSettings();
-    if (settings.deliveryAssignmentEligibleStaffIds.length && !settings.deliveryAssignmentEligibleStaffIds.includes(payload.staffId)) {
+    const eligibleIds = settings.deliveryAssignmentEligibleStaffIds || [];
+    const isEligible = eligibleIds.length === 0 || eligibleIds.some((eligibleId) => matchesDeliveryStaffId(staff, eligibleId));
+    if (!isEligible) {
       return NextResponse.json({ error: 'This delivery staff member is not eligible for assignment.' }, { status: 409 });
     }
     staffId = staff._id?.toHexString() || staff.id || null;

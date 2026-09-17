@@ -52,6 +52,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       }
       updates.role = role as UserRole;
       newValue.role = role;
+      if (role === 'DELIVERY_STAFF' || role === 'KITCHEN_STAFF') {
+        updates.staffStatus = targetUser.staffStatus || 'AVAILABLE';
+        newValue.staffStatus = targetUser.staffStatus || 'AVAILABLE';
+      }
     }
 
     if (mobile !== undefined) {

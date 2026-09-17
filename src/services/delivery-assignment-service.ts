@@ -17,8 +17,13 @@ export async function autoAssignDeliveryStaff(orderNumber: string) {
     return null;
   }
   const users = await (await getUsersCollection()).find({
-    ...buildDeliveryStaffLookupFilter(eligibleIds),
-    staffStatus: { $in: ['AVAILABLE', 'BUSY'] },
+    role: 'DELIVERY_STAFF',
+    accountStatus: 'ACTIVE',
+    $or: [
+      { staffStatus: { $in: ['AVAILABLE', 'BUSY'] } },
+      { staffStatus: { $exists: false } },
+    ],
+    ...(eligibleIds.length ? { $and: [buildDeliveryStaffLookupFilter(eligibleIds)] } : {}),
   }).toArray();
   if (!users.length) {
     await (await import('@/src/models/order')).updateOrderByOrderNumber(orderNumber, { deliveryAssignmentStatus: 'PENDING' });

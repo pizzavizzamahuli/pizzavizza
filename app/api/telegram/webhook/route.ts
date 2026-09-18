@@ -73,6 +73,28 @@ type TelegramPayload = {
 
 type TelegramMessageOrCallback = TelegramMessage | TelegramCallbackQuery;
 
+function maskTelegramId(value: string | number | null | undefined): string {
+  const raw = value == null ? '' : String(value);
+  if (!raw) return 'empty';
+  if (raw.length <= 4) return '***';
+  return `***${raw.slice(-4)}`;
+}
+
+function getTelegramMessageFormat(text: string | null | undefined): 'plain' | '/link' | '/start' | '/link@bot' | '/start@bot' | 'other' | 'empty' {
+  if (typeof text !== 'string') return 'empty';
+  const trimmed = text.trim();
+  if (!trimmed) return 'empty';
+  if (/^\/link(?:@\w+)?\s+.+$/i.test(trimmed)) return '/link';
+  if (/^\/start(?:@\w+)?\s+.+$/i.test(trimmed)) return '/start';
+  if (/^\/link(?:@\w+)?$/i.test(trimmed)) return '/link';
+  if (/^\/start(?:@\w+)?$/i.test(trimmed)) return '/start';
+  if (/^\/link@\w+\s+.+$/i.test(trimmed)) return '/link@bot';
+  if (/^\/start@\w+\s+.+$/i.test(trimmed)) return '/start@bot';
+  if (/^\/link@\w+$/i.test(trimmed)) return '/link@bot';
+  if (/^\/start@\w+$/i.test(trimmed)) return '/start@bot';
+  return 'plain';
+}
+
 function extractTelegramLinkCode(text: string | null | undefined): string | null {
   if (typeof text !== 'string') return null;
 
@@ -206,29 +228,55 @@ export async function POST(request: Request) {
   // Validate webhook secret header
   try {
     const secret = env.TELEGRAM_WEBHOOK_SECRET || '';
+    const secretHeader = request.headers.get('x-telegram-bot-api-secret-token') || '';
+    const secretValidated = !!secret && !!secretHeader && secretHeader === secret;
+    console.info('[telegram-webhook]', {
+      event: 'webhook_received',
+      secretConfigured: !!secret,
+      secretHeaderPresent: !!secretHeader,
+      secretValidated,
+      method: request.method,
+    });
+
     if (env.NODE_ENV === 'production' && !secret) {
+      console.warn('[telegram-webhook]', { event: 'missing_secret_config', status: 503 });
       return NextResponse.json({ error: 'Telegram webhook secret is not configured' }, { status: 503 });
     }
     if (secret) {
-      const header = request.headers.get('x-telegram-bot-api-secret-token') || '';
-      if (!header || header !== secret) {
+      if (!secretHeader || secretHeader !== secret) {
+        console.warn('[telegram-webhook]', { event: 'secret_validation_failed', status: 403, secretHeaderPresent: !!secretHeader });
         return NextResponse.json({ error: 'Invalid webhook secret' }, { status: 403 });
       }
     }
 
     const rawPayload = await request.json();
 
-    // Validate payload is an object
     if (!rawPayload || typeof rawPayload !== 'object') {
+      console.info('[telegram-webhook]', { event: 'invalid_payload_skipped', status: 200 });
       return NextResponse.json({ ok: true });
     }
 
     const payload = rawPayload as TelegramPayload;
+    const updateId = typeof payload.update_id === 'number' ? payload.update_id : null;
+    const updateType = payload.message ? 'message' : payload.edited_message ? 'edited_message' : payload.callback_query ? 'callback_query' : 'unknown';
+    console.info('[telegram-webhook]', {
+      event: 'payload_received',
+      updateId,
+      updateType,
+      hasMessage: !!payload.message,
+      hasEditedMessage: !!payload.edited_message,
+      hasCallbackQuery: !!payload.callback_query,
+    });
+
     if (typeof payload.update_id === 'number' && !(await claimTelegramUpdate(payload.update_id))) {
+      console.info('[telegram-webhook]', { event: 'duplicate_update_ignored', updateId: payload.update_id, status: 200 });
       return NextResponse.json({ ok: true, duplicate: true });
     }
     const message = payload.message ?? payload.edited_message ?? payload.callback_query ?? null;
-    if (!message) return NextResponse.json({ ok: true });
+    if (!message) {
+      console.info('[telegram-webhook]', { event: 'no_message_or_callback', status: 200 });
+      return NextResponse.json({ ok: true });
+    }
 
     let chat: TelegramChat | null = null;
     if ('chat' in message && message.chat) {
@@ -241,25 +289,55 @@ export async function POST(request: Request) {
 
     const chatIdRaw = chat?.id;
     const chatId = chatIdRaw != null ? String(chatIdRaw) : null;
+    const chatType = chat?.type || 'unknown';
+    console.info('[telegram-webhook]', {
+      event: 'chat_extracted',
+      chatType,
+      chatIdMasked: maskTelegramId(chatId),
+      chatIdPresent: !!chatId,
+      fromIdMasked: maskTelegramId(message.from?.id),
+      usernamePresent: !!message.from?.username,
+    });
 
-    // If allowed chat IDs are configured, reject messages from other chats
     const allowed = new Set((env.TELEGRAM_ALLOWED_CHAT_IDS || '').split(',').map((s: string) => s.trim()).filter(Boolean));
     if (allowed.size > 0 && chatId && !allowed.has(chatId)) {
-      // ignore messages from non-allowed chats
+      console.info('[telegram-webhook]', { event: 'chat_not_allowed', chatIdMasked: maskTelegramId(chatId), status: 200 });
       return NextResponse.json({ ok: true });
     }
 
     const text = isTelegramCallbackQuery(message) ? message.data ?? '' : message.text ?? '';
+    const messageFormat = getTelegramMessageFormat(text);
+    console.info('[telegram-webhook]', {
+      event: 'message_text_parsed',
+      messageTextExists: typeof text === 'string' && text.trim().length > 0,
+      messageFormat,
+      chatType,
+    });
 
-    if (!chatId) return NextResponse.json({ ok: true });
+    if (!chatId) {
+      console.warn('[telegram-webhook]', { event: 'chat_id_missing', status: 200 });
+      return NextResponse.json({ ok: true });
+    }
 
     await recordTelegramAudit({ telegramUserId: String(chatId), action: 'received_update', payload: message as Record<string, unknown>, timestamp: new Date() });
 
-    // Simple linking flow: accept /link <code>, /start <code>, or plain code input.
     if (typeof text === 'string') {
       const rawCode = extractTelegramLinkCode(text);
-      if (rawCode !== null) {
-        const consumed = await consumeLinkCode(rawCode);
+      const linkingBranchEntered = rawCode !== null;
+      console.info('[telegram-webhook]', {
+        event: 'linking_branch_check',
+        linkingBranchEntered,
+        messageFormat,
+      });
+
+      if (linkingBranchEntered) {
+        const consumed = await consumeLinkCode(rawCode!);
+        console.info('[telegram-webhook]', {
+          event: 'consume_link_code_result',
+          result: consumed.ok ? 'success' : consumed.reason || 'unknown',
+          status: consumed.ok ? 'success' : 'rejected',
+        });
+
         if (!consumed.ok) {
           await safeNotify(chatId, `Linking failed: ${consumed.reason}`);
           return NextResponse.json({ ok: true });
@@ -272,12 +350,28 @@ export async function POST(request: Request) {
 
         const userId = consumed.record.userId;
         const linked = await linkTelegramAdmin(userId, String(message.from?.id || ''), String(chatId));
+        console.info('[telegram-webhook]', {
+          event: 'telegram_admin_write',
+          databaseWriteSucceeded: !!linked,
+          linkedUserId: userId ? 'present' : 'missing',
+          chatIdMasked: maskTelegramId(chatId),
+        });
+
         if (!linked) {
           await safeNotify(chatId, 'This Telegram chat is already linked to another account. Revoke it before linking a new account.');
           return NextResponse.json({ ok: true });
         }
 
-        await safeNotify(chatId, `Telegram account linked successfully.`);
+        try {
+          const notifyResult = await safeNotify(chatId, 'Telegram account linked successfully.');
+          console.info('[telegram-webhook]', {
+            event: 'telegram_success_response',
+            result: notifyResult ? 'sent' : 'failed',
+            status: notifyResult ? 'success' : 'failed',
+          });
+        } catch (error) {
+          console.error('[telegram-webhook]', { event: 'telegram_success_response_error', message: error instanceof Error ? error.message : 'unknown' });
+        }
         return NextResponse.json({ ok: true });
       }
     }

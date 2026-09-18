@@ -73,6 +73,23 @@ type TelegramPayload = {
 
 type TelegramMessageOrCallback = TelegramMessage | TelegramCallbackQuery;
 
+function extractTelegramLinkCode(text: string | null | undefined): string | null {
+  if (typeof text !== 'string') return null;
+
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const match = trimmed.match(/^\/(?:link|start)(?:@\w+)?\s+(.+)$/i) || trimmed.match(/^\/(?:link|start)(?:@\w+)?$/i);
+  if (match) {
+    const candidate = (match[1] || '').trim();
+    if (!candidate) return null;
+    return candidate.startsWith('/') ? null : candidate;
+  }
+
+  if (trimmed.startsWith('/')) return null;
+  return trimmed;
+}
+
 function isTelegramCallbackQuery(value: TelegramMessageOrCallback): value is TelegramCallbackQuery {
   return Object.prototype.hasOwnProperty.call(value, 'data');
 }
@@ -238,36 +255,31 @@ export async function POST(request: Request) {
 
     await recordTelegramAudit({ telegramUserId: String(chatId), action: 'received_update', payload: message as Record<string, unknown>, timestamp: new Date() });
 
-    // Simple command: /link <code> -> consume code and create/activate admin link
-    if (typeof text === 'string' && text.startsWith('/link')) {
-      const parts = text.split(/\s+/);
-      const code = parts[1];
-      if (!code) {
-        await safeNotify(chatId, 'Please provide a one-time linking code.');
+    // Simple linking flow: accept /link <code>, /start <code>, or plain code input.
+    if (typeof text === 'string') {
+      const rawCode = extractTelegramLinkCode(text);
+      if (rawCode !== null) {
+        const consumed = await consumeLinkCode(rawCode);
+        if (!consumed.ok) {
+          await safeNotify(chatId, `Linking failed: ${consumed.reason}`);
+          return NextResponse.json({ ok: true });
+        }
+
+        if (!consumed.record) {
+          await safeNotify(chatId, 'Linking failed: invalid code');
+          return NextResponse.json({ ok: true });
+        }
+
+        const userId = consumed.record.userId;
+        const linked = await linkTelegramAdmin(userId, String(message.from?.id || ''), String(chatId));
+        if (!linked) {
+          await safeNotify(chatId, 'This Telegram chat is already linked to another account. Revoke it before linking a new account.');
+          return NextResponse.json({ ok: true });
+        }
+
+        await safeNotify(chatId, `Telegram account linked successfully.`);
         return NextResponse.json({ ok: true });
       }
-
-      const consumed = await consumeLinkCode(code);
-      if (!consumed.ok) {
-        await safeNotify(chatId, `Linking failed: ${consumed.reason}`);
-        return NextResponse.json({ ok: true });
-      }
-
-      if (!consumed.record) {
-        await safeNotify(chatId, `Linking failed: invalid code`);
-        return NextResponse.json({ ok: true });
-      }
-
-      const userId = consumed.record.userId;
-      // Create or update telegram admin mapping
-      const linked = await linkTelegramAdmin(userId, String(message.from?.id || ''), String(chatId));
-      if (!linked) {
-        await safeNotify(chatId, 'This Telegram chat is already linked to another account. Revoke it before linking a new account.');
-        return NextResponse.json({ ok: true });
-      }
-
-      await safeNotify(chatId, `Successfully linked your Telegram chat to ${await getRestaurantName()} admin account.`);
-      return NextResponse.json({ ok: true });
     }
 
     // Handle callback_query inline actions

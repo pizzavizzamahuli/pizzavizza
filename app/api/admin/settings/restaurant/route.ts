@@ -43,6 +43,7 @@ export async function GET() {
     supportEmail: s.supportEmail || null,
     whatsappSupportNumber: s.whatsappSupportNumber || null,
     workingHours: s.workingHours || null,
+    deliveryVerificationRequired: s.deliveryVerificationRequired ?? true,
     deliveryAssignmentMode: s.deliveryAssignmentMode,
     deliveryAssignmentStrategy: s.deliveryAssignmentStrategy,
     deliveryAssignmentEligibleStaffIds: s.deliveryAssignmentEligibleStaffIds || [],
@@ -140,6 +141,7 @@ export async function PUT(request: Request) {
     const whatsappSupportNumber = whatsappSupportValue === '' ? null : whatsappSupportValue;
     const workingHoursValue = typeof updates.workingHours === 'string' ? updates.workingHours.trim().slice(0, 200) : updates.workingHours === null ? null : undefined;
     const workingHours = workingHoursValue === '' ? null : workingHoursValue;
+    const deliveryVerificationRequired = typeof updates.deliveryVerificationRequired === 'boolean' ? updates.deliveryVerificationRequired : undefined;
     const deliveryAssignmentMode = ['MANUAL', 'AUTOMATIC', 'MANUAL_FALLBACK'].includes(String(updates.deliveryAssignmentMode)) ? updates.deliveryAssignmentMode as RestaurantSettingsDocument['deliveryAssignmentMode'] : undefined;
     const deliveryAssignmentStrategy = ['LOWEST_WORKLOAD', 'ROUND_ROBIN', 'LEAST_RECENT'].includes(String(updates.deliveryAssignmentStrategy)) ? updates.deliveryAssignmentStrategy as RestaurantSettingsDocument['deliveryAssignmentStrategy'] : undefined;
     const deliveryAssignmentEligibleStaffIds = Array.isArray(updates.deliveryAssignmentEligibleStaffIds) ? updates.deliveryAssignmentEligibleStaffIds.filter((id): id is string => typeof id === 'string').slice(0, 100) : undefined;
@@ -223,6 +225,7 @@ export async function PUT(request: Request) {
       supportEmail,
       whatsappSupportNumber: normalizedWhatsApp,
       workingHours,
+      deliveryVerificationRequired,
       deliveryAssignmentMode,
       deliveryAssignmentStrategy,
       deliveryAssignmentEligibleStaffIds,

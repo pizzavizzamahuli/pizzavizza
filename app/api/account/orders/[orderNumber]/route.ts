@@ -12,7 +12,7 @@ export async function GET(request: Request, context: unknown) {
   if (!order || (order.userId !== userId && !canAccessAssignedDelivery)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const payload = { ...order };
-  const canSeeOtp = order.userId === userId || canAccessAssignedDelivery;
+  const canSeeOtp = order.userId === userId || user.role !== 'DELIVERY_STAFF';
   if (!canSeeOtp) {
     delete payload.deliveryOtpCode;
     delete payload.deliveryOtpHash;

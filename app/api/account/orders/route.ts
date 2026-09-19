@@ -9,7 +9,7 @@ export async function GET() {
   const orders = user.role === 'DELIVERY_STAFF' ? await listOrdersForDeliveryStaff(userId) : await listOrdersForUser(userId);
   const safeOrders = orders.map((order) => {
     const safe = { ...order };
-    const canSeeOtp = user.role === 'DELIVERY_STAFF' && order.deliveryStaffId && [userId, user.id].includes(order.deliveryStaffId);
+    const canSeeOtp = user.role !== 'DELIVERY_STAFF';
     if (!canSeeOtp) {
       delete safe.deliveryOtpCode;
       delete safe.deliveryOtpHash;

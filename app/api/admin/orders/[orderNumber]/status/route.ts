@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOrderStatus, validOrderStatusTransitions, OrderStatus, issueOrderDeliveryOtp } from '@/src/models/order';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { qualifyReferralReward } from '@/src/services/promo-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
@@ -35,22 +36,28 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       return NextResponse.json({ error: 'Invalid order status' }, { status: 400 });
     }
 
+    const settings = await getRestaurantSettings();
+    const deliveryVerificationRequired = settings.deliveryVerificationRequired ?? true;
+
     if (!canTransitionOrderStatus(order.orderStatus, normalizedStatus as OrderStatus)) {
       return NextResponse.json({ error: `Cannot transition order from ${order.orderStatus} to ${normalizedStatus}` }, { status: 400 });
     }
     if (order.fulfillmentType === 'DELIVERY' && order.orderStatus === 'READY' && normalizedStatus === 'DELIVERED') {
       return NextResponse.json({ error: 'Delivery orders must be picked up and sent out before delivery completion.' }, { status: 409 });
     }
-    if (order.fulfillmentType === 'DELIVERY' && normalizedStatus === 'DELIVERED' && order.deliveryOtpVerified !== true) {
+    if (order.fulfillmentType === 'DELIVERY' && normalizedStatus === 'DELIVERED' && deliveryVerificationRequired && order.deliveryOtpVerified !== true) {
       return NextResponse.json({ error: 'Delivery order cannot be marked delivered before successful OTP verification.' }, { status: 409 });
+    }
+    if (order.fulfillmentType === 'DELIVERY' && normalizedStatus === 'NOT_DELIVERED' && !deliveryFailureReason) {
+      return NextResponse.json({ error: 'A reason is required when marking a delivery as not delivered.' }, { status: 400 });
     }
 
     if (canManageKitchen && !canManageOrders && !['CONFIRMED', 'PREPARING', 'READY'].includes(normalizedStatus)) {
       return NextResponse.json({ error: 'Kitchen staff can only update preparation status.' }, { status: 403 });
     }
     if (canManageDelivery && !canManageOrders && (order.deliveryStaffId !== user._id?.toHexString() && order.deliveryStaffId !== user.id)) return NextResponse.json({ error: 'Delivery staff can only update assigned orders.' }, { status: 403 });
-    if (canManageDelivery && !canManageOrders && !['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
-    if (normalizedStatus === 'CANCELLED' && canManageDelivery && !canManageOrders && !deliveryFailureReason) return NextResponse.json({ error: 'A delivery failure reason is required.' }, { status: 400 });
+    if (canManageDelivery && !canManageOrders && !['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'NOT_DELIVERED'].includes(normalizedStatus)) return NextResponse.json({ error: 'Delivery staff can only update delivery status.' }, { status: 403 });
+    if (['CANCELLED', 'NOT_DELIVERED'].includes(normalizedStatus) && canManageDelivery && !canManageOrders && !deliveryFailureReason) return NextResponse.json({ error: 'A delivery failure reason is required.' }, { status: 400 });
     if (['CONFIRMED', 'PREPARING', 'READY', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(normalizedStatus) && !isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) {
       return NextResponse.json({ error: 'Payment must be verified before this order can be processed.' }, { status: 409 });
     }
@@ -70,8 +77,8 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       updated.deliveryOtpCode = statusOtpCode;
       updated.deliveryOtpVerified = false;
     }
-    if (updated.fulfillmentType === 'DELIVERY' && ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(normalizedStatus)) {
-      await createDeliveryAuditEvent({ orderId: updated._id?.toHexString() || updated.id || updated.orderNumber, event: normalizedStatus === 'PICKED_UP' ? 'PICKUP_COMPLETED' : normalizedStatus === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : normalizedStatus === 'DELIVERED' ? 'DELIVERED' : 'DELIVERY_UNASSIGNED', performedBy: user._id?.toHexString() || user.id || null, metadata: { orderNumber: updated.orderNumber, status: normalizedStatus, deliveryFailureReason } });
+    if (updated.fulfillmentType === 'DELIVERY' && ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'NOT_DELIVERED', 'CANCELLED'].includes(normalizedStatus)) {
+      await createDeliveryAuditEvent({ orderId: updated._id?.toHexString() || updated.id || updated.orderNumber, event: normalizedStatus === 'PICKED_UP' ? 'PICKUP_COMPLETED' : normalizedStatus === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : normalizedStatus === 'DELIVERED' ? 'DELIVERED' : normalizedStatus === 'NOT_DELIVERED' ? 'DELIVERY_UNASSIGNED' : 'DELIVERY_UNASSIGNED', performedBy: user._id?.toHexString() || user.id || null, metadata: { orderNumber: updated.orderNumber, status: normalizedStatus, deliveryFailureReason } });
     }
     if (normalizedStatus === 'READY' && updated.fulfillmentType === 'DELIVERY') {
       const { autoAssignDeliveryStaff } = await import('@/src/services/delivery-assignment-service');

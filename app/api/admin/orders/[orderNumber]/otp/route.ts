@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
-import { findOrderByOrderNumber, verifyOrderDeliveryOtp } from '@/src/models/order';
+import { AuthorizationService } from '@/src/config/permissions';
+import { findOrderByOrderNumber, issueOrderDeliveryOtp, verifyOrderDeliveryOtp } from '@/src/models/order';
 
 export async function PUT(request: Request, context: { params: Promise<{ orderNumber: string }> }) {
   const user = await getSessionUser();
@@ -18,12 +19,23 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   }
 
   const currentStaffId = user._id?.toHexString() || user.id || '';
-  const canVerify = user.role === 'DELIVERY_STAFF' && order.deliveryStaffId && [currentStaffId, user.id].includes(order.deliveryStaffId);
-  if (!canVerify) {
+  const canManageOrders = AuthorizationService.canAccess(user.role, 'orders.manage', user.permissions);
+  const isAssignedDeliveryStaff = user.role === 'DELIVERY_STAFF' && order.deliveryStaffId && [currentStaffId, user.id].includes(order.deliveryStaffId);
+  if (!canManageOrders && !isAssignedDeliveryStaff) {
     return NextResponse.json({ error: 'This order is not assigned to your delivery account.' }, { status: 403 });
   }
 
   const payload = await request.json();
+  const action = payload?.action === 'resend' ? 'resend' : 'verify';
+
+  if (action === 'resend') {
+    const result = await issueOrderDeliveryOtp(order.orderNumber);
+    if (!result) {
+      return NextResponse.json({ error: 'Unable to generate a fresh OTP for this order.' }, { status: 400 });
+    }
+    return NextResponse.json({ success: true, message: 'A fresh delivery OTP has been generated.' });
+  }
+
   const code = typeof payload?.code === 'string' ? payload.code.trim() : '';
   if (!code) {
     return NextResponse.json({ error: 'OTP code is required.' }, { status: 400 });

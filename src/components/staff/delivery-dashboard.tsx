@@ -43,8 +43,10 @@ export default function DeliveryDashboard() {
   }, []);
 
   async function update(orderNumber: string, status: string) {
-    const deliveryFailureReason = status === 'CANCELLED' ? window.prompt('Reason for delivery failure/cancellation:') : null;
-    if (status === 'CANCELLED' && !deliveryFailureReason) return;
+    const deliveryFailureReason = ['CANCELLED', 'NOT_DELIVERED'].includes(status)
+      ? window.prompt(status === 'NOT_DELIVERED' ? 'Reason why the delivery could not be completed:' : 'Reason for delivery failure/cancellation:')
+      : null;
+    if (['CANCELLED', 'NOT_DELIVERED'].includes(status) && !deliveryFailureReason) return;
 
     const response = await fetch(`/api/admin/orders/${orderNumber}/status`, {
       method: 'PUT',
@@ -73,6 +75,17 @@ export default function DeliveryDashboard() {
     if (response.ok) await load();
   }
 
+  async function resendOtp(orderNumber: string) {
+    const response = await fetch(`/api/admin/orders/${orderNumber}/otp`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resend' }),
+    });
+    const data = await response.json();
+    setMessage(response.ok ? data.message || `${orderNumber} OTP resent` : data.error || 'OTP resend failed');
+    if (response.ok) await load();
+  }
+
   async function saveAvailability(value: string) {
     setAvailability(value);
     const response = await fetch('/api/account/staff-status', {
@@ -93,6 +106,13 @@ export default function DeliveryDashboard() {
         ? `COD • Collect INR ${order.totalAmount.toFixed(2)}`
         : `PAYMENT DUE • INR ${order.totalAmount.toFixed(2)}`;
     const otpVerified = Boolean(order.deliveryOtpVerified);
+    const customerPhone = order.customerSnapshot?.mobile?.replace(/\D/g, '') || '';
+    const openCustomerLocation = order.deliveryAddress && typeof order.deliveryAddress.latitude === 'number' && typeof order.deliveryAddress.longitude === 'number'
+      ? `https://www.google.com/maps?q=${order.deliveryAddress.latitude},${order.deliveryAddress.longitude}`
+      : null;
+    const navigateCustomer = order.deliveryAddress && typeof order.deliveryAddress.latitude === 'number' && typeof order.deliveryAddress.longitude === 'number'
+      ? `https://www.google.com/maps/dir/?api=1&destination=${order.deliveryAddress.latitude},${order.deliveryAddress.longitude}&travelmode=driving`
+      : null;
 
     return (
       <article key={order.orderNumber} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
@@ -128,7 +148,7 @@ export default function DeliveryDashboard() {
               <p className="mt-2 text-sm font-semibold text-emerald-700">Verified successfully</p>
             ) : (
               <>
-                <p className="mt-2 font-mono text-xl font-bold text-amber-900">{order.deliveryOtpCode || 'Waiting for code…'}</p>
+                <p className="mt-2 text-sm text-amber-900">OTP is hidden from staff. Enter the customer-provided code here.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <input
                     value={otpInputs[order.orderNumber] || ''}
@@ -138,6 +158,9 @@ export default function DeliveryDashboard() {
                   />
                   <button onClick={() => void verifyOtp(order.orderNumber)} className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white">
                     Verify
+                  </button>
+                  <button onClick={() => void resendOtp(order.orderNumber)} className="min-h-11 rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-800">
+                    Resend OTP
                   </button>
                 </div>
               </>
@@ -157,13 +180,27 @@ export default function DeliveryDashboard() {
             </button>
           ) : null}
           {order.orderStatus === 'OUT_FOR_DELIVERY' ? (
-            <button onClick={() => void update(order.orderNumber, 'DELIVERED')} className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white" disabled={!otpVerified}>
-              Mark delivered
-            </button>
+            <>
+              <button onClick={() => void update(order.orderNumber, 'DELIVERED')} className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white" disabled={!otpVerified}>
+                Mark delivered
+              </button>
+              <button onClick={() => void update(order.orderNumber, 'NOT_DELIVERED')} className="min-h-11 rounded-xl border border-rose-300 bg-rose-50 px-4 text-sm font-bold text-rose-700">
+                Not delivered
+              </button>
+            </>
           ) : null}
-          {order.customerSnapshot?.mobile ? (
-            <a href={`tel:${order.customerSnapshot.mobile}`} className="min-h-11 rounded-xl border border-stone-300 px-4 text-sm font-bold text-stone-700">
+          {customerPhone ? (
+            <a href={`tel:+${customerPhone}`} className="min-h-11 rounded-xl border border-stone-300 px-4 text-sm font-bold text-stone-700">
               Call
+            </a>
+          ) : null}
+          {navigateCustomer ? (
+            <a href={navigateCustomer} target="_blank" rel="noreferrer" className="min-h-11 rounded-xl border border-sky-300 bg-sky-50 px-4 text-sm font-bold text-sky-700">
+              Navigate customer
+            </a>
+          ) : openCustomerLocation ? (
+            <a href={openCustomerLocation} target="_blank" rel="noreferrer" className="min-h-11 rounded-xl border border-sky-300 bg-sky-50 px-4 text-sm font-bold text-sky-700">
+              Open customer map
             </a>
           ) : null}
         </div>

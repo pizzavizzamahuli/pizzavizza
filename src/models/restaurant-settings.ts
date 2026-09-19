@@ -91,6 +91,7 @@ export interface RestaurantSettingsDocument {
   manualAvailabilityReason?: string | null;
   manualAvailabilityChangedAt?: Date | null;
   manualAvailabilityChangedBy?: string | null;
+  deliveryVerificationRequired?: boolean;
   deliveryAssignmentMode: DeliveryAssignmentMode;
   deliveryAssignmentStrategy: DeliveryAssignmentStrategy;
   deliveryAssignmentEligibleStaffIds: string[];
@@ -204,6 +205,7 @@ export async function getRestaurantSettings() {
       specialDates: [],
       manualAvailabilityOverride: null,
       manualAvailabilityReason: null,
+      deliveryVerificationRequired: true,
       deliveryAssignmentMode: 'MANUAL' as DeliveryAssignmentMode,
       deliveryAssignmentStrategy: 'LOWEST_WORKLOAD' as DeliveryAssignmentStrategy,
       deliveryAssignmentEligibleStaffIds: [],

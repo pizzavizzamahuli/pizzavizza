@@ -12,6 +12,7 @@ const labels: Record<string, string> = {
   DELIVERED: 'Delivered',
   DELIVERY: 'Delivery',
   DELIVERY_STAFF: 'Delivery Staff',
+  NOT_DELIVERED: 'Not Delivered',
   DISABLED: 'Disabled',
   EXPIRED: 'Expired',
   FAILED: 'Payment Failed',

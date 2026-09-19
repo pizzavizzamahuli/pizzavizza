@@ -67,6 +67,13 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
         <p className="mt-2 text-sm text-stone-500">Subtotal: ₹{order.subtotal.toFixed(2)} • Discount: ₹{order.discount.toFixed(2)} • Delivery: ₹{order.deliveryCharge.toFixed(2)}</p>
         <p className="mt-1 text-sm text-stone-500">Paid: ₹{Number(order.paidAmount ?? (order.paymentStatus === 'PAID' ? order.totalAmount : 0)).toFixed(2)} • Due: ₹{Number(order.amountDue ?? (order.paymentStatus === 'PAID' ? 0 : order.totalAmount)).toFixed(2)}</p>
       </div>
+      {order.fulfillmentType === 'DELIVERY' ? (
+        <div className="rounded-3xl border border-stone-200 bg-white p-6">
+          <h2 className="font-medium">Delivery verification</h2>
+          <p className="mt-2 text-sm text-stone-600">OTP: <span className="font-mono font-semibold">{order.deliveryOtpCode || 'Not issued yet'}</span></p>
+          <p className="mt-2 text-sm text-stone-600">Verification: <span className={order.deliveryOtpVerified ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'}>{order.deliveryOtpVerified ? 'Verified' : 'Pending'}</span></p>
+        </div>
+      ) : null}
       {AuthorizationService.canAccess(user.role, 'orders.manage', user.permissions) ? <AddOrderItemsForm orderNumber={order.orderNumber} /> : null}
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Items</h2>

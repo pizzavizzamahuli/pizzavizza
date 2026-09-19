@@ -85,3 +85,31 @@ export async function sendProfileVerificationEmail(to: string, name: string, cod
   console.info('SMTP configuration not available. Profile verification code was generated for local development.', { to, subject });
 }
 
+export async function sendDeliveryOtpEmail(to: string, name: string, code: string, orderNumber: string) {
+  const restaurantName = await getRestaurantName();
+  const subject = `${restaurantName} delivery verification OTP for order ${orderNumber}`;
+  const text = `Hi ${name},\n\nYour delivery verification OTP for order ${orderNumber} is ${code}. Please share this code with the delivery staff when your order arrives. This code expires in 30 minutes.`;
+  const html = `<p>Hi ${name},</p><p>Your delivery verification OTP for order <strong>${orderNumber}</strong> is <strong>${code}</strong>.</p><p>Please share this code with the delivery staff when your order arrives.</p><p>This code expires in 30 minutes.</p>`;
+
+  if (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_APP_PASSWORD) {
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_PORT === 465,
+        auth: { user: env.SMTP_USER, pass: env.SMTP_APP_PASSWORD },
+      });
+      await transporter.sendMail({ from: env.SMTP_FROM || env.SMTP_USER, to, subject, text, html });
+      return;
+    } catch (error) {
+      console.error('Delivery OTP email failed to send:', error);
+      return;
+    }
+  }
+
+  if (env.NODE_ENV !== 'production') {
+    console.info('SMTP configuration not available. Delivery OTP would be sent for local development.', { to, orderNumber, subject });
+  }
+}
+

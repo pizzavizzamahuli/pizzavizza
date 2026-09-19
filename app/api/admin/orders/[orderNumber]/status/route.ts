@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
-import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOrderStatus, validOrderStatusTransitions, OrderStatus } from '@/src/models/order';
+import { findOrderByOrderNumber, updateOrderStatusByOrderNumber, canTransitionOrderStatus, validOrderStatusTransitions, OrderStatus, issueOrderDeliveryOtp } from '@/src/models/order';
 import { notifyAdmins, notifyUser } from '@/src/services/notification-service';
 import { qualifyReferralReward } from '@/src/services/promo-service';
 import { isOrderPaymentCleared } from '@/src/services/payment-service';
@@ -41,6 +41,9 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
     if (order.fulfillmentType === 'DELIVERY' && order.orderStatus === 'READY' && normalizedStatus === 'DELIVERED') {
       return NextResponse.json({ error: 'Delivery orders must be picked up and sent out before delivery completion.' }, { status: 409 });
     }
+    if (order.fulfillmentType === 'DELIVERY' && normalizedStatus === 'DELIVERED' && order.deliveryOtpVerified !== true) {
+      return NextResponse.json({ error: 'Delivery order cannot be marked delivered before successful OTP verification.' }, { status: 409 });
+    }
 
     if (canManageKitchen && !canManageOrders && !['CONFIRMED', 'PREPARING', 'READY'].includes(normalizedStatus)) {
       return NextResponse.json({ error: 'Kitchen staff can only update preparation status.' }, { status: 403 });
@@ -52,10 +55,20 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
       return NextResponse.json({ error: 'Payment must be verified before this order can be processed.' }, { status: 409 });
     }
 
+    let statusOtpCode: string | null = null;
+    if (order.fulfillmentType === 'DELIVERY' && normalizedStatus === 'OUT_FOR_DELIVERY') {
+      const otpResult = await issueOrderDeliveryOtp(order.orderNumber);
+      statusOtpCode = otpResult?.code || null;
+    }
+
     const updated = await updateOrderStatusByOrderNumber(order.orderNumber, normalizedStatus as OrderStatus, user._id!.toHexString(), deliveryFailureReason || `Admin updated order status to ${normalizedStatus}`);
     if (updated && deliveryFailureReason) await (await import('@/src/models/order')).updateOrderByOrderNumber(updated.orderNumber, { deliveryFailureReason });
     if (!updated) {
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
+    }
+    if (statusOtpCode) {
+      updated.deliveryOtpCode = statusOtpCode;
+      updated.deliveryOtpVerified = false;
     }
     if (updated.fulfillmentType === 'DELIVERY' && ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(normalizedStatus)) {
       await createDeliveryAuditEvent({ orderId: updated._id?.toHexString() || updated.id || updated.orderNumber, event: normalizedStatus === 'PICKED_UP' ? 'PICKUP_COMPLETED' : normalizedStatus === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY' : normalizedStatus === 'DELIVERED' ? 'DELIVERED' : 'DELIVERY_UNASSIGNED', performedBy: user._id?.toHexString() || user.id || null, metadata: { orderNumber: updated.orderNumber, status: normalizedStatus, deliveryFailureReason } });

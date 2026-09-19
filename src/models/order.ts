@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Collection, ObjectId, ClientSession } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 
@@ -109,6 +110,15 @@ export interface OrderDocument {
   deliveryAssignmentStatus?: 'UNASSIGNED' | 'ASSIGNED' | 'PENDING' | null;
   deliveryNote?: string | null;
   deliveryFailureReason?: string | null;
+  deliveryOtpCode?: string | null;
+  deliveryOtpHash?: string | null;
+  deliveryOtpCreatedAt?: Date | null;
+  deliveryOtpExpiresAt?: Date | null;
+  deliveryOtpVerified?: boolean;
+  deliveryOtpVerifiedAt?: Date | null;
+  deliveryOtpVerifiedBy?: string | null;
+  deliveryOtpAttempts?: number;
+  deliveryOtpLastAttemptAt?: Date | null;
   deliveryDistance?: number | null;
   deliveryRadiusAtOrder?: number | null;
   deliveryRadiusUnitAtOrder?: 'KM' | 'MILES' | null;
@@ -180,6 +190,15 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     deliveryAssignedAt: doc.deliveryAssignedAt ?? null,
     deliveryAssignedBy: doc.deliveryAssignedBy ?? null,
     deliveryAssignmentStatus: doc.deliveryAssignmentStatus ?? 'UNASSIGNED',
+    deliveryOtpCode: doc.deliveryOtpCode ?? null,
+    deliveryOtpHash: doc.deliveryOtpHash ?? null,
+    deliveryOtpCreatedAt: doc.deliveryOtpCreatedAt ?? null,
+    deliveryOtpExpiresAt: doc.deliveryOtpExpiresAt ?? null,
+    deliveryOtpVerified: doc.deliveryOtpVerified ?? false,
+    deliveryOtpVerifiedAt: doc.deliveryOtpVerifiedAt ?? null,
+    deliveryOtpVerifiedBy: doc.deliveryOtpVerifiedBy ?? null,
+    deliveryOtpAttempts: doc.deliveryOtpAttempts ?? 0,
+    deliveryOtpLastAttemptAt: doc.deliveryOtpLastAttemptAt ?? null,
     statusHistory: doc.statusHistory || [],
     createdAt: now,
     updatedAt: now,
@@ -203,6 +222,113 @@ export async function updateOrderByOrderNumber(orderNumber: string, updates: Par
   const now = new Date();
   await col.updateOne({ orderNumber }, { $set: { ...updates, updatedAt: now } });
   return col.findOne({ orderNumber });
+}
+
+export function generateDeliveryOtpCode() {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+export function hashDeliveryOtpCode(code: string) {
+  return crypto.createHash('sha256').update(String(code).trim()).digest('hex');
+}
+
+export async function issueOrderDeliveryOtp(orderNumber: string) {
+  const col = await getOrdersCollection();
+  const order = await col.findOne({ orderNumber });
+  if (!order || order.fulfillmentType !== 'DELIVERY') return null;
+
+  const now = new Date();
+  if (order.deliveryOtpCode && order.deliveryOtpHash && order.deliveryOtpExpiresAt && new Date(order.deliveryOtpExpiresAt) > now && order.deliveryOtpVerified !== true) {
+    return { code: order.deliveryOtpCode, newCode: false, order };
+  }
+
+  const code = generateDeliveryOtpCode();
+  const updated = await col.findOneAndUpdate(
+    { orderNumber },
+    {
+      $set: {
+        deliveryOtpCode: code,
+        deliveryOtpHash: hashDeliveryOtpCode(code),
+        deliveryOtpCreatedAt: now,
+        deliveryOtpExpiresAt: new Date(now.getTime() + 30 * 60 * 1000),
+        deliveryOtpVerified: false,
+        deliveryOtpVerifiedAt: null,
+        deliveryOtpVerifiedBy: null,
+        deliveryOtpAttempts: 0,
+        deliveryOtpLastAttemptAt: null,
+        updatedAt: now,
+      },
+    },
+    { returnDocument: 'after' },
+  );
+
+  return { code, newCode: true, order: updated };
+}
+
+export async function verifyOrderDeliveryOtp(orderNumber: string, code: string, verifiedBy: string) {
+  const col = await getOrdersCollection();
+  const order = await col.findOne({ orderNumber });
+  if (!order || order.fulfillmentType !== 'DELIVERY') {
+    return { ok: false, reason: 'Order not found or not a delivery order.' };
+  }
+  if (order.orderStatus === 'DELIVERED' || order.orderStatus === 'CANCELLED' || order.orderStatus === 'REJECTED') {
+    return { ok: false, reason: 'This order cannot be verified in its current state.' };
+  }
+  if (!order.deliveryOtpCode || !order.deliveryOtpHash || !order.deliveryOtpExpiresAt) {
+    return { ok: false, reason: 'No delivery OTP is active for this order.' };
+  }
+  if (new Date(order.deliveryOtpExpiresAt) <= new Date()) {
+    return { ok: false, reason: 'Delivery OTP has expired.' };
+  }
+
+  const attemptCount = Number(order.deliveryOtpAttempts ?? 0);
+  if (attemptCount >= 5) {
+    return { ok: false, reason: 'Too many invalid OTP attempts. Please request a fresh code.' };
+  }
+
+  const normalized = String(code).trim();
+  const isMatch = normalized === order.deliveryOtpCode;
+  const now = new Date();
+  await col.updateOne(
+    { orderNumber },
+    {
+      $set: {
+        deliveryOtpLastAttemptAt: now,
+        updatedAt: now,
+      },
+      $inc: { deliveryOtpAttempts: 1 },
+    },
+  );
+
+  if (!isMatch) {
+    return { ok: false, reason: 'Invalid delivery OTP.' };
+  }
+
+  const updated = await col.findOneAndUpdate(
+    { orderNumber },
+    {
+      $set: {
+        deliveryOtpVerified: true,
+        deliveryOtpVerifiedAt: now,
+        deliveryOtpVerifiedBy: verifiedBy,
+        updatedAt: now,
+      },
+    },
+    { returnDocument: 'after' },
+  );
+
+  return { ok: true, reason: 'Delivery OTP verified.', order: updated };
+}
+
+export async function getOrderDeliveryOtpForDisplay(orderNumber: string) {
+  const order = await findOrderByOrderNumber(orderNumber);
+  if (!order || order.fulfillmentType !== 'DELIVERY') return null;
+  return {
+    code: order.deliveryOtpCode || null,
+    verified: !!order.deliveryOtpVerified,
+    verifiedAt: order.deliveryOtpVerifiedAt || null,
+    expiresAt: order.deliveryOtpExpiresAt || null,
+  };
 }
 
 export async function assignDeliveryStaff(orderNumber: string, staffId: string | null, staffName: string | null, changedBy: string, expectedStaffId?: string | null) {

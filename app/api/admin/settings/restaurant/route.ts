@@ -14,7 +14,10 @@ import { getRestaurantAvailability } from '@/src/services/restaurant-availabilit
 
 export async function GET() {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+  if (!AuthorizationService.canAccess(user.role, 'settings.view', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -100,7 +103,10 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const user = await getSessionUser();
-  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+  if (!AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

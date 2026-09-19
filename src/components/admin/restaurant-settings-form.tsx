@@ -73,11 +73,31 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
     let mounted = true;
     async function load() {
       try {
-        const res = await fetch('/api/admin/settings/restaurant');
+        const res = await fetch('/api/admin/settings/restaurant', { cache: 'no-store' });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (mounted) {
+            if (res.status === 401) {
+              window.location.href = '/login?redirect=/admin/settings';
+              return;
+            }
+            setSettings(null);
+            if (typeof window !== 'undefined') {
+              window.alert(data.error || 'Unable to load settings.');
+            }
+          }
+          return;
+        }
         const data = await res.json();
         if (mounted) setSettings(data.data || null);
       } catch (e) {
         console.error('Failed to load settings', e);
+        if (mounted) {
+          setSettings(null);
+          if (typeof window !== 'undefined') {
+            window.alert('Unable to load settings. Please refresh and try again.');
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }

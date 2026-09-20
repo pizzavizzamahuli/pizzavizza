@@ -15,7 +15,10 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   const { orderNumber } = await context.params;
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-  if (order.fulfillmentType !== 'DELIVERY' || order.orderStatus !== 'READY' || ['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(order.orderStatus)) return NextResponse.json({ error: 'Only READY delivery orders can be assigned.' }, { status: 400 });
+  const canAssignBeforePickup = ['READY'].includes(order.orderStatus);
+  if (order.fulfillmentType !== 'DELIVERY' || !canAssignBeforePickup || ['PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'NOT_DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(order.orderStatus)) {
+    return NextResponse.json({ error: 'Delivery staff can only be assigned or changed before pickup.' }, { status: 400 });
+  }
   if (!isOrderPaymentCleared(order.paymentMethod, order.paymentStatus)) return NextResponse.json({ error: 'Payment must be verified before delivery assignment.' }, { status: 409 });
   const payload = await request.json() as { staffId?: string | null; staffName?: string | null };
   let staffId: string | null = null;

@@ -389,10 +389,44 @@ export async function updateOrderStatusByOrderNumber(orderNumber: string, status
   const col = await getOrdersCollection();
   const current = await col.findOne({ orderNumber });
   if (!current || !canTransitionOrderStatus(current.orderStatus, status)) return null;
+
   const now = new Date();
+  const finalStatus = status === 'DELIVERED' ? 'COMPLETED' : status;
+  const deliveryEntry = status === 'DELIVERED'
+    ? {
+        previousStatus: current.orderStatus,
+        newStatus: 'DELIVERED',
+        changedBy,
+        note: note || 'Order delivered',
+        createdAt: now,
+      }
+    : null;
+  const completionEntry = status === 'DELIVERED'
+    ? {
+        previousStatus: 'DELIVERED',
+        newStatus: 'COMPLETED',
+        changedBy,
+        note: note || 'Order marked complete after delivery',
+        createdAt: now,
+      }
+    : {
+        previousStatus: current.orderStatus,
+        newStatus: finalStatus,
+        changedBy,
+        note: note || `Status updated to ${finalStatus}`,
+        createdAt: now,
+      };
+
   const result = await col.findOneAndUpdate(
     { orderNumber, orderStatus: current.orderStatus },
-    { $set: { orderStatus: status, updatedAt: now }, $push: { statusHistory: { previousStatus: current.orderStatus, newStatus: status, changedBy, note: note || `Status updated to ${status}`, createdAt: now } } },
+    {
+      $set: { orderStatus: finalStatus, updatedAt: now },
+      $push: {
+        statusHistory: {
+          $each: deliveryEntry ? [deliveryEntry, completionEntry] : [completionEntry],
+        },
+      },
+    },
     { returnDocument: 'after' },
   );
   return result;

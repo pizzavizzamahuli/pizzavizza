@@ -15,11 +15,11 @@ export async function GET() {
   const [orders, bookings, settings] = await Promise.all([listOrders(), listBookings(), getRestaurantSettings()]);
   const eligibleOrders = orders.filter((order) => isOrderPaymentCleared(order.paymentMethod, order.paymentStatus));
   const scopedOrders = user.role === 'DELIVERY_STAFF' ? eligibleOrders.filter((order) => order.deliveryStaffId === user._id?.toHexString() || order.deliveryStaffId === user.id) : user.role === 'KITCHEN_STAFF' ? eligibleOrders.filter((order) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'].includes(order.orderStatus)) : canViewOrders ? orders : [];
-  let staff: Array<{ id?: string; name: string; mobile?: string | null; accountStatus: string }> = [];
+  let staff: Array<{ id?: string; userCode?: string; name: string; mobile?: string | null; accountStatus: string }> = [];
   if (AuthorizationService.canAccess(user.role, 'delivery.manage', user.permissions)) {
     const { getUsersCollection } = await import('@/src/models/user');
     const users = await (await getUsersCollection()).find({ role: 'DELIVERY_STAFF', accountStatus: 'ACTIVE' }).project({ passwordHash: 0, passwordReset: 0 }).toArray();
-    staff = users.map((item) => ({ id: item._id?.toHexString() || item.id, name: item.name, mobile: item.mobile || null, accountStatus: item.accountStatus }));
+    staff = users.map((item) => ({ id: item._id?.toHexString() || item.id, userCode: item.userCode || null, name: item.name, mobile: item.mobile || null, accountStatus: item.accountStatus }));
   }
   return NextResponse.json({
     success: true,

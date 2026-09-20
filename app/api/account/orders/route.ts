@@ -14,9 +14,6 @@ export async function GET() {
       delete safe.deliveryOtpCode;
       delete safe.deliveryOtpHash;
       delete safe.deliveryOtpExpiresAt;
-      delete safe.deliveryOtpVerified;
-      delete safe.deliveryOtpVerifiedAt;
-      delete safe.deliveryOtpVerifiedBy;
       delete safe.deliveryOtpAttempts;
       delete safe.deliveryOtpLastAttemptAt;
     }

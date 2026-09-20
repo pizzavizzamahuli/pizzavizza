@@ -190,16 +190,16 @@ export default function DeliveryDashboard() {
             </>
           ) : null}
           {customerPhone ? (
-            <a href={`tel:+${customerPhone}`} className="min-h-11 rounded-xl border border-stone-300 px-4 text-sm font-bold text-stone-700">
+            <a href={`tel:+${customerPhone}`} className="flex min-h-11 items-center justify-center rounded-xl border border-stone-300 px-4 text-center text-sm font-bold text-stone-700">
               Call
             </a>
           ) : null}
           {navigateCustomer ? (
-            <a href={navigateCustomer} target="_blank" rel="noreferrer" className="min-h-11 rounded-xl border border-sky-300 bg-sky-50 px-4 text-sm font-bold text-sky-700">
+            <a href={navigateCustomer} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center rounded-xl border border-sky-300 bg-sky-50 px-4 text-center text-sm font-bold text-sky-700">
               Navigate customer
             </a>
           ) : openCustomerLocation ? (
-            <a href={openCustomerLocation} target="_blank" rel="noreferrer" className="min-h-11 rounded-xl border border-sky-300 bg-sky-50 px-4 text-sm font-bold text-sky-700">
+            <a href={openCustomerLocation} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center rounded-xl border border-sky-300 bg-sky-50 px-4 text-center text-sm font-bold text-sky-700">
               Open customer map
             </a>
           ) : null}

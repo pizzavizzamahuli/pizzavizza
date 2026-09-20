@@ -3,9 +3,10 @@ import { ObjectId } from 'mongodb';
 export function normalizeDeliveryStaffIds(input: unknown): string[] {
   const values = Array.isArray(input) ? input : [input];
   const ids = values.flatMap((value) => {
-    if (typeof value !== 'string' && typeof value !== 'number') return [];
+    if (value === null || value === undefined) return [];
     const normalized = String(value).trim();
-    return normalized ? [normalized] : [];
+    if (!normalized) return [];
+    return [normalized];
   });
   return [...new Set(ids)];
 }
@@ -15,24 +16,38 @@ export function shapeDeliveryStaffId(value: unknown): string | null {
     const trimmed = value.trim();
     return trimmed || null;
   }
+  if (typeof value === 'number') {
+    return String(value);
+  }
   if (value && typeof value === 'object' && 'toHexString' in value && typeof (value as { toHexString: () => string }).toHexString === 'function') {
     const hex = (value as { toHexString: () => string }).toHexString();
-    return hex || null;
+    return hex ? hex.trim() : null;
   }
   return null;
 }
 
-export function matchesDeliveryStaffId(staff: { _id?: unknown; id?: unknown }, candidate: unknown): boolean {
-  const values = new Set<string>();
+export function matchesDeliveryStaffId(staff: { _id?: unknown; id?: unknown; userCode?: unknown }, candidate: unknown): boolean {
   const candidateValue = shapeDeliveryStaffId(candidate);
-  if (candidateValue) values.add(candidateValue);
+  if (!candidateValue) return false;
 
-  const staffId = shapeDeliveryStaffId(staff._id) || shapeDeliveryStaffId(staff.id);
-  if (staffId) values.add(staffId);
+  const candidateSet = new Set<string>([
+    candidateValue,
+    candidateValue.toLowerCase(),
+    candidateValue.toUpperCase(),
+  ]);
 
-  if (candidateValue && staffId) {
-    return candidateValue === staffId || candidateValue === staffId.toLowerCase() || candidateValue === staffId.toUpperCase();
+  const staffValues = [
+    shapeDeliveryStaffId(staff._id),
+    shapeDeliveryStaffId(staff.id),
+    typeof staff.userCode === 'string' ? staff.userCode.trim() : null,
+  ].filter((value): value is string => Boolean(value));
+
+  for (const staffValue of staffValues) {
+    if (candidateSet.has(staffValue) || candidateSet.has(staffValue.toLowerCase()) || candidateSet.has(staffValue.toUpperCase())) {
+      return true;
+    }
   }
+
   return false;
 }
 
@@ -47,6 +62,7 @@ export function buildDeliveryStaffLookupFilter(staffIds: string | string[] | nul
     }
     if (ids.length) {
       identityMatches.push({ id: { $in: ids } });
+      identityMatches.push({ userCode: { $in: ids } });
     }
   }
 

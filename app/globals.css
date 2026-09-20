@@ -75,11 +75,13 @@ svg,
   -webkit-user-select: none;
 }
 
-img {
-  user-select: auto;
-  -webkit-user-select: auto;
-  -webkit-user-drag: auto;
-  pointer-events: auto;
+img,
+picture,
+svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
 input,

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { ChatbotToggle } from '@/src/components/chatbot/chatbot-toggle';
+import { ImageDownloadProtection } from '@/src/components/image-download-protection';
 import { ServiceWorkerCleanup } from '@/src/components/pwa/service-worker-cleanup';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { getSessionUser } from '@/src/auth/session';
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <ServiceWorkerCleanup />
+        <ImageDownloadProtection />
         <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />
         {children}
       </body>

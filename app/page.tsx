@@ -58,9 +58,20 @@ export default async function Home() {
           <Link href="/menu" className="text-sm font-semibold text-amber-700">View full menu</Link>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {menuProducts.map((product) => { const productId = product._id?.toHexString() || product.id || product.slug; return <article key={productId} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-            {product.image || product.images?.length ? <ImageCarousel images={[product.image, ...(product.images || [])]} title={product.name} aspectClassName="aspect-[4/3]" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-sm text-stone-500">Pizza Vizza</div>}
-            <div className="p-4"><h3 className="font-semibold text-stone-900">{product.name}</h3><p className="mt-1 min-h-10 text-sm leading-5 text-stone-600">{product.shortDescription || product.description || 'Made fresh to order.'}</p><div className="mt-3 flex items-center justify-between gap-2"><span className="font-semibold text-stone-900">₹{product.discountPrice ?? product.price}</span><Link href={`/menu/${product.slug}`} className="text-sm font-semibold text-amber-700">View Details</Link></div><div className="mt-3"><AddToCartButton productId={productId} disabled={product.isAvailable === false} /></div></div>
+          {menuProducts.map((product) => { const productId = product._id?.toHexString() || product.id || product.slug; return <article key={productId} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:border-amber-300 hover:shadow-md">
+            <Link href={`/menu/${product.slug}`} className="block">
+              {product.image || product.images?.length ? <ImageCarousel images={[product.image, ...(product.images || [])]} title={product.name} aspectClassName="aspect-[4/3]" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-sm text-stone-500">Pizza Vizza</div>}
+              <div className="p-4">
+                <h3 className="font-semibold text-stone-900">{product.name}</h3>
+                <p className="mt-1 min-h-10 text-sm leading-5 text-stone-600">{product.shortDescription || product.description || 'Made fresh to order.'}</p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <span className="font-semibold text-stone-900">₹{product.discountPrice ?? product.price}</span>
+                </div>
+              </div>
+            </Link>
+            <div className="px-4 pb-4">
+              <AddToCartButton productId={productId} disabled={product.isAvailable === false} />
+            </div>
           </article>; })}
         </div>
       </section> : null}

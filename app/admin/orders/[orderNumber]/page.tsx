@@ -20,6 +20,14 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
   if (!order) return notFound();
   const settings = await getRestaurantSettings();
   const deliveryMessage = generateDeliveryWhatsAppMessage(order, settings);
+  const complaintMessage = order.complaint ? [
+    'Pizza Vizza Complaint',
+    `Order: ${order.orderNumber}`,
+    `Complaint: ${order.complaint.category}`,
+    `Issue: ${order.complaint.issueDescription}`,
+    `Delivery number: ${order.deliveryAddress?.mobile || order.customerSnapshot.mobile || 'N/A'}`,
+    `Consumer user ID: ${order.customerSnapshot.userId || order.userId || 'N/A'}`,
+  ].join('\n') : '';
 
   const nextStatuses = order.orderStatus === 'PENDING'
     ? ['CONFIRMED', 'CANCELLED', 'REJECTED']
@@ -149,6 +157,19 @@ export default async function AdminOrderDetail({ params }: { params: Promise<{ o
           <DeliveryShareActions message={deliveryMessage} whatsappNumber={settings.deliveryWhatsAppNumber} />
         </div>
       </div>
+      {order.complaint ? (
+        <div className="rounded-3xl border border-stone-200 bg-white p-6">
+          <h2 className="font-medium">Customer complaint</h2>
+          <div className="mt-3 space-y-2 text-sm text-stone-700">
+            <p><span className="font-semibold text-stone-900">Category:</span> {order.complaint.category}</p>
+            <p><span className="font-semibold text-stone-900">Submitted:</span> {new Date(order.complaint.submittedAt).toLocaleString()}</p>
+            <p><span className="font-semibold text-stone-900">Issue:</span> {order.complaint.issueDescription}</p>
+          </div>
+          <div className="mt-4">
+            <DeliveryShareActions message={complaintMessage} whatsappNumber={settings.whatsappSupportNumber || settings.phone} />
+          </div>
+        </div>
+      ) : null}
       <div className="rounded-3xl border border-stone-200 bg-white p-6">
         <h2 className="font-medium">Order status</h2>
         <p className="mt-2 font-medium">{orderStatusLabel(order.orderStatus)}</p>

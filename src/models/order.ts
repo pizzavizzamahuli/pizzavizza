@@ -123,6 +123,12 @@ export interface OrderDocument {
   deliveryDistance?: number | null;
   deliveryRadiusAtOrder?: number | null;
   deliveryRadiusUnitAtOrder?: 'KM' | 'MILES' | null;
+  complaint?: {
+    category: string;
+    issueDescription: string;
+    submittedAt: Date;
+    submittedByUserId: string;
+  } | null;
   statusHistory?: Array<{ previousStatus?: string; newStatus: string; changedBy?: string; note?: string; createdAt: Date }>;
   idempotencyKey?: string | null;
   createdAt: Date;
@@ -200,6 +206,7 @@ export async function createOrder(doc: Partial<OrderDocument>, session?: ClientS
     deliveryOtpVerifiedBy: doc.deliveryOtpVerifiedBy ?? null,
     deliveryOtpAttempts: doc.deliveryOtpAttempts ?? 0,
     deliveryOtpLastAttemptAt: doc.deliveryOtpLastAttemptAt ?? null,
+    complaint: doc.complaint ?? null,
     statusHistory: doc.statusHistory || [],
     createdAt: now,
     updatedAt: now,

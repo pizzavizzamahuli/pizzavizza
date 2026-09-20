@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 
 const statusLabel: Record<string, string> = {
   PENDING: 'Order placed',
@@ -24,6 +27,7 @@ type OrderItem = {
 };
 
 type Order = {
+  userId?: string;
   orderNumber: string;
   createdAt: Date;
   fulfillmentType: string;
@@ -31,7 +35,7 @@ type Order = {
   paymentStatus: string;
   paymentMethod?: string | null;
   transactionId?: string | null;
-  customerSnapshot: { name: string; mobile?: string | null; email?: string | null };
+  customerSnapshot: { userId?: string; name: string; mobile?: string | null; email?: string | null };
   items: OrderItem[];
   subtotal: number;
   discount: number;
@@ -57,6 +61,12 @@ type Order = {
   } | null;
   deliveryOtpCode?: string | null;
   deliveryOtpVerified?: boolean;
+  complaint?: {
+    category: string;
+    issueDescription: string;
+    submittedAt: Date | string;
+    submittedByUserId: string;
+  } | null;
 };
 
 type Settings = {
@@ -68,7 +78,23 @@ type Settings = {
   postalCode?: string | null;
   phone?: string | null;
   email?: string | null;
+  whatsappSupportNumber?: string | null;
 };
+
+const complaintCategories = [
+  'Missing food',
+  'Food quality',
+  'Late delivery',
+  'Wrong order',
+  'Cold food',
+  'Damaged packaging',
+  'Other',
+];
+
+function normalizeWhatsAppNumber(value?: string | null) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits || null;
+}
 
 export default function OrderReceiptView({ order, settings }: { order: Order; settings: Settings }) {
   const paymentVerified = order.paymentStatus === 'PAID';
@@ -79,6 +105,57 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
     : ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERED', 'COMPLETED'];
   const currentIndex = activeTimeline.indexOf(order.orderStatus);
   const showDeliveryOtpBlock = order.fulfillmentType === 'DELIVERY' && ['OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(order.orderStatus);
+  const complaintWindowMs = 10 * 60 * 1000;
+  const completedAtValue = useMemo(() => {
+    const completedEntry = (order as { statusHistory?: Array<{ newStatus: string; createdAt?: string | Date }> } | undefined)?.statusHistory?.find((entry) => entry.newStatus === 'COMPLETED');
+    const source = completedEntry?.createdAt || order.createdAt || new Date();
+    return new Date(source).getTime();
+  }, [order]);
+  const complaintWindowOpen = order.orderStatus === 'COMPLETED' && Date.now() - completedAtValue <= complaintWindowMs;
+  const [category, setCategory] = useState('Missing food');
+  const [issueDescription, setIssueDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionState, setSubmissionState] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const complaintSubmitted = !!order.complaint;
+  const complaintMessage = useMemo(() => {
+    const supportNumber = normalizeWhatsAppNumber(settings.whatsappSupportNumber || settings.phone || null);
+    const complaintText = [
+      'Pizza Vizza Complaint',
+      `Order: ${order.orderNumber}`,
+      `Complaint: ${order.complaint?.category || category}`,
+      `Issue: ${order.complaint?.issueDescription || issueDescription || 'No description provided'}`,
+      `Delivery number: ${order.deliveryAddress?.mobile || order.customerSnapshot.mobile || 'N/A'}`,
+      `Consumer user ID: ${order.customerSnapshot.userId || order.userId || 'N/A'}`,
+    ].join('\n');
+    if (!supportNumber) return complaintText;
+    return `https://wa.me/${supportNumber}?text=${encodeURIComponent(complaintText)}`;
+  }, [category, issueDescription, order, settings.phone, settings.whatsappSupportNumber]);
+
+  async function submitComplaint(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!issueDescription.trim()) {
+      setSubmissionState({ type: 'error', message: 'Please describe the issue before sending the complaint.' });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmissionState(null);
+      const response = await fetch(`/api/account/orders/${order.orderNumber}/complaint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category, issueDescription: issueDescription.trim() }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to submit complaint.');
+      setSubmissionState({ type: 'success', message: 'Complaint submitted successfully.' });
+      window.location.reload();
+    } catch (error) {
+      setSubmissionState({ type: 'error', message: error instanceof Error ? error.message : 'Unable to submit complaint.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -121,6 +198,44 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
             <p className="mt-2 text-sm text-stone-600">
               Status: <span className={order.deliveryOtpVerified ? 'font-semibold text-emerald-700' : 'font-semibold text-amber-700'}>{order.deliveryOtpVerified ? 'Verified' : 'Pending delivery confirmation'}</span>
             </p>
+          </div>
+        </section>
+      ) : null}
+
+      {order.orderStatus === 'COMPLETED' && !complaintSubmitted && complaintWindowOpen ? (
+        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="text-xl font-semibold">Submit a complaint</h2>
+          <form onSubmit={submitComplaint} className="mt-4 space-y-4">
+            <label className="block text-sm font-medium text-stone-700">
+              Complaint category
+              <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-2 w-full rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 text-sm">
+                {complaintCategories.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-stone-700">
+              Issue description
+              <textarea value={issueDescription} onChange={(event) => setIssueDescription(event.target.value)} rows={5} maxLength={800} placeholder="Describe what happened with your order." className="mt-2 w-full rounded-2xl border border-stone-200 bg-stone-50 px-3 py-3 text-sm" />
+            </label>
+            {submissionState ? (
+              <p className={submissionState.type === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-rose-700'}>{submissionState.message}</p>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" disabled={isSubmitting} className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                {isSubmitting ? 'Sending...' : 'Send complaint'}
+              </button>
+              <a href={complaintMessage} target="_blank" rel="noreferrer" className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+                Share on WhatsApp
+              </a>
+            </div>
+          </form>
+        </section>
+      ) : complaintSubmitted ? (
+        <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="text-xl font-semibold">Complaint status</h2>
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            Complaint submitted on {new Date(order.complaint!.submittedAt).toLocaleString()} for {order.complaint!.category}.
           </div>
         </section>
       ) : null}

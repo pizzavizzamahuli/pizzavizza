@@ -121,7 +121,7 @@ export default function ProductCustomizationForm({ productId, groups, basePrice 
   const selectedOptions = selectedOptionIds.map((optionId) => ({ optionId, quantity: optionQuantities[optionId] || 1 }));
 
   return (
-    <div className="space-y-6 rounded-3xl border border-stone-200 bg-[#f8f7f4] p-4 shadow-sm sm:p-6">
+    <div className="space-y-6 rounded-3xl border border-stone-200 bg-[#f8f7f4] p-4 pb-24 shadow-sm sm:p-6">
       <div className="space-y-4">
         <div><div className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-600">Customizations</div><p className="mt-1 text-sm text-stone-500">Choose a size, remove toppings, or add extras. Everything updates your total.</p></div>
         {groups.map((group) => {
@@ -174,11 +174,11 @@ export default function ProductCustomizationForm({ productId, groups, basePrice 
         })}
       </div>
 
-      <div className="sticky bottom-16 z-30 -mx-4 flex flex-col gap-3 border-t bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:flex-row sm:items-center sm:justify-between md:bottom-0">
-        <div>
-          <div className="text-sm text-stone-600">Base ₹{basePrice.toFixed(2)} · Options ₹{selectedTotal.toFixed(2)}<div className="text-2xl font-semibold text-stone-900">₹{(basePrice + selectedTotal).toFixed(2)}</div></div>
+      <div className="sticky bottom-0 z-30 -mx-4 flex flex-row items-center gap-3 border-t bg-white/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-stone-600 sm:text-sm">Base ₹{basePrice.toFixed(2)} · Options ₹{selectedTotal.toFixed(2)}<div className="text-xl font-semibold text-stone-900 sm:text-2xl">₹{(basePrice + selectedTotal).toFixed(2)}</div></div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3"><QuantityControl quantity={quantity} onChange={async (next) => setQuantity(Math.max(1, next))} /><AddToCartButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /><BuyNowButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /></div>
+        <div className="flex w-[min(65%,20rem)] shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end"><div className="flex justify-end sm:block"><QuantityControl quantity={quantity} onChange={async (next) => setQuantity(Math.max(1, next))} /></div><div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3"><AddToCartButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /><BuyNowButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /></div></div>
       </div>
 
       {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}

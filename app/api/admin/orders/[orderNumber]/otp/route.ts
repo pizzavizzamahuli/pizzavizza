@@ -29,7 +29,7 @@ export async function PUT(request: Request, context: { params: Promise<{ orderNu
   const action = payload?.action === 'resend' ? 'resend' : 'verify';
 
   if (action === 'resend') {
-    const result = await issueOrderDeliveryOtp(order.orderNumber);
+    const result = await issueOrderDeliveryOtp(order.orderNumber, true);
     if (!result) {
       return NextResponse.json({ error: 'Unable to generate a fresh OTP for this order.' }, { status: 400 });
     }

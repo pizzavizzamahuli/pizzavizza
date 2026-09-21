@@ -242,13 +242,13 @@ export function hashDeliveryOtpCode(code: string) {
   return crypto.createHash('sha256').update(String(code).trim()).digest('hex');
 }
 
-export async function issueOrderDeliveryOtp(orderNumber: string) {
+export async function issueOrderDeliveryOtp(orderNumber: string, forceNew = false) {
   const col = await getOrdersCollection();
   const order = await col.findOne({ orderNumber });
   if (!order || order.fulfillmentType !== 'DELIVERY') return null;
 
   const now = new Date();
-  if (order.deliveryOtpCode && order.deliveryOtpHash && order.deliveryOtpExpiresAt && new Date(order.deliveryOtpExpiresAt) > now && order.deliveryOtpVerified !== true) {
+  if (!forceNew && order.deliveryOtpCode && order.deliveryOtpHash && order.deliveryOtpExpiresAt && new Date(order.deliveryOtpExpiresAt) > now && order.deliveryOtpVerified !== true) {
     return { code: order.deliveryOtpCode, newCode: false, order };
   }
 

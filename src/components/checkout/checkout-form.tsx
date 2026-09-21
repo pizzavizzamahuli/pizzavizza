@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import LocationMap from '@/src/components/map/location-map';
 import { generateMapLink, geocodeAddress } from '@/src/services/map-provider';
 
-export type CartItem = { productId: string; name?: string; unitPrice?: number; quantity: number };
+export type CartItem = { productId: string; name?: string; unitPrice?: number; quantity: number; selectedOptions?: Array<{ optionId: string; quantity?: number }> };
 export type CartShape = { items: CartItem[] } | null;
 type PaymentMethod = 'COD' | 'ONLINE' | 'MANUAL' | 'WALLET';
 
@@ -19,6 +19,10 @@ type CheckoutSettings = {
   manualPaymentUpiId?: string | null;
   manualPaymentQrUrl?: string | null;
   manualPaymentBankDetails?: string | null;
+  manualPaymentBankingName?: string | null;
+  manualPaymentAccountNumber?: string | null;
+  manualPaymentIfscCode?: string | null;
+  manualPaymentBankName?: string | null;
   restaurantName?: string;
   deliveryBaseDistance?: number;
   deliveryBaseCharge?: number;
@@ -90,6 +94,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
   ].filter((method): method is PaymentMethod => Boolean(method));
 
   const [cart, setCart] = useState<CartShape | undefined>(undefined);
+  const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
   const [addresses, setAddresses] = useState<Array<Record<string, unknown>>>([]);
   const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>(settings.deliveryEnabled ? 'DELIVERY' : 'PICKUP');
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
@@ -114,6 +119,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [manualProofPreview, setManualProofPreview] = useState<string | null>(null);
+  const [copiedPaymentField, setCopiedPaymentField] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -145,7 +151,26 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
     setUploadStatus('idle');
   }
 
+  async function copyPaymentField(label: string, value?: string | null) {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedPaymentField(label);
+      window.setTimeout(() => setCopiedPaymentField(null), 1500);
+    } catch {
+      setError(`Unable to copy ${label}. Please copy it manually.`);
+    }
+  }
+
   useEffect(() => {
+    const storedBuyNow = window.sessionStorage.getItem('pizzavizza-buy-now');
+    if (storedBuyNow) {
+      try {
+        setBuyNowItem(JSON.parse(storedBuyNow) as CartItem);
+      } catch {
+        window.sessionStorage.removeItem('pizzavizza-buy-now');
+      }
+    }
     fetch('/api/cart')
       .then((r) => r.json())
       .then((j) => setCart(j.success ? j.data : null))
@@ -315,6 +340,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
           transactionId: effectivePaymentMethod === 'MANUAL' ? transactionId.trim() : null,
           couponCode: couponCode.trim() || null,
           walletAmount: useWallet ? walletBalance : 0,
+          items: buyNowItem ? [{ productId: buyNowItem.productId, quantity: buyNowItem.quantity, selectedOptions: buyNowItem.selectedOptions || [] }] : undefined,
         }),
       });
       const json = await res.json().catch(() => null);
@@ -378,6 +404,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
           throw err;
         });
 
+        window.sessionStorage.removeItem('pizzavizza-buy-now');
         router.push(`/account/orders/${json.data.orderNumber}`);
         return;
       }
@@ -414,6 +441,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
                 setError(verifyJson?.error || 'Payment verification failed');
                 return;
               }
+              window.sessionStorage.removeItem('pizzavizza-buy-now');
               router.push(`/account/orders/${json.data.orderNumber}`);
             } catch {
               setError('Payment verification failed');
@@ -433,6 +461,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
       if (!json?.data?.orderNumber) {
         throw new Error('Order was created but no order number was returned.');
       }
+      window.sessionStorage.removeItem('pizzavizza-buy-now');
       router.push(`/account/orders/${json.data.orderNumber}`);
       return;
     } catch (err: unknown) {
@@ -459,7 +488,8 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
   }
 
   if (cart === undefined) return <div>Loading cart…</div>;
-  if (!cart || !cart.items || cart.items.length === 0) {
+  const checkoutItems = buyNowItem ? [buyNowItem] : cart?.items || [];
+  if (checkoutItems.length === 0) {
     return (
       <div className="mx-auto max-w-4xl p-4">
         <h2 className="text-3xl font-semibold">Checkout</h2>
@@ -468,8 +498,8 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
     );
   }
 
-  const subtotal = (cart.items || []).reduce((s: number, it: CartItem) => s + ((it.unitPrice || 0) * it.quantity), 0);
-  const totalItems = (cart?.items || []).reduce((count: number, item: CartItem) => count + item.quantity, 0);
+  const subtotal = checkoutItems.reduce((s: number, it: CartItem) => s + ((it.unitPrice || 0) * it.quantity), 0);
+  const totalItems = checkoutItems.reduce((count: number, item: CartItem) => count + item.quantity, 0);
 
   function toFiniteNumber(value: unknown) {
     const parsed = Number(value);
@@ -663,14 +693,28 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
 
               {paymentMethod === 'ONLINE' && !settings.onlinePaymentEnabled && settings.manualPaymentEnabled && (
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-stone-700 md:col-span-2">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="font-semibold text-stone-900">Restaurant payment details</p>
                       {settings.manualPaymentUpiId ? <p className="mt-2"><span className="font-medium">UPI ID:</span> {settings.manualPaymentUpiId}</p> : null}
-                      {settings.manualPaymentBankDetails ? <p className="mt-2 whitespace-pre-line"><span className="font-medium">Bank:</span> {settings.manualPaymentBankDetails}</p> : null}
+                      {(settings.manualPaymentBankingName || settings.manualPaymentAccountNumber || settings.manualPaymentIfscCode || settings.manualPaymentBankName) ? (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {([
+                            ['Banking Name', settings.manualPaymentBankingName],
+                            ['Account Number', settings.manualPaymentAccountNumber],
+                            ['IFSC Code', settings.manualPaymentIfscCode],
+                            ['Bank Name', settings.manualPaymentBankName],
+                          ] as Array<[string, string | null | undefined]>).map(([label, value]) => value ? (
+                            <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-amber-100 bg-white px-3 py-2">
+                              <span><span className="block text-xs font-medium text-stone-500">{label}</span><span className="font-semibold text-stone-900">{value}</span></span>
+                              <button type="button" onClick={() => void copyPaymentField(label, value)} className="shrink-0 text-xs font-semibold text-amber-700 hover:text-amber-900">{copiedPaymentField === label ? 'Copied' : 'Copy'}</button>
+                            </div>
+                          ) : null)}
+                        </div>
+                      ) : settings.manualPaymentBankDetails ? <p className="mt-2 whitespace-pre-line"><span className="font-medium">Bank:</span> {settings.manualPaymentBankDetails}</p> : null}
                     </div>
                     {settings.manualPaymentQrUrl ? (
-                      <button type="button" onClick={() => setShowQrModal(true)} className="rounded-xl bg-amber-600 px-3 py-2 font-medium text-white">
+                      <button type="button" onClick={() => setShowQrModal(true)} className="w-full shrink-0 rounded-xl bg-amber-600 px-3 py-2 font-medium text-white sm:w-auto">
                         View QR
                       </button>
                     ) : null}
@@ -785,7 +829,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
           <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-stone-900">Cart items</h3>
             <ul className="mt-4 space-y-3 text-sm">
-              {(cart.items || []).map((it: CartItem) => (
+              {checkoutItems.map((it: CartItem) => (
                 <li key={it.productId} className="flex justify-between">
                   <span>{it.name}</span>
                   <span>{it.quantity} × ₹{(it.unitPrice || 0).toFixed(2)}</span>

@@ -5,6 +5,7 @@ import { findCustomizationGroupsByIds } from '@/src/models/customization-group';
 import ProductImageGallery from '@/src/components/product-image-gallery';
 import ProductCustomizationForm from '@/src/components/product-customization-form';
 import ProductPurchaseControls from '@/src/components/product-purchase-controls';
+import ReadMoreText from '@/src/components/read-more-text';
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ bookingNumber?: string }> }) {
   const { slug } = await params;
@@ -28,7 +29,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           <div className="space-y-5">
             <div>
               <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">{product.name}</h1>
-              <p className="mt-3 text-sm text-stone-600">{product.description}</p>
+              <ReadMoreText text={product.description} className="mt-3 text-sm text-stone-600" />
             </div>
             <div className="rounded-3xl bg-stone-100 p-5 space-y-4">
               <div className="text-3xl font-semibold text-stone-900">₹{product.discountPrice ?? product.price}</div>

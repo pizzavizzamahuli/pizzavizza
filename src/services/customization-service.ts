@@ -59,7 +59,7 @@ export async function calculateCustomizationForProduct(product: ProductDocument,
   }
 
   const activeGroups = groups.filter((group) => group.isActive !== false);
-  const lockedIncludedIds = activeGroups.flatMap((group) => group.groupType === 'TOPPINGS' ? (group.options || []).filter((option) => option.isActive !== false && (option.defaultIncluded === true || option.included === true) && option.removable !== true).map((option) => option.id) : []);
+  const lockedIncludedIds = activeGroups.flatMap((group) => group.groupType === 'TOPPINGS' ? (group.options || []).filter((option) => option.isActive !== false && option.price !== 0 && (option.defaultIncluded === true || option.included === true) && option.removable !== true).map((option) => option.id) : []);
   for (const optionId of lockedIncludedIds) {
     if (!normalizedSelectedIds.includes(optionId)) normalizedSelections.push({ optionId, quantity: 1 });
   }

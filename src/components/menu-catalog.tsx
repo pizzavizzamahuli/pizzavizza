@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import ImageCarousel from '@/src/components/image-carousel';
+import ExpandableDescription from '@/src/components/expandable-description';
 
 type MenuCategory = { id: string; name: string };
 type MenuProduct = {
@@ -105,15 +106,18 @@ export default function MenuCatalog({
             return (
               <article
                 key={id}
-                className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <ImageCarousel
-                  images={[product.image, ...(product.images || [])]}
-                  title={product.name}
-                  aspectClassName="aspect-[4/3]"
-                />
+                <Link href={`/menu/${product.slug}`} aria-label={`View details for ${product.name}`} className="absolute inset-0 z-0" />
+                <Link href={`/menu/${product.slug}`} aria-label={`View details for ${product.name}`} className="relative z-10 block">
+                  <ImageCarousel
+                    images={[product.image, ...(product.images || [])]}
+                    title={product.name}
+                    aspectClassName="aspect-[4/3]"
+                  />
+                </Link>
 
-                <div className="space-y-3 p-5">
+                <div className="relative z-10 flex flex-1 flex-col space-y-3 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="text-lg font-semibold text-stone-900">{product.name}</h2>
                     {product.discountPrice ? (
@@ -123,11 +127,9 @@ export default function MenuCatalog({
                     ) : null}
                   </div>
 
-                  <p className="min-h-10 text-sm leading-5 text-stone-600">
-                    {product.shortDescription || product.description || 'Made fresh to order.'}
-                  </p>
+                  <ExpandableDescription text={product.shortDescription || product.description} className="min-h-10 text-sm leading-5 text-stone-600" />
 
-                  <div className="flex items-end justify-between gap-3">
+                  <div className="mt-auto flex min-h-[3.5rem] items-end justify-between gap-3 pt-3">
                     <div>
                       <p className="text-xl font-bold text-stone-900">₹{product.discountPrice ?? product.price}</p>
                       {product.discountPrice ? (

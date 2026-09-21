@@ -5,8 +5,9 @@ import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
 import { getProductsForCustomer } from '@/src/services/menu-service';
 import { getAvailableDiningRooms } from '@/src/services/dining-service';
-import AddToCartButton from '@/src/components/add-to-cart-button';
+import BuyNowButton from '@/src/components/buy-now-button';
 import ImageCarousel from '@/src/components/image-carousel';
+import ExpandableDescription from '@/src/components/expandable-description';
 import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
 
 function restaurantAddress(settings: Awaited<ReturnType<typeof getRestaurantSettings>>) {
@@ -46,7 +47,7 @@ export default async function Home() {
           </div>
         </div>
         <div className="min-h-56 bg-stone-100 lg:min-h-full">
-          {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
+          {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} expandableCaptions title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
         </div>
       </section>
 
@@ -58,19 +59,22 @@ export default async function Home() {
           <Link href="/menu" className="text-sm font-semibold text-amber-700">View full menu</Link>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {menuProducts.map((product) => { const productId = product._id?.toHexString() || product.id || product.slug; return <article key={productId} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:border-amber-300 hover:shadow-md">
-            <Link href={`/menu/${product.slug}`} className="block">
-              {product.image || product.images?.length ? <ImageCarousel images={[product.image, ...(product.images || [])]} title={product.name} aspectClassName="aspect-[4/3]" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-sm text-stone-500">Pizza Vizza</div>}
-              <div className="p-4">
-                <h3 className="font-semibold text-stone-900">{product.name}</h3>
-                <p className="mt-1 min-h-10 text-sm leading-5 text-stone-600">{product.shortDescription || product.description || 'Made fresh to order.'}</p>
-                <div className="mt-3 flex items-center justify-between gap-2">
+          {menuProducts.map((product) => { const productId = product._id?.toHexString() || product.id || product.slug; return <article key={productId} className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:border-amber-300 hover:shadow-md">
+            <Link href={`/menu/${product.slug}`} aria-label={`View details for ${product.name}`} className="absolute inset-0 z-0" />
+            <div className="relative z-10 flex flex-1 flex-col">
+              <Link href={`/menu/${product.slug}`} aria-label={`View details for ${product.name}`} className="relative z-10 block">
+                {product.image || product.images?.length ? <ImageCarousel images={[product.image, ...(product.images || [])]} title={product.name} aspectClassName="aspect-[4/3]" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-sm text-stone-500">Pizza Vizza</div>}
+              </Link>
+              <div className="flex flex-1 flex-col p-4">
+                <Link href={`/menu/${product.slug}`} className="font-semibold text-stone-900 hover:text-amber-700">{product.name}</Link>
+                <ExpandableDescription text={product.shortDescription || product.description} className="mt-1 min-h-10 text-sm leading-5 text-stone-600" />
+                <div className="mt-auto flex min-h-[3.5rem] items-end justify-between gap-2 pt-3">
                   <span className="font-semibold text-stone-900">₹{product.discountPrice ?? product.price}</span>
                 </div>
               </div>
-            </Link>
-            <div className="px-4 pb-4">
-              <AddToCartButton productId={productId} disabled={product.isAvailable === false} />
+            </div>
+            <div className="relative z-10 px-4 pb-4 pt-1">
+              <BuyNowButton productId={productId} fullWidth disabled={product.isAvailable === false} />
             </div>
           </article>; })}
         </div>
@@ -85,10 +89,21 @@ export default async function Home() {
 
       {diningRooms.length ? <section className="mt-6 sm:mt-8"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Dine with us</p><h2 className="mt-2 text-2xl font-semibold text-stone-900">Make it a special occasion</h2></div><Link href="/dining" className="text-sm font-semibold text-amber-700">Explore dining</Link></div><div className="mt-4 grid gap-4 md:grid-cols-2">{diningRooms.slice(0, 2).map((room) => <Link key={room._id?.toHexString() || room.slug} href={`/dining/${room.slug}`} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:border-amber-300"><ImageCarousel images={room.images} title={room.name} aspectClassName="aspect-[16/8]" /><div className="p-4"><h3 className="font-semibold text-stone-900">{room.name}</h3><p className="mt-1 text-sm text-stone-600">{room.shortDescription || room.description}</p></div></Link>)}</div></section> : null}
 
-      <section className="mt-6 grid gap-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:mt-8 sm:rounded-3xl sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(17rem,0.9fr)] lg:items-start">
-        <div className="min-w-0"><p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">About {restaurantSettings.restaurantName}</p><h2 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl">{restaurantSettings.aboutHeading || 'Good food, made for good company.'}</h2><p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-stone-600">{restaurantSettings.aboutDescription || 'Drop in for a relaxed meal, order your favorites online, or let us bring the taste of Pizza Vizza to you.'}</p></div>
-        {restaurantSettings.aboutImages?.length ? <div className="min-w-0 overflow-hidden rounded-2xl border border-stone-200 bg-stone-50"><ImageCarousel images={restaurantSettings.aboutImages.map((image) => image.imageUrl)} captions={restaurantSettings.aboutImages.map((image) => image.description)} title={`${restaurantSettings.restaurantName} About`} aspectClassName="aspect-[4/3] sm:aspect-[16/10]" /></div> : null}
-        <div className="space-y-3 text-sm text-stone-600"><h3 className="font-semibold text-stone-900">Restaurant Information</h3>{restaurantSettings.workingHours ? <p><span className="font-medium text-stone-900">Hours:</span> {restaurantSettings.workingHours}</p> : null}{address ? <p><span className="font-medium text-stone-900">Location:</span> {address}</p> : null}<div className="flex flex-wrap gap-3">{restaurantMapUrl ? <a href={restaurantMapUrl} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">Open map</a> : null}{restaurantSettings.supportEmail ? <a href={`mailto:${restaurantSettings.supportEmail}`} className="font-semibold text-amber-700">Contact support</a> : null}{whatsappNumber ? <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">WhatsApp us</a> : null}</div></div>
+      <section className="mt-6 grid gap-8 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:mt-8 sm:rounded-3xl sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.9fr)] lg:items-stretch">
+        <div className="flex min-w-0 flex-col gap-8">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">About {restaurantSettings.restaurantName}</p>
+            <h2 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl">{restaurantSettings.aboutHeading || 'Good food, made for good company.'}</h2>
+            <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-6 text-stone-600">{restaurantSettings.aboutDescription || 'Drop in for a relaxed meal, order your favorites online, or let us bring the taste of Pizza Vizza to you.'}</p>
+          </div>
+          <div className="space-y-3 text-sm text-stone-600">
+            <h3 className="font-semibold text-stone-900">Restaurant Information</h3>
+            {restaurantSettings.workingHours ? <p><span className="font-medium text-stone-900">Hours:</span> {restaurantSettings.workingHours}</p> : null}
+            {address ? <p><span className="font-medium text-stone-900">Location:</span> {address}</p> : null}
+            <div className="flex flex-wrap gap-3">{restaurantMapUrl ? <a href={restaurantMapUrl} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">Open map</a> : null}{restaurantSettings.supportEmail ? <a href={`mailto:${restaurantSettings.supportEmail}`} className="font-semibold text-amber-700">Contact support</a> : null}{whatsappNumber ? <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer" className="font-semibold text-amber-700">WhatsApp us</a> : null}</div>
+          </div>
+        </div>
+        {restaurantSettings.aboutImages?.length ? <div className="min-w-0 self-start overflow-hidden rounded-2xl border border-stone-200 bg-stone-50"><ImageCarousel images={restaurantSettings.aboutImages.map((image) => image.imageUrl)} captions={restaurantSettings.aboutImages.map((image) => image.description)} expandableCaptions title={`${restaurantSettings.restaurantName} About`} aspectClassName="aspect-[4/3] sm:aspect-[16/10]" /></div> : null}
       </section>
 
       <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:mt-8 sm:rounded-3xl sm:p-8">

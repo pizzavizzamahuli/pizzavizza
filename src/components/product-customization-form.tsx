@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import AddToCartButton from '@/src/components/add-to-cart-button';
+import BuyNowButton from '@/src/components/buy-now-button';
 import QuantityControl from '@/src/components/quantity-control';
 
 type CustomizationOption = {
@@ -36,7 +37,13 @@ type ProductCustomizationFormProps = {
 };
 
 export default function ProductCustomizationForm({ productId, groups, basePrice }: ProductCustomizationFormProps) {
-  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>(() => groups.flatMap((group) => group.groupType === 'TOPPINGS' || group.groupType === 'INCLUDED_TOPPING' ? group.options.filter((option) => option.defaultIncluded).map((option) => option.id) : []));
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>(() => groups.flatMap((group) => {
+    if (group.groupType !== 'TOPPINGS' && group.groupType !== 'INCLUDED_TOPPING') return [];
+    const zeroPriceOptions = group.options.filter((option) => option.price === 0);
+    const defaultOptions = group.options.filter((option) => option.defaultIncluded);
+    const selected = [...defaultOptions, ...zeroPriceOptions].filter((option, index, options) => options.findIndex((candidate) => candidate.id === option.id) === index);
+    return group.maxSelections === 1 ? selected.slice(0, 1).map((option) => option.id) : selected.map((option) => option.id);
+  }));
   const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -71,7 +78,7 @@ export default function ProductCustomizationForm({ productId, groups, basePrice 
     const selectedForGroup = groupSelection[group.id] || [];
     const isRadio = group.maxSelections === 1;
     const option = group.options.find((candidate) => candidate.id === optionId);
-    if (option?.defaultIncluded && option.removable === false) return;
+    if (option?.defaultIncluded && option.removable === false && option.price !== 0) return;
 
     if (isRadio) {
       if (checked) {
@@ -171,7 +178,7 @@ export default function ProductCustomizationForm({ productId, groups, basePrice 
         <div>
           <div className="text-sm text-stone-600">Base ₹{basePrice.toFixed(2)} · Options ₹{selectedTotal.toFixed(2)}<div className="text-2xl font-semibold text-stone-900">₹{(basePrice + selectedTotal).toFixed(2)}</div></div>
         </div>
-        <div className="flex items-center gap-3"><QuantityControl quantity={quantity} onChange={async (next) => setQuantity(Math.max(1, next))} /><AddToCartButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /></div>
+        <div className="flex flex-wrap items-center justify-end gap-3"><QuantityControl quantity={quantity} onChange={async (next) => setQuantity(Math.max(1, next))} /><AddToCartButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /><BuyNowButton productId={productId} selectedOptions={selectedOptions} quantity={quantity} disabled={Boolean(validationError)} /></div>
       </div>
 
       {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}

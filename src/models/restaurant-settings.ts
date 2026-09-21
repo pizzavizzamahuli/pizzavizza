@@ -122,6 +122,10 @@ export interface RestaurantSettingsDocument {
   manualPaymentUpiId?: string | null;
   manualPaymentQrUrl?: string | null;
   manualPaymentBankDetails?: string | null;
+  manualPaymentBankingName?: string | null;
+  manualPaymentAccountNumber?: string | null;
+  manualPaymentIfscCode?: string | null;
+  manualPaymentBankName?: string | null;
   deliveryWhatsAppNumber?: string | null;
   chatbotEnabled: boolean;
   // Sensitive server-side API keys (not returned in public settings API)

@@ -5,7 +5,9 @@ import type { RestaurantSettingsDocument } from '@/src/models/restaurant-setting
 export default function GlobalFooter({ settings }: { settings: RestaurantSettingsDocument | null }) {
   const name = settings?.restaurantName || 'Pizza Vizza';
   const restaurantAddress = settings?.footerAddress || '';
-  const hasPoweredBy = !!settings?.poweredByName && !!settings?.poweredByUrl;
+  const poweredByName = settings?.poweredByName?.trim() || '';
+  const poweredByUrl = settings?.poweredByUrl?.trim() || '';
+  const hasPoweredBy = Boolean(poweredByName || poweredByUrl);
   const whatsappNumber = settings?.whatsappSupportNumber?.replace(/\D/g, '');
 
   return (
@@ -22,7 +24,7 @@ export default function GlobalFooter({ settings }: { settings: RestaurantSetting
         <nav aria-label="Customer Support"><h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Customer Support</h2><div className="mt-3 grid gap-1.5 text-sm sm:mt-4 sm:gap-3">{settings?.supportEmail ? <a className="flex min-h-8 items-center transition hover:text-amber-400" href={`mailto:${settings.supportEmail}`}>Help &amp; Support</a> : null}{whatsappNumber ? <a className="flex min-h-8 items-center transition hover:text-amber-400" href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hello ${name}, I need help with my order/account.`)}`} target="_blank" rel="noopener noreferrer">WhatsApp Support</a> : null}<Link className="flex min-h-8 items-center transition hover:text-amber-400" href="/delivery-policy">Delivery</Link><Link className="flex min-h-8 items-center transition hover:text-amber-400" href="/refund-cancellation-policy">Refund Policy</Link><Link className="flex min-h-8 items-center transition hover:text-amber-400" href="/terms-and-conditions">Terms &amp; Conditions</Link><Link className="flex min-h-8 items-center transition hover:text-amber-400" href="/privacy-policy">Privacy Policy</Link></div></nav>
         <div className="min-[360px]:col-span-2 lg:col-span-1"><h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Restaurant</h2><div className="mt-3 grid gap-1.5 text-sm sm:mt-4 sm:gap-3"><p className="font-medium text-white">{name}</p>{restaurantAddress ? <p className="break-words">{restaurantAddress}</p> : null}{settings?.email ? <a className="break-all transition hover:text-amber-400" href={`mailto:${settings.email}`}>{settings.email}</a> : null}{settings?.workingHours ? <p>{settings.workingHours}</p> : null}</div></div>
       </div>
-      <div className="border-t" style={{ borderColor: `${settings?.appearance?.colors.border || '#e7e5e4'}55` }}><div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-5"><p>© {new Date().getFullYear()} {name}. All rights reserved.</p>{hasPoweredBy ? <p>Powered by <a href={settings?.poweredByUrl || '#'} target="_blank" rel="noopener noreferrer" className="font-semibold" style={{ color: settings?.appearance?.colors.footerAccent || '#fbbf24' }}>{settings?.poweredByName}</a></p> : null}</div></div>
+      <div className="border-t" style={{ borderColor: `${settings?.appearance?.colors.border || '#e7e5e4'}55` }}><div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-5"><p>© {new Date().getFullYear()} {name}. All rights reserved.</p>{hasPoweredBy ? <p>Powered by {poweredByUrl ? <a href={poweredByUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline-offset-2 hover:underline" style={{ color: settings?.appearance?.colors.footerAccent || '#fbbf24' }}>{poweredByName || poweredByUrl}</a> : <span className="font-semibold" style={{ color: settings?.appearance?.colors.footerAccent || '#fbbf24' }}>{poweredByName}</span>}</p> : null}</div></div>
     </footer>
   );
 }

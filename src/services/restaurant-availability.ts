@@ -20,13 +20,25 @@ export interface RestaurantAvailability {
 const dayKeys: RestaurantDayKey[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 function getLocalParts(date: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
+  let formatter: Intl.DateTimeFormat;
+  try {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+  const parts = formatter.formatToParts(date);
   const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(values.weekday);
   return { day: dayKeys[weekday < 0 ? 0 : weekday], time: `${values.hour === '24' ? '00' : values.hour}:${values.minute}` };
@@ -51,8 +63,35 @@ function findSpecialDate(settings: RestaurantSettingsDocument, date: string): Re
 export function getRestaurantAvailability(settings: RestaurantSettingsDocument, now = new Date()): RestaurantAvailability {
   const timezone = settings.restaurantTimezone || 'Asia/Kolkata';
   const local = getLocalParts(now, timezone);
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  return getRestaurantAvailabilityAt(settings, local.day, local.time, date);
+  let date: string;
+  try {
+    date = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  } catch {
+    date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  }
+  const currentAvailability = getRestaurantAvailabilityAt(settings, local.day, local.time, date);
+  if (currentAvailability.status === 'OPEN') return currentAvailability;
+
+  const currentDayIndex = dayKeys.indexOf(local.day);
+  const previousDay = dayKeys[(currentDayIndex + dayKeys.length - 1) % dayKeys.length];
+  const previousDateValue = new Date(`${date}T12:00:00Z`);
+  previousDateValue.setUTCDate(previousDateValue.getUTCDate() - 1);
+  const previousDate = previousDateValue.toISOString().slice(0, 10);
+  const previousSchedule = findSpecialDate(settings, previousDate) || getSchedule(settings)[previousDay];
+  const previousOpenTime = previousSchedule?.openTime || '00:00';
+  const previousCloseTime = previousSchedule?.closeTime || '23:59';
+  if (previousSchedule?.isOpen && previousCloseTime < previousOpenTime && local.time < previousCloseTime) {
+    return {
+      status: 'OPEN',
+      reason: 'WEEKLY_SCHEDULE',
+      reasonMessage: 'Restaurant is open according to its overnight schedule.',
+      openTime: previousOpenTime,
+      closeTime: previousCloseTime,
+      timezone,
+      nextOpenAt: previousSchedule.openTime,
+    };
+  }
+  return currentAvailability;
 }
 
 export function getRestaurantAvailabilityAt(settings: RestaurantSettingsDocument, day: RestaurantDayKey, time: string, date?: string): RestaurantAvailability {
@@ -68,7 +107,10 @@ export function getRestaurantAvailabilityAt(settings: RestaurantSettingsDocument
   if (!schedule?.isOpen) {
     return { status: 'CLOSED', reason: 'WEEKLY_SCHEDULE', reasonMessage: special?.label ? `${special.label}: restaurant is closed.` : 'Restaurant is closed today.', openTime: null, closeTime: null, timezone, nextOpenAt: null };
   }
-  const inHours = time >= schedule.openTime && time < schedule.closeTime;
+  const isOvernight = schedule.closeTime < schedule.openTime;
+  const inHours = isOvernight
+    ? time >= schedule.openTime || time < schedule.closeTime
+    : time >= schedule.openTime && time < schedule.closeTime;
   return { status: inHours ? 'OPEN' : 'CLOSED', reason: inHours ? 'WEEKLY_SCHEDULE' : 'OUTSIDE_OPERATING_HOURS', reasonMessage: inHours ? 'Restaurant is open according to its schedule.' : `Restaurant is closed outside operating hours (${schedule.openTime} - ${schedule.closeTime}).`, openTime: schedule.openTime, closeTime: schedule.closeTime, timezone, nextOpenAt: schedule.openTime };
 }
 

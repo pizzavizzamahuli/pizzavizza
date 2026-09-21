@@ -77,6 +77,10 @@ export async function GET() {
     manualPaymentUpiId: s.manualPaymentUpiId,
     manualPaymentQrUrl: s.manualPaymentQrUrl,
     manualPaymentBankDetails: s.manualPaymentBankDetails,
+    manualPaymentBankingName: s.manualPaymentBankingName || null,
+    manualPaymentAccountNumber: s.manualPaymentAccountNumber || null,
+    manualPaymentIfscCode: s.manualPaymentIfscCode || null,
+    manualPaymentBankName: s.manualPaymentBankName || null,
     onlinePaymentEnabled: s.onlinePaymentEnabled,
     deliveryWhatsAppNumber: s.deliveryWhatsAppNumber,
     chatbotEnabled: s.chatbotEnabled ?? true,
@@ -119,6 +123,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'You do not have permission to manage restaurant availability.' }, { status: 403 });
     }
     const weeklySchedule = Array.isArray(updates.weeklySchedule) ? undefined : (updates.weeklySchedule && typeof updates.weeklySchedule === 'object' ? Object.fromEntries(Object.entries(defaultWeeklySchedule).map(([day, fallback]) => { const value = (updates.weeklySchedule as Record<string, unknown>)[day]; const item = value && typeof value === 'object' ? value as Record<string, unknown> : {}; return [day, { isOpen: item.isOpen !== false, openTime: typeof item.openTime === 'string' && /^\d{2}:\d{2}$/.test(item.openTime) ? item.openTime : fallback.openTime, closeTime: typeof item.closeTime === 'string' && /^\d{2}:\d{2}$/.test(item.closeTime) ? item.closeTime : fallback.closeTime }]; })) as RestaurantWeeklySchedule : undefined);
+    if (weeklySchedule) {
+      for (const [day, schedule] of Object.entries(weeklySchedule)) {
+        if (schedule.isOpen && schedule.openTime === schedule.closeTime) {
+          return NextResponse.json({ error: `${day} opening and closing times cannot be identical.` }, { status: 400 });
+        }
+      }
+    }
     const specialDates = Array.isArray(updates.specialDates) ? updates.specialDates.map((value) => {
       if (!value || typeof value !== 'object') return null;
       const item = value as Record<string, unknown>;
@@ -128,6 +139,27 @@ export async function PUT(request: Request) {
       if (calendarDate.getUTCFullYear() !== year || calendarDate.getUTCMonth() !== month - 1 || calendarDate.getUTCDate() !== day) return null;
       return { date: item.date, isOpen: item.isOpen === true, openTime: typeof item.openTime === 'string' && /^\d{2}:\d{2}$/.test(item.openTime) ? item.openTime : null, closeTime: typeof item.closeTime === 'string' && /^\d{2}:\d{2}$/.test(item.closeTime) ? item.closeTime : null, label: typeof item.label === 'string' ? item.label.trim().slice(0, 100) || null : null };
     }).filter((value): value is { date: string; isOpen: boolean; openTime: string | null; closeTime: string | null; label: string | null } => Boolean(value)).slice(0, 100) : undefined;
+    if (Array.isArray(updates.specialDates)) {
+      const rawSpecialDates = updates.specialDates.filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object');
+      if (rawSpecialDates.some((item) => typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date) || !item.date.trim())) {
+        return NextResponse.json({ error: 'Every special date must have a valid date.' }, { status: 400 });
+      }
+      const dates = rawSpecialDates.map((item) => String(item.date));
+      if (new Set(dates).size !== dates.length) {
+        return NextResponse.json({ error: 'Each special date can be added only once.' }, { status: 400 });
+      }
+      for (const item of rawSpecialDates) {
+        if (item.isOpen !== true) continue;
+        const openTime = typeof item.openTime === 'string' ? item.openTime : '';
+        const closeTime = typeof item.closeTime === 'string' ? item.closeTime : '';
+        if ((openTime && !closeTime) || (!openTime && closeTime)) {
+          return NextResponse.json({ error: `Both opening and closing times are required for ${item.date}, or leave both blank for all-day opening.` }, { status: 400 });
+        }
+        if (openTime && closeTime && openTime === closeTime) {
+          return NextResponse.json({ error: `Opening and closing times cannot be identical for ${item.date}.` }, { status: 400 });
+        }
+      }
+    }
     const manualAvailabilityOverride = updates.manualAvailabilityOverride === 'OPEN' || updates.manualAvailabilityOverride === 'CLOSED' ? updates.manualAvailabilityOverride : updates.manualAvailabilityOverride === null ? null : undefined;
     const manualAvailabilityReason = typeof updates.manualAvailabilityReason === 'string' ? updates.manualAvailabilityReason.trim().slice(0, 200) || null : updates.manualAvailabilityReason === null ? null : undefined;
     const telegramUpdateKeys = ['telegramEnabled', 'telegramOrderNotificationsEnabled', 'telegramBookingNotificationsEnabled', 'telegramPaymentNotificationsEnabled'];
@@ -261,6 +293,10 @@ export async function PUT(request: Request) {
       manualPaymentUpiId: typeof updates.manualPaymentUpiId === 'string' ? updates.manualPaymentUpiId.trim() : undefined,
       manualPaymentQrUrl: typeof updates.manualPaymentQrUrl === 'string' ? updates.manualPaymentQrUrl.trim() : undefined,
       manualPaymentBankDetails: typeof updates.manualPaymentBankDetails === 'string' ? updates.manualPaymentBankDetails.trim() : undefined,
+      manualPaymentBankingName: typeof updates.manualPaymentBankingName === 'string' ? updates.manualPaymentBankingName.trim() : updates.manualPaymentBankingName === null ? null : undefined,
+      manualPaymentAccountNumber: typeof updates.manualPaymentAccountNumber === 'string' ? updates.manualPaymentAccountNumber.trim() : updates.manualPaymentAccountNumber === null ? null : undefined,
+      manualPaymentIfscCode: typeof updates.manualPaymentIfscCode === 'string' ? updates.manualPaymentIfscCode.trim().toUpperCase() : updates.manualPaymentIfscCode === null ? null : undefined,
+      manualPaymentBankName: typeof updates.manualPaymentBankName === 'string' ? updates.manualPaymentBankName.trim() : updates.manualPaymentBankName === null ? null : undefined,
       onlinePaymentEnabled: typeof updates.onlinePaymentEnabled === 'boolean' ? updates.onlinePaymentEnabled : undefined,
       deliveryWhatsAppNumber: typeof updates.deliveryWhatsAppNumber === 'string' ? updates.deliveryWhatsAppNumber.trim() : undefined,
       chatbotEnabled: typeof updates.chatbotEnabled === 'boolean' ? updates.chatbotEnabled : undefined,

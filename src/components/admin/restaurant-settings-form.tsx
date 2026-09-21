@@ -20,6 +20,18 @@ type HomepageImage = {
   updatedAt?: string;
 };
 
+function parseWorkingHours(value?: string | null) {
+  const matches = value?.match(/(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*[-–]\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?/i);
+  if (!matches) return { open: '11:00', close: '23:00' };
+  const normalize = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return Number.isInteger(hours) && hours >= 0 && hours <= 23 && Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
+      ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+      : null;
+  };
+  return { open: normalize(matches[1]) || '11:00', close: normalize(matches[2]) || '23:00' };
+}
+
 export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,6 +47,9 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
   const [homeFile, setHomeFile] = useState<File | null>(null);
   const [homePreview, setHomePreview] = useState<string | null>(null);
   const [homeDraftDescription, setHomeDraftDescription] = useState('');
+  const [workingHoursOpen, setWorkingHoursOpen] = useState('11:00');
+  const [workingHoursClose, setWorkingHoursClose] = useState('23:00');
+  const [websiteControlSaving, setWebsiteControlSaving] = useState<string | null>(null);
 
   useEffect(() => {
     if (!logoFile) {
@@ -89,7 +104,12 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           return;
         }
         const data = await res.json();
-        if (mounted) setSettings(data.data || null);
+        if (mounted) {
+          setSettings(data.data || null);
+          const workingHours = parseWorkingHours(data.data?.workingHours);
+          setWorkingHoursOpen(workingHours.open);
+          setWorkingHoursClose(workingHours.close);
+        }
       } catch (e) {
         console.error('Failed to load settings', e);
         if (mounted) {
@@ -221,6 +241,10 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           manualPaymentUpiId: settings.manualPaymentUpiId,
           manualPaymentQrUrl: settings.manualPaymentQrUrl,
           manualPaymentBankDetails: settings.manualPaymentBankDetails,
+          manualPaymentBankingName: settings.manualPaymentBankingName,
+          manualPaymentAccountNumber: settings.manualPaymentAccountNumber,
+          manualPaymentIfscCode: settings.manualPaymentIfscCode,
+          manualPaymentBankName: settings.manualPaymentBankName,
           onlinePaymentEnabled: settings.onlinePaymentEnabled,
           deliveryWhatsAppNumber: settings.deliveryWhatsAppNumber,
           chatbotEnabled: settings.chatbotEnabled,
@@ -230,7 +254,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           referralMinimumOrderAmount: settings.referralMinimumOrderAmount,
           supportEmail: settings.supportEmail,
           whatsappSupportNumber: settings.whatsappSupportNumber,
-          workingHours: settings.workingHours,
+          workingHours: `Daily, ${workingHoursOpen} - ${workingHoursClose}`,
           restaurantTimezone: settings.restaurantTimezone,
           weeklySchedule: settings.weeklySchedule,
           specialDates: settings.specialDates,
@@ -285,6 +309,29 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       setSaveFeedback({ tone: 'error', message: `Powered By save failed: ${error instanceof Error ? error.message : String(error)}` });
     } finally {
       setPoweredBySaving(false);
+    }
+  }
+
+  async function saveWebsiteControl(key: 'deliveryEnabled' | 'pickupEnabled' | 'onlinePaymentEnabled' | 'chatbotEnabled' | 'codEnabled' | 'manualPaymentEnabled', value: boolean) {
+    const previousValue = settings[key];
+    setWebsiteControlSaving(key);
+    setSettings((current: any) => ({ ...current, [key]: value })); // eslint-disable-line @typescript-eslint/no-explicit-any
+    setSaveFeedback(null);
+    try {
+      const response = await fetch('/api/admin/settings/restaurant', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Website control save failed.');
+      setSettings(data.data);
+      setSaveFeedback({ tone: 'success', message: `${key.replace(/Enabled$/, '').replace(/^./, (letter) => letter.toUpperCase())} setting updated.` });
+    } catch (error) {
+      setSettings((current: any) => ({ ...current, [key]: previousValue })); // eslint-disable-line @typescript-eslint/no-explicit-any
+      setSaveFeedback({ tone: 'error', message: `Website control save failed: ${error instanceof Error ? error.message : String(error)}` });
+    } finally {
+      setWebsiteControlSaving(null);
     }
   }
 
@@ -358,7 +405,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <div><label className="block text-sm font-medium">Homepage Images</label><p className="mt-1 text-xs text-stone-500">Add as many homepage slides as needed. Each image has its own optional description.</p></div>
           <label htmlFor="restaurant-home-picker" className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-700">+ Add homepage image</label>
         </div>
@@ -459,27 +506,27 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         <h2 className="text-sm font-semibold text-stone-900">Website Controls</h2>
         <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-3">
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!settings.deliveryEnabled} onChange={(e) => setSettings({ ...settings, deliveryEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'deliveryEnabled'} checked={!!settings.deliveryEnabled} onChange={(e) => void saveWebsiteControl('deliveryEnabled', e.target.checked)} />
             <span>Delivery Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!settings.pickupEnabled} onChange={(e) => setSettings({ ...settings, pickupEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'pickupEnabled'} checked={!!settings.pickupEnabled} onChange={(e) => void saveWebsiteControl('pickupEnabled', e.target.checked)} />
             <span>Pickup Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!settings.onlinePaymentEnabled} onChange={(e) => setSettings({ ...settings, onlinePaymentEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'onlinePaymentEnabled'} checked={!!settings.onlinePaymentEnabled} onChange={(e) => void saveWebsiteControl('onlinePaymentEnabled', e.target.checked)} />
             <span>Online Payment Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={settings.chatbotEnabled ?? true} onChange={(e) => setSettings({ ...settings, chatbotEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'chatbotEnabled'} checked={settings.chatbotEnabled ?? true} onChange={(e) => void saveWebsiteControl('chatbotEnabled', e.target.checked)} />
             <span>Chatbot Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!settings.codEnabled} onChange={(e) => setSettings({ ...settings, codEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'codEnabled'} checked={!!settings.codEnabled} onChange={(e) => void saveWebsiteControl('codEnabled', e.target.checked)} />
             <span>COD Enabled</span>
           </label>
           <label className="flex items-center space-x-2">
-            <input type="checkbox" checked={!!settings.manualPaymentEnabled} onChange={(e) => setSettings({ ...settings, manualPaymentEnabled: e.target.checked })} />
+            <input type="checkbox" disabled={websiteControlSaving === 'manualPaymentEnabled'} checked={!!settings.manualPaymentEnabled} onChange={(e) => void saveWebsiteControl('manualPaymentEnabled', e.target.checked)} />
             <span>Manual Payment Enabled</span>
           </label>
         </div>
@@ -497,8 +544,14 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
             <input className="input" value={settings.manualPaymentQrUrl || ''} onChange={(e) => setSettings({ ...settings, manualPaymentQrUrl: e.target.value })} />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium">Bank details</label>
-            <textarea className="input min-h-24 w-full" value={settings.manualPaymentBankDetails || ''} onChange={(e) => setSettings({ ...settings, manualPaymentBankDetails: e.target.value })} />
+            <p className="text-sm font-medium">Bank details</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm"><span className="mb-1 block">Banking Name</span><input className="input w-full" value={settings.manualPaymentBankingName || ''} onChange={(e) => setSettings({ ...settings, manualPaymentBankingName: e.target.value })} placeholder="Account holder name" /></label>
+              <label className="text-sm"><span className="mb-1 block">Account Number</span><input className="input w-full" inputMode="numeric" value={settings.manualPaymentAccountNumber || ''} onChange={(e) => setSettings({ ...settings, manualPaymentAccountNumber: e.target.value })} placeholder="Bank account number" /></label>
+              <label className="text-sm"><span className="mb-1 block">IFSC Code</span><input className="input w-full uppercase" value={settings.manualPaymentIfscCode || ''} onChange={(e) => setSettings({ ...settings, manualPaymentIfscCode: e.target.value.toUpperCase() })} placeholder="e.g. SBIN0001234" /></label>
+              <label className="text-sm"><span className="mb-1 block">Bank Name</span><input className="input w-full" value={settings.manualPaymentBankName || ''} onChange={(e) => setSettings({ ...settings, manualPaymentBankName: e.target.value })} placeholder="Bank name" /></label>
+            </div>
+            <p className="mt-3 text-xs text-stone-500">These fields appear separately to customers for easy copying. Existing bank details text remains supported as a fallback.</p>
           </div>
         </div>
       </div>
@@ -518,7 +571,14 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-sm"><span className="mb-1 block">Help &amp; Support email</span><input className="input" type="email" value={settings.supportEmail || ''} onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })} placeholder="support@example.com" /></label>
           <label className="text-sm"><span className="mb-1 block">WhatsApp support number</span><input className="input" inputMode="tel" value={settings.whatsappSupportNumber || ''} onChange={(e) => setSettings({ ...settings, whatsappSupportNumber: e.target.value })} placeholder="+91XXXXXXXXXX" /></label>
-          <label className="text-sm sm:col-span-2"><span className="mb-1 block">Working hours</span><input className="input" maxLength={200} value={settings.workingHours || ''} onChange={(e) => setSettings({ ...settings, workingHours: e.target.value })} placeholder="Daily, 11:00 AM - 11:00 PM" /></label>
+          <div className="sm:col-span-2">
+            <span className="mb-1 block text-sm font-medium">Working hours</span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm"><span className="mb-1 block text-stone-600">Opening time</span><input type="time" className="input w-full" value={workingHoursOpen} onChange={(event) => setWorkingHoursOpen(event.target.value)} /></label>
+              <label className="text-sm"><span className="mb-1 block text-stone-600">Closing time</span><input type="time" className="input w-full" value={workingHoursClose} onChange={(event) => setWorkingHoursClose(event.target.value)} /></label>
+            </div>
+            <p className="mt-2 text-xs text-stone-500">Select opening and closing times. These hours are shown in the public footer.</p>
+          </div>
         </div>
         <p className="mt-3 text-xs text-stone-500">Support email and WhatsApp links appear in the public footer after saving.</p>
       </div>

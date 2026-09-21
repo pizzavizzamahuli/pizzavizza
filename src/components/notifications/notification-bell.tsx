@@ -65,15 +65,20 @@ export function NotificationBell({ admin = false, popupStyle = 'none' }: { admin
   const [pushBusy, setPushBusy] = useState(false);
 
   async function refresh() {
-    const response = await fetch('/api/notifications', { cache: 'no-store' });
-    if (!response.ok) {
+    try {
+      const response = await fetch('/api/notifications', { cache: 'no-store' });
+      if (!response.ok) {
+        setItems([]);
+        setUnreadCount(0);
+        return;
+      }
+      const data = await response.json() as { data?: NotificationItem[]; unreadCount?: number };
+      setItems(data.data || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch {
       setItems([]);
       setUnreadCount(0);
-      return;
     }
-    const data = await response.json() as { data?: NotificationItem[]; unreadCount?: number };
-    setItems(data.data || []);
-    setUnreadCount(data.unreadCount || 0);
   }
 
   useEffect(() => {

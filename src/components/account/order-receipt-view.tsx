@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import ReceiptActions from '@/src/components/account/receipt-actions';
 
 const statusLabel: Record<string, string> = {
   PENDING: 'Order placed',
@@ -22,6 +23,8 @@ type OrderItem = {
   image?: string | null;
   quantity: number;
   unitPrice: number;
+  listPrice?: number;
+  productDiscount?: number;
   subtotal: number;
   selectedOptions?: Array<{ optionId: string; groupName: string; optionName: string; price: number }>;
 };
@@ -29,7 +32,7 @@ type OrderItem = {
 type Order = {
   userId?: string;
   orderNumber: string;
-  createdAt: Date;
+  createdAt: Date | string;
   fulfillmentType: string;
   orderStatus: string;
   paymentStatus: string;
@@ -131,6 +134,15 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
     return `https://wa.me/${supportNumber}?text=${encodeURIComponent(complaintText)}`;
   }, [category, issueDescription, order, settings.phone, settings.whatsappSupportNumber]);
 
+  const receiptAddress = order.deliveryAddress ? {
+    addressLine1: order.deliveryAddress.addressLine1,
+    addressLine2: order.deliveryAddress.addressLine2,
+    landmark: order.deliveryAddress.landmark,
+    city: order.deliveryAddress.city,
+    state: order.deliveryAddress.state,
+    postalCode: order.deliveryAddress.postalCode,
+  } : null;
+
   async function submitComplaint(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!issueDescription.trim()) {
@@ -180,7 +192,7 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
           </div>
           <div>
             <dt className="text-stone-500">Placed</dt>
-            <dd className="font-semibold">{order.createdAt.toLocaleDateString()} {order.createdAt.toLocaleTimeString()}</dd>
+            <dd className="font-semibold">{new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString()}</dd>
           </div>
           <div>
             <dt className="text-stone-500">Order type</dt>
@@ -188,6 +200,32 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
           </div>
         </dl>
       </section>
+
+      <ReceiptActions data={{
+        orderNumber: order.orderNumber,
+        createdAt: new Date(order.createdAt).toISOString(),
+        fulfillmentType: order.fulfillmentType,
+        customerName: order.customerSnapshot.name,
+        customerMobile: order.customerSnapshot.mobile,
+        customerEmail: order.customerSnapshot.email,
+        items: order.items,
+        subtotal: order.subtotal,
+        discount: order.discount,
+        walletAmount: order.walletAmount,
+        deliveryCharge: order.deliveryCharge,
+        additionalCharges: order.additionalCharges,
+        totalAmount: order.totalAmount,
+        paidAmount: order.paidAmount ?? 0,
+        amountDue: order.amountDue ?? Math.max(0, order.totalAmount - (order.paidAmount ?? 0)),
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        address: receiptAddress,
+        restaurantName: settings.restaurantName,
+        restaurantLogo: settings.logo,
+        restaurantAddress: [settings.addressLine1, settings.city, settings.state, settings.postalCode].filter(Boolean).join(', '),
+        restaurantPhone: settings.phone,
+        restaurantEmail: settings.email,
+      }} />
 
       {showDeliveryOtpBlock ? (
         <section className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
@@ -251,9 +289,12 @@ export default function OrderReceiptView({ order, settings }: { order: Order; se
                   <p className="text-sm text-stone-500">{item.selectedOptions.map((option) => option.optionName).join(', ')}</p>
                 ) : null}
               </div>
-              <div className="text-right text-sm text-stone-700">
+              <div className="min-w-32 text-right text-sm text-stone-700">
+                {item.listPrice != null ? <div>Price: ₹{item.listPrice.toFixed(2)}</div> : null}
+                {item.productDiscount ? <div className="text-emerald-700">Discount: -₹{item.productDiscount.toFixed(2)}</div> : null}
+                {item.selectedOptions?.map((option) => <div key={option.optionId} className={option.price >= 0 ? 'text-stone-500' : 'text-rose-600'}>{option.optionName}: {option.price >= 0 ? '+' : '-'}₹{Math.abs(option.price).toFixed(2)}</div>)}
                 <div>{item.quantity} × ₹{item.unitPrice.toFixed(2)}</div>
-                <div className="font-semibold">₹{item.subtotal.toFixed(2)}</div>
+                <div className="font-semibold text-stone-900">₹{item.subtotal.toFixed(2)}</div>
               </div>
             </div>
           ))}

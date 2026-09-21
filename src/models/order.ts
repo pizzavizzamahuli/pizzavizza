@@ -39,6 +39,8 @@ export interface OrderItemSnapshot {
   name: string;
   image?: string | null;
   unitPrice: number;
+  listPrice?: number;
+  productDiscount?: number;
   quantity: number;
   subtotal: number;
   customizationTotal?: number;

@@ -95,6 +95,7 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
 
   const [cart, setCart] = useState<CartShape | undefined>(undefined);
   const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
+  const [serverSubtotal, setServerSubtotal] = useState<number | null>(null);
   const [addresses, setAddresses] = useState<Array<Record<string, unknown>>>([]);
   const [fulfillment, setFulfillment] = useState<'DELIVERY' | 'PICKUP'>(settings.deliveryEnabled ? 'DELIVERY' : 'PICKUP');
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
@@ -191,6 +192,37 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
       .then((j) => setWalletBalance(Number(j.data?.balance || 0)))
       .catch(() => setWalletBalance(0));
   }, []);
+
+  useEffect(() => {
+    const items = buyNowItem ? [buyNowItem] : cart?.items || [];
+    if (!items.length) {
+      setServerSubtotal(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch('/api/checkout/estimate', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fulfillmentType: 'PICKUP',
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          selectedOptions: item.selectedOptions || [],
+        })),
+      }),
+    })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        const amount = Number(data?.data?.orderSubtotal);
+        if (Number.isFinite(amount)) setServerSubtotal(amount);
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [buyNowItem, cart]);
 
   async function geocodeAndSetNewAddress(searchText?: string) {
     const query = (searchText || newAddressSearch || `${newAddress.addressLine1} ${newAddress.city} ${newAddress.state} ${newAddress.postalCode} ${newAddress.country}`).trim();
@@ -498,7 +530,8 @@ export default function CheckoutForm({ settings, reservationBookingNumber = null
     );
   }
 
-  const subtotal = checkoutItems.reduce((s: number, it: CartItem) => s + ((it.unitPrice || 0) * it.quantity), 0);
+  const localSubtotal = checkoutItems.reduce((s: number, it: CartItem) => s + ((it.unitPrice || 0) * it.quantity), 0);
+  const subtotal = serverSubtotal ?? localSubtotal;
   const totalItems = checkoutItems.reduce((count: number, item: CartItem) => count + item.quantity, 0);
 
   function toFiniteNumber(value: unknown) {

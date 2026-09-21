@@ -11,5 +11,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
   const order = await findOrderByOrderNumber(orderNumber);
   if (!order || order.userId !== user._id!.toHexString()) return notFound();
   const settings = await getRestaurantSettings();
-  return <OrderReceiptView order={order} settings={settings} />;
+  const serializedOrder = JSON.parse(JSON.stringify(order));
+  const serializedSettings = JSON.parse(JSON.stringify(settings));
+  return <OrderReceiptView order={serializedOrder} settings={serializedSettings} />;
 }

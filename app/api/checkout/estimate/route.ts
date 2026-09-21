@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const { fulfillmentType, addressId, items } = payload as {
     fulfillmentType?: string;
     addressId?: string;
-    items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string }> }>;
+    items?: Array<{ productId: string; quantity: number; selectedOptionIds?: string[]; selectedOptions?: Array<{ optionId: string; quantity?: number }> }>;
   };
 
   if (!fulfillmentType) return NextResponse.json({ error: 'fulfillmentType is required' }, { status: 400 });
@@ -21,10 +21,10 @@ export async function POST(request: Request) {
   const calc = await calculateOrderTotals(safeItems.map((i) => ({
     productId: i.productId,
     quantity: i.quantity,
-    selectedOptionIds: Array.isArray(i.selectedOptionIds)
-      ? i.selectedOptionIds
-      : Array.isArray(i.selectedOptions)
-      ? i.selectedOptions.map((option) => option.optionId).filter(Boolean)
+    selectedOptions: Array.isArray(i.selectedOptions)
+      ? i.selectedOptions.map((option) => ({ optionId: option.optionId, quantity: option.quantity || 1 })).filter((option) => option.optionId)
+      : Array.isArray(i.selectedOptionIds)
+      ? i.selectedOptionIds.map((optionId) => ({ optionId, quantity: 1 }))
       : [],
   })));
   const settings = await getRestaurantSettings();

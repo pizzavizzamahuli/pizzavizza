@@ -77,6 +77,8 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
     const customizationSelections = it.selectedOptions || it.selectedOptionIds || [];
     const customization = await calculateCustomizationForProduct(product, customizationSelections as CustomizationSelection);
     const basePrice = getEffectiveProductPrice(product);
+    const listPrice = product.price;
+    const productDiscount = Math.max(0, listPrice - basePrice);
     const unitPrice = basePrice + customization.customizationTotal;
     const line = unitPrice * quantity;
 
@@ -86,6 +88,8 @@ export async function calculateOrderTotals(items: OrderItemPayload[]) {
       name: product.name,
       image: product.image || null,
       unitPrice,
+      listPrice,
+      productDiscount,
       quantity,
       subtotal: line,
       customizationTotal: customization.customizationTotal,

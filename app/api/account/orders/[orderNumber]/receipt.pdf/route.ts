@@ -115,10 +115,18 @@ export async function GET(_request: Request, context: { params: Promise<{ orderN
     if (itemY < 170) {
       break;
     }
-    const optionLines = item.selectedOptions?.length ? item.selectedOptions.map((option) => `+ ${option.groupName}: ${option.optionName}`) : [];
+    const optionLines = item.selectedOptions?.length ? item.selectedOptions.map((option) => `${option.price >= 0 ? '+' : '-'} ${option.groupName}: ${option.optionName} ${money(Math.abs(option.price))}`) : [];
     page.drawText(`${item.quantity} × ${item.name}`, { x: 42, y: itemY, size: 10, font, color: rgb(0.12, 0.1, 0.09) });
     page.drawText(money(item.subtotal), { x: 500, y: itemY, size: 9, font, color: rgb(0.12, 0.1, 0.09) });
     itemY -= 14;
+    if (item.listPrice != null) {
+      page.drawText(`Price: ${money(item.listPrice)}`, { x: 58, y: itemY, size: 8, font, color: rgb(0.42, 0.4, 0.36) });
+      itemY -= 11;
+    }
+    if (item.productDiscount) {
+      page.drawText(`Discount: -${money(item.productDiscount)}`, { x: 58, y: itemY, size: 8, font, color: rgb(0.05, 0.45, 0.25) });
+      itemY -= 11;
+    }
     for (const optionLine of optionLines) {
       page.drawText(optionLine, { x: 58, y: itemY, size: 8, font, color: rgb(0.42, 0.4, 0.36) });
       itemY -= 12;

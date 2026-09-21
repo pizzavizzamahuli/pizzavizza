@@ -21,7 +21,7 @@ function formatCurrency(value: number) {
 }
 
 function hasDeliveryOtp(order: OrderSummary) {
-  return order.fulfillmentType === 'DELIVERY' && Boolean(order.deliveryOtpCode);
+  return order.fulfillmentType === 'DELIVERY' && Boolean(order.deliveryOtpCode) && order.deliveryOtpVerified !== true;
 }
 
 export default function OrderHistoryList({ initialOrders }: { initialOrders: OrderSummary[] }) {
@@ -64,12 +64,10 @@ export default function OrderHistoryList({ initialOrders }: { initialOrders: Ord
             </div>
           </div>
           {hasDeliveryOtp(order) ? (
-            <div className={`mt-5 rounded-2xl border p-4 ${order.deliveryOtpVerified ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'}`}>
+            <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-800">Delivery OTP</p>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.deliveryOtpVerified ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-amber-800'}`}>
-                  {order.deliveryOtpVerified ? 'Verified' : 'Share with delivery partner'}
-                </span>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-amber-800">Share with delivery partner</span>
               </div>
               <p className="mt-2 font-mono text-3xl font-bold tracking-[0.28em] text-stone-900">{order.deliveryOtpCode}</p>
               {!order.deliveryOtpVerified ? <p className="mt-1 text-xs text-amber-900">Keep this code ready when your order arrives.</p> : null}

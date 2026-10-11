@@ -209,6 +209,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
           phone: settings.phone,
           email: settings.email,
           deliveryVerificationRequired: settings.deliveryVerificationRequired ?? true,
+          passwordResetOtpMode: settings.passwordResetOtpMode || 'EMAIL_ONLY',
           deliveryAssignmentMode: settings.deliveryAssignmentMode,
           deliveryAssignmentStrategy: settings.deliveryAssignmentStrategy,
           deliveryAssignmentEligibleStaffIds: settings.deliveryAssignmentEligibleStaffIds,
@@ -530,6 +531,25 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
             <span>Manual Payment Enabled</span>
           </label>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <h2 className="text-sm font-semibold text-stone-900">Password reset OTP</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <label className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 text-sm">
+            <input type="radio" name="passwordResetOtpMode" checked={(settings.passwordResetOtpMode || 'EMAIL_ONLY') === 'EMAIL_ONLY'} onChange={() => setSettings({ ...settings, passwordResetOtpMode: 'EMAIL_ONLY' })} />
+            <span>Email OTP only</span>
+          </label>
+          <label className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 text-sm">
+            <input type="radio" name="passwordResetOtpMode" checked={settings.passwordResetOtpMode === 'PHONE_ONLY'} onChange={() => setSettings({ ...settings, passwordResetOtpMode: 'PHONE_ONLY' })} />
+            <span>Phone OTP only</span>
+          </label>
+          <label className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 text-sm">
+            <input type="radio" name="passwordResetOtpMode" checked={settings.passwordResetOtpMode === 'EMAIL_OR_PHONE'} onChange={() => setSettings({ ...settings, passwordResetOtpMode: 'EMAIL_OR_PHONE' })} />
+            <span>Email or phone</span>
+          </label>
+        </div>
+        <p className="mt-3 text-xs text-stone-500">Phone OTP uses Firebase Phone Authentication. Keep this on email until Firebase web and admin credentials are configured in the deployment environment.</p>
       </div>
 
       <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4">

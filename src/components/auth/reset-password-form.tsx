@@ -1,17 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export function ResetPasswordForm() {
   const router = useRouter();
+  const [method, setMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('method') !== 'phone') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMethod('phone');
+    setResetToken(window.sessionStorage.getItem('pizzavizza_phone_reset_token') || '');
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,7 +31,7 @@ export function ResetPasswordForm() {
     const response = await fetch('/api/auth/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code, password, confirmPassword }),
+      body: JSON.stringify(method === 'phone' ? { method: 'phone', resetToken, password, confirmPassword } : { method: 'email', email, code, password, confirmPassword }),
     });
 
     const data = await response.json();
@@ -36,26 +45,28 @@ export function ResetPasswordForm() {
     setMessage('Your password has been updated. You can now sign in.');
     setEmail('');
     setCode('');
+    setResetToken('');
     setPassword('');
     setConfirmPassword('');
+    if (method === 'phone') window.sessionStorage.removeItem('pizzavizza_phone_reset_token');
     router.push('/login');
   }
 
   return (
     <div className="mx-auto max-w-2xl rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Reset password</p>
-      <h1 className="mt-3 text-3xl font-semibold text-stone-900">Use your reset code</h1>
-      <p className="mt-3 text-sm text-stone-600">Enter the code sent to your email and pick a new password.</p>
+      <h1 className="mt-3 text-3xl font-semibold text-stone-900">{method === 'phone' ? 'Create your new password' : 'Use your reset code'}</h1>
+      <p className="mt-3 text-sm text-stone-600">{method === 'phone' ? 'Your phone was verified. Pick a new password to finish resetting your account.' : 'Enter the code sent to your email and pick a new password.'}</p>
 
       <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-        <div>
+        {method === 'email' ? <><div>
           <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="email">Email</label>
           <input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className="w-full rounded-xl border border-stone-300 px-3 py-2" />
         </div>
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="code">Reset code</label>
           <input id="code" value={code} onChange={(event) => setCode(event.target.value)} required className="w-full rounded-xl border border-stone-300 px-3 py-2" />
-        </div>
+        </div></> : resetToken ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Phone verification complete.</p> : <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">Please verify your phone from the forgot password page before choosing a new password.</p>}
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="password">New password</label>
           <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required className="w-full rounded-xl border border-stone-300 px-3 py-2" />
@@ -68,7 +79,7 @@ export function ResetPasswordForm() {
         {message ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
         {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
 
-        <button type="submit" disabled={isSubmitting} className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60">
+        <button type="submit" disabled={isSubmitting || (method === 'phone' && !resetToken)} className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60">
           {isSubmitting ? 'Resetting...' : 'Reset password'}
         </button>
       </form>

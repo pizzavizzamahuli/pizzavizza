@@ -11,6 +11,7 @@ export type DistanceUnit = 'KM' | 'MILES';
 export type DeliveryChargeType = 'FREE' | 'FIXED' | 'DISTANCE_BASED';
 export type DeliveryAssignmentMode = 'MANUAL' | 'AUTOMATIC' | 'MANUAL_FALLBACK';
 export type DeliveryAssignmentStrategy = 'LOWEST_WORKLOAD' | 'ROUND_ROBIN' | 'LEAST_RECENT';
+export type PasswordResetOtpMode = 'EMAIL_ONLY' | 'PHONE_ONLY' | 'EMAIL_OR_PHONE';
 export type RestaurantDayKey = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 export interface RestaurantDaySchedule {
@@ -92,6 +93,7 @@ export interface RestaurantSettingsDocument {
   manualAvailabilityChangedAt?: Date | null;
   manualAvailabilityChangedBy?: string | null;
   deliveryVerificationRequired?: boolean;
+  passwordResetOtpMode?: PasswordResetOtpMode;
   deliveryAssignmentMode: DeliveryAssignmentMode;
   deliveryAssignmentStrategy: DeliveryAssignmentStrategy;
   deliveryAssignmentEligibleStaffIds: string[];
@@ -210,6 +212,7 @@ export async function getRestaurantSettings() {
       manualAvailabilityOverride: null,
       manualAvailabilityReason: null,
       deliveryVerificationRequired: true,
+      passwordResetOtpMode: 'EMAIL_ONLY' as PasswordResetOtpMode,
       deliveryAssignmentMode: 'MANUAL' as DeliveryAssignmentMode,
       deliveryAssignmentStrategy: 'LOWEST_WORKLOAD' as DeliveryAssignmentStrategy,
       deliveryAssignmentEligibleStaffIds: [],
@@ -311,6 +314,7 @@ export async function getRestaurantSettings() {
     manualAvailabilityChangedAt: null,
     manualAvailabilityChangedBy: null,
     deliveryAssignmentMode: 'MANUAL',
+    passwordResetOtpMode: 'EMAIL_ONLY',
     deliveryAssignmentStrategy: 'LOWEST_WORKLOAD',
     deliveryAssignmentEligibleStaffIds: [],
     deliveryAssignmentLastStaffId: null,

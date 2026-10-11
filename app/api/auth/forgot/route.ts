@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/src/config/env';
-import { findUserByEmail, setPasswordResetForUser, normalizeEmail, hashPassword } from '@/src/services/user-service';
+import { findUserByEmail, normalizeEmail, hashPassword, reservePasswordResetEmail } from '@/src/services/user-service';
 import { sendPasswordResetEmail } from '@/src/services/email-service';
 import { randomInt } from 'crypto';
+import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 
 export async function POST(request: Request) {
   try {
@@ -12,9 +13,14 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const email = normalizeEmail(String(body?.email || ''));
+    const settings = await getRestaurantSettings();
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+    }
+
+    if (settings.passwordResetOtpMode === 'PHONE_ONLY') {
+      return NextResponse.json({ error: 'Email password reset is currently unavailable.' }, { status: 400 });
     }
 
     const user = await findUserByEmail(email);
@@ -26,7 +32,10 @@ export async function POST(request: Request) {
     const codeHash = await hashPassword(code);
     const expiresAt = new Date(Date.now() + 1000 * 60 * 15);
 
-    await setPasswordResetForUser(user._id?.toHexString() || user.id || '', codeHash, expiresAt);
+    const reserved = await reservePasswordResetEmail(user._id?.toHexString() || user.id || '', codeHash, expiresAt);
+    if (!reserved.modifiedCount) {
+      return NextResponse.json({ success: true });
+    }
     await sendPasswordResetEmail(user.email, user.name, code);
 
     return NextResponse.json({ success: true });

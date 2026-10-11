@@ -45,8 +45,13 @@ export interface UserDocument {
   };
   protected?: boolean;
   passwordReset?: {
-    codeHash: string;
+    method?: 'EMAIL_OTP' | 'PHONE_FIREBASE';
+    codeHash?: string;
+    tokenHash?: string;
     expiresAt: Date;
+    attempts?: number;
+    sentAt?: Date;
+    verifiedPhoneNumber?: string | null;
   };
   createdAt: Date;
   updatedAt: Date;

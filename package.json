@@ -13,6 +13,8 @@
   "dependencies": {
     "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
+    "firebase": "^13.0.0",
+    "firebase-admin": "^14.5.0",
     "leaflet": "^1.9.4",
     "mongodb": "^7.5.0",
     "mongodb-memory-server": "^11.2.0",

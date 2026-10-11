@@ -47,6 +47,7 @@ export async function GET() {
     whatsappSupportNumber: s.whatsappSupportNumber || null,
     workingHours: s.workingHours || null,
     deliveryVerificationRequired: s.deliveryVerificationRequired ?? true,
+    passwordResetOtpMode: s.passwordResetOtpMode || 'EMAIL_ONLY',
     deliveryAssignmentMode: s.deliveryAssignmentMode,
     deliveryAssignmentStrategy: s.deliveryAssignmentStrategy,
     deliveryAssignmentEligibleStaffIds: s.deliveryAssignmentEligibleStaffIds || [],
@@ -180,6 +181,7 @@ export async function PUT(request: Request) {
     const workingHoursValue = typeof updates.workingHours === 'string' ? updates.workingHours.trim().slice(0, 200) : updates.workingHours === null ? null : undefined;
     const workingHours = workingHoursValue === '' ? null : workingHoursValue;
     const deliveryVerificationRequired = typeof updates.deliveryVerificationRequired === 'boolean' ? updates.deliveryVerificationRequired : undefined;
+    const passwordResetOtpMode = ['EMAIL_ONLY', 'PHONE_ONLY', 'EMAIL_OR_PHONE'].includes(String(updates.passwordResetOtpMode)) ? updates.passwordResetOtpMode as RestaurantSettingsDocument['passwordResetOtpMode'] : undefined;
     const deliveryAssignmentMode = ['MANUAL', 'AUTOMATIC', 'MANUAL_FALLBACK'].includes(String(updates.deliveryAssignmentMode)) ? updates.deliveryAssignmentMode as RestaurantSettingsDocument['deliveryAssignmentMode'] : undefined;
     const deliveryAssignmentStrategy = ['LOWEST_WORKLOAD', 'ROUND_ROBIN', 'LEAST_RECENT'].includes(String(updates.deliveryAssignmentStrategy)) ? updates.deliveryAssignmentStrategy as RestaurantSettingsDocument['deliveryAssignmentStrategy'] : undefined;
     const deliveryAssignmentEligibleStaffIds = Array.isArray(updates.deliveryAssignmentEligibleStaffIds) ? updates.deliveryAssignmentEligibleStaffIds.filter((id): id is string => typeof id === 'string').slice(0, 100) : undefined;
@@ -264,6 +266,7 @@ export async function PUT(request: Request) {
       whatsappSupportNumber: normalizedWhatsApp,
       workingHours,
       deliveryVerificationRequired,
+      passwordResetOtpMode,
       deliveryAssignmentMode,
       deliveryAssignmentStrategy,
       deliveryAssignmentEligibleStaffIds,

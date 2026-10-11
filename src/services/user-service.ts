@@ -41,6 +41,16 @@ export function normalizeMobile(mobile: string) {
   return mobile.trim();
 }
 
+export function normalizePhoneForFirebaseMatch(phone: string | null | undefined) {
+  const raw = String(phone || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  if (raw.startsWith('+')) return `+${digits}`;
+  if (digits.length === 10) return `+91${digits}`;
+  return `+${digits}`;
+}
+
 async function createUserCode(collection: Awaited<ReturnType<typeof getUsersCollection>>) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const next = String(await getNextSequence('user_codes')).padStart(6, '0');
@@ -159,6 +169,34 @@ export async function findUserByLoginIdentifier(identifier: string) {
   });
 }
 
+export async function findUserByVerifiedPhoneNumber(phoneNumber: string) {
+  const normalizedPhone = normalizePhoneForFirebaseMatch(phoneNumber);
+  if (!normalizedPhone) return null;
+  const collection = await getUsersCollection();
+  const candidates = await collection.find({
+    mobile: { $exists: true, $ne: null },
+    accountStatus: 'ACTIVE',
+  }).project({ passwordHash: 0 }).toArray();
+  return candidates.find((user) => normalizePhoneForFirebaseMatch(user.mobile) === normalizedPhone) || null;
+}
+
+export async function findUserByPhonePasswordResetToken(token: string) {
+  const collection = await getUsersCollection();
+  const candidates = await collection.find({
+    'passwordReset.method': 'PHONE_FIREBASE',
+    'passwordReset.tokenHash': { $exists: true },
+    'passwordReset.expiresAt': { $gte: new Date() },
+    'passwordReset.attempts': { $lt: 5 },
+  }).toArray();
+
+  for (const user of candidates) {
+    const tokenHash = user.passwordReset?.tokenHash;
+    if (tokenHash && await comparePassword(token, tokenHash)) return user;
+  }
+
+  return null;
+}
+
 export async function getUserById(id: string) {
   const collection = await getUsersCollection();
   const trimmed = id?.trim();
@@ -255,7 +293,56 @@ export async function setPasswordResetForUser(id: string, codeHash: string, expi
   const collection = await getUsersCollection();
   return collection.updateOne(
     { _id: new ObjectId(id) },
-    { $set: { passwordReset: { codeHash, expiresAt }, updatedAt: new Date() } }
+    { $set: { passwordReset: { method: 'EMAIL_OTP', codeHash, expiresAt, attempts: 0, sentAt: new Date() }, updatedAt: new Date() } }
+  );
+}
+
+export async function reservePasswordResetEmail(id: string, codeHash: string, expiresAt: Date, cooldownMs = 60_000) {
+  const collection = await getUsersCollection();
+  const cutoff = new Date(Date.now() - cooldownMs);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      $or: [
+        { 'passwordReset.sentAt': { $exists: false } },
+        { 'passwordReset.sentAt': { $lte: cutoff } },
+        { 'passwordReset.method': { $ne: 'EMAIL_OTP' } },
+      ],
+    },
+    { $set: { passwordReset: { method: 'EMAIL_OTP', codeHash, expiresAt, attempts: 0, sentAt: new Date() }, updatedAt: new Date() } },
+  );
+}
+
+export async function setPhonePasswordResetForUser(id: string, tokenHash: string, expiresAt: Date, verifiedPhoneNumber: string) {
+  const collection = await getUsersCollection();
+  return collection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { passwordReset: { method: 'PHONE_FIREBASE', tokenHash, expiresAt, attempts: 0, sentAt: new Date(), verifiedPhoneNumber }, updatedAt: new Date() } },
+  );
+}
+
+export async function reservePhonePasswordResetForUser(id: string, tokenHash: string, expiresAt: Date, verifiedPhoneNumber: string, cooldownMs = 60_000) {
+  const collection = await getUsersCollection();
+  const cutoff = new Date(Date.now() - cooldownMs);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      $or: [
+        { 'passwordReset.sentAt': { $exists: false } },
+        { 'passwordReset.sentAt': { $lte: cutoff } },
+        { 'passwordReset.method': { $ne: 'PHONE_FIREBASE' } },
+      ],
+    },
+    { $set: { passwordReset: { method: 'PHONE_FIREBASE', tokenHash, expiresAt, attempts: 0, sentAt: new Date(), verifiedPhoneNumber }, updatedAt: new Date() } },
+  );
+}
+
+export async function incrementPasswordResetAttempt(id: string) {
+  const collection = await getUsersCollection();
+  return collection.findOneAndUpdate(
+    { _id: new ObjectId(id), $or: [{ 'passwordReset.attempts': { $exists: false } }, { 'passwordReset.attempts': { $lt: 5 } }] },
+    { $inc: { 'passwordReset.attempts': 1 }, $set: { updatedAt: new Date() } },
+    { returnDocument: 'after' },
   );
 }
 
@@ -273,6 +360,25 @@ export async function updateUserPassword(id: string, newPassword: string) {
   return collection.updateOne(
     { _id: new ObjectId(id) },
     { $set: { passwordHash, lastPasswordChangeAt: new Date(), updatedAt: new Date() }, $unset: { passwordReset: '' } }
+  );
+}
+
+export async function consumePhonePasswordResetToken(id: string, tokenHash: string, newPassword: string) {
+  const collection = await getUsersCollection();
+  const now = new Date();
+  const passwordHash = await hashPassword(newPassword);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      'passwordReset.method': 'PHONE_FIREBASE',
+      'passwordReset.tokenHash': tokenHash,
+      'passwordReset.expiresAt': { $gt: now },
+      'passwordReset.attempts': { $lte: 5 },
+    },
+    {
+      $set: { passwordHash, lastPasswordChangeAt: now, updatedAt: now },
+      $unset: { passwordReset: '' },
+    },
   );
 }
 

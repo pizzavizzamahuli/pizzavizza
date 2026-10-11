@@ -26,7 +26,7 @@ function createSessionToken(userId: string, timestamp: string, signature: string
   return Buffer.from(`${payload}:${signature}`).toString('base64');
 }
 
-export async function parseSessionToken(token: string) {
+export async function parseSessionTokenDetails(token: string) {
   try {
     // tolerate tokens that have been url-encoded when sent as Cookie header
     const raw = normalizeSessionToken(token);
@@ -64,10 +64,15 @@ export async function parseSessionToken(token: string) {
       return null;
     }
 
-    return userId;
+    return { userId, issuedAt: new Date(timestamp) };
   } catch {
     return null;
   }
+}
+
+export async function parseSessionToken(token: string) {
+  const details = await parseSessionTokenDetails(token);
+  return details?.userId || null;
 }
 
 export function normalizeSessionToken(token: string) {
@@ -149,8 +154,8 @@ export async function getSessionUser(request?: Request): Promise<UserDocument | 
     return null;
   }
 
-  const userId = await parseSessionToken(token);
-  if (!userId) {
+  const sessionDetails = await parseSessionTokenDetails(token);
+  if (!sessionDetails) {
     try {
       // short preview for debugging only
       console.warn('Session token failed to parse (preview):', typeof token === 'string' ? token.slice(0, 40) : token);
@@ -159,8 +164,9 @@ export async function getSessionUser(request?: Request): Promise<UserDocument | 
   }
 
   try {
-    const user = await getUserById(userId);
+    const user = await getUserById(sessionDetails.userId);
     if (!user || !isUserEligibleForSession(user)) return null;
+    if (user.lastPasswordChangeAt && sessionDetails.issuedAt < user.lastPasswordChangeAt) return null;
     return user;
   } catch {
     return null;

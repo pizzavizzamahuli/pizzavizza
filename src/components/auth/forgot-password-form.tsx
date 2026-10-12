@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { getFirebaseClientAuth, getOrCreateRecaptchaVerifier, resetRecaptchaVerifier } from '@/src/lib/firebase-client';
@@ -30,6 +30,14 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const phoneSubmitInFlight = useRef(false);
+
+  useEffect(() => {
+    if (method !== 'phone') return;
+    return () => {
+      void resetRecaptchaVerifier();
+    };
+  }, [method]);
 
   async function handleEmailSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,6 +65,7 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
 
   async function handlePhoneSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (phoneSubmitInFlight.current) return;
     setError(null);
     setMessage(null);
 
@@ -65,12 +74,12 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
       return;
     }
 
+    phoneSubmitInFlight.current = true;
     setIsSubmitting(true);
     try {
       const auth = getFirebaseClientAuth(firebase.config);
       let confirmation = confirmationResult;
       if (!confirmation) {
-        await resetRecaptchaVerifier();
         const verifier = getOrCreateRecaptchaVerifier(auth, 'phone-reset-recaptcha');
         confirmation = await signInWithPhoneNumber(auth, mobile.trim(), verifier);
       }
@@ -103,8 +112,8 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
       router.push('/reset-password?method=phone');
     } catch (phoneError) {
       setError(phoneError instanceof Error ? phoneError.message : 'Unable to verify phone reset.');
-      await resetRecaptchaVerifier();
     } finally {
+      phoneSubmitInFlight.current = false;
       setIsSubmitting(false);
     }
   }
@@ -184,7 +193,7 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
         >
           {isSubmitting ? 'Verifying...' : confirmationResult ? 'Verify OTP' : 'Send phone OTP'}
         </button>
-        {confirmationResult ? <button type="button" className="w-full rounded-full border border-stone-300 px-4 py-3 font-semibold text-stone-700 transition hover:bg-stone-50" onClick={async () => { setConfirmationResult(null); setPhoneCode(''); setMessage(null); setError(null); await resetRecaptchaVerifier(); }}>
+        {confirmationResult ? <button type="button" className="w-full rounded-full border border-stone-300 px-4 py-3 font-semibold text-stone-700 transition hover:bg-stone-50" onClick={() => { setConfirmationResult(null); setPhoneCode(''); setMessage(null); setError(null); }}>
           Use another phone number
         </button> : null}
       </form>}

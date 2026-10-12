@@ -20,7 +20,7 @@ export function getOrCreateRecaptchaVerifier(auth: Auth, containerId: string) {
 }
 
 export async function resetRecaptchaVerifier() {
-  if (!verifier) return;
-  verifier.clear();
+  const currentVerifier = verifier;
   verifier = null;
+  currentVerifier?.clear();
 }

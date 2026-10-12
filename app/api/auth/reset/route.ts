@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { comparePassword, findUserByEmail, updateUserPassword, clearPasswordReset, normalizeEmail, incrementPasswordResetAttempt, findUserByPhonePasswordResetToken, consumePhonePasswordResetToken } from '@/src/services/user-service';
+import { comparePassword, findUserByEmail, normalizeEmail, incrementPasswordResetAttempt, findUserByPhonePasswordResetToken, consumePhonePasswordResetToken, consumeEmailPasswordResetCode } from '@/src/services/user-service';
 import { env } from '@/src/config/env';
 
 export async function POST(request: Request) {
@@ -13,8 +13,35 @@ export async function POST(request: Request) {
     const code = String(body?.code || '').trim();
     const resetToken = String(body?.resetToken || '').trim();
     const method = body?.method === 'phone' ? 'phone' : 'email';
+    const action = String(body?.action || '');
     const password = String(body?.password || '');
     const confirmPassword = String(body?.confirmPassword || '');
+
+    if (action === 'verify-email-code') {
+      if (method !== 'email' || !email || !code) {
+        return NextResponse.json({ error: 'Email and reset code are required.' }, { status: 400 });
+      }
+
+      const user = await findUserByEmail(email);
+      if (!user || user.passwordReset?.method !== 'EMAIL_OTP' || !user.passwordReset.codeHash) {
+        return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
+      }
+      if (user.passwordReset.expiresAt < new Date()) {
+        return NextResponse.json({ error: 'Reset code has expired.' }, { status: 401 });
+      }
+
+      const reset = user.passwordReset;
+      const codeHash = reset.codeHash;
+      if (!codeHash || (reset.attempts ?? 0) >= 5) {
+        return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
+      }
+      if (!(await comparePassword(code, codeHash))) {
+        await incrementPasswordResetAttempt(user._id?.toHexString() || user.id || '');
+        return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
+      }
+
+      return NextResponse.json({ success: true, verified: true });
+    }
 
     if ((method === 'email' && (!email || !code)) || (method === 'phone' && !resetToken) || !password || !confirmPassword) {
       return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
@@ -31,7 +58,7 @@ export async function POST(request: Request) {
     const user = method === 'email'
       ? await findUserByEmail(email)
       : await findUserByPhonePasswordResetToken(resetToken);
-    if (!user || !user.passwordReset) {
+    if (!user || !user.passwordReset || (method === 'email' && user.passwordReset.method !== 'EMAIL_OTP')) {
       return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
     }
 
@@ -53,8 +80,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
       }
     } else {
-      await updateUserPassword(userId, password);
-      await clearPasswordReset(userId);
+      const consumed = await consumeEmailPasswordResetCode(userId, reset.codeHash || '', password);
+      if (!consumed.modifiedCount) {
+        return NextResponse.json({ error: 'Invalid reset code or expired link.' }, { status: 401 });
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -38,10 +38,9 @@ export async function sendPasswordResetEmail(to: string, name: string, code: str
     throw new Error('Email service is not configured.');
   }
 
-  console.info('SMTP configuration not available. Password reset code would be sent with:', {
+  console.info('SMTP configuration not available for password reset email:', {
     to,
     subject,
-    text,
   });
 }
 
@@ -112,4 +111,3 @@ export async function sendDeliveryOtpEmail(to: string, name: string, code: strin
     console.info('SMTP configuration not available. Delivery OTP would be sent for local development.', { to, orderNumber, subject });
   }
 }
-

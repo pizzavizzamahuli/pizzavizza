@@ -354,6 +354,25 @@ export async function clearPasswordReset(id: string) {
   );
 }
 
+export async function consumeEmailPasswordResetCode(id: string, codeHash: string, newPassword: string) {
+  const collection = await getUsersCollection();
+  const now = new Date();
+  const passwordHash = await hashPassword(newPassword);
+  return collection.updateOne(
+    {
+      _id: new ObjectId(id),
+      'passwordReset.method': 'EMAIL_OTP',
+      'passwordReset.codeHash': codeHash,
+      'passwordReset.expiresAt': { $gt: now },
+      'passwordReset.attempts': { $lte: 5 },
+    },
+    {
+      $set: { passwordHash, lastPasswordChangeAt: now, updatedAt: now },
+      $unset: { passwordReset: '' },
+    },
+  );
+}
+
 export async function updateUserPassword(id: string, newPassword: string) {
   const collection = await getUsersCollection();
   const passwordHash = await hashPassword(newPassword);

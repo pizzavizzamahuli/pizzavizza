@@ -18,18 +18,47 @@ type FirebaseResetConfig = {
   };
 };
 
+type EmailResetResponse = {
+  success?: unknown;
+  verified?: unknown;
+  error?: unknown;
+};
+
+async function readEmailResetResponse(response: Response) {
+  let data: EmailResetResponse | null = null;
+  const body = await response.text();
+
+  if (body) {
+    try {
+      const parsed: unknown = JSON.parse(body);
+      if (parsed && typeof parsed === 'object') {
+        data = parsed as EmailResetResponse;
+      }
+    } catch {
+      data = null;
+    }
+  }
+
+  return { response, data };
+}
+
 export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', firebase }: { passwordResetOtpMode?: ResetMode; firebase: FirebaseResetConfig }) {
   const router = useRouter();
   const canUseEmail = passwordResetOtpMode !== 'PHONE_ONLY';
   const canUsePhone = passwordResetOtpMode !== 'EMAIL_ONLY';
   const [method, setMethod] = useState<'email' | 'phone'>(canUseEmail ? 'email' : 'phone');
   const [email, setEmail] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailStage, setEmailStage] = useState<'request' | 'verify' | 'password' | 'success'>('request');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [mobile, setMobile] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailSubmitInFlight = useRef(false);
   const phoneSubmitInFlight = useRef(false);
 
   useEffect(() => {
@@ -39,28 +68,109 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
     };
   }, [method]);
 
-  async function handleEmailSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function sendEmailResetCode() {
+    if (emailSubmitInFlight.current) return;
+    emailSubmitInFlight.current = true;
     setError(null);
     setMessage(null);
     setIsSubmitting(true);
 
-    const response = await fetch('/api/auth/forgot', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
+    try {
+      const response = await fetch('/api/auth/forgot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const result = await readEmailResetResponse(response);
 
-    const data = await response.json();
-    setIsSubmitting(false);
+      if (!result.response.ok || result.data?.success !== true) {
+        setError(typeof result.data?.error === 'string' ? result.data.error : 'Unable to process that request. Please try again.');
+        return;
+      }
 
-    if (!response.ok) {
-      setError(data.error || 'Unable to process that request.');
+      setEmailStage('verify');
+      setEmailCode('');
+      setMessage('If an account exists with that email, a reset code has been sent.');
+    } catch {
+      setError('Unable to process that request. Please try again.');
+    } finally {
+      emailSubmitInFlight.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleEmailRequestSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await sendEmailResetCode();
+  }
+
+  async function handleEmailVerificationSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (emailSubmitInFlight.current) return;
+    emailSubmitInFlight.current = true;
+    setError(null);
+    setMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/auth/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify-email-code', email, code: emailCode }),
+      });
+      const result = await readEmailResetResponse(response);
+
+      if (!result.response.ok || result.data?.success !== true || result.data.verified !== true) {
+        setError(typeof result.data?.error === 'string' ? result.data.error : 'Unable to verify the reset code. Please try again.');
+        return;
+      }
+
+      setEmailStage('password');
+      setMessage('Reset code verified. Choose a new password.');
+    } catch {
+      setError('Unable to verify the reset code. Please try again.');
+    } finally {
+      emailSubmitInFlight.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleEmailPasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (emailSubmitInFlight.current) return;
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
+    emailSubmitInFlight.current = true;
+    setError(null);
+    setMessage(null);
+    setIsSubmitting(true);
 
-    setMessage('If an account exists with that email, a reset code has been sent.');
-    setEmail('');
+    try {
+      const response = await fetch('/api/auth/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: emailCode, password: newPassword, confirmPassword }),
+      });
+      const result = await readEmailResetResponse(response);
+
+      if (!result.response.ok || result.data?.success !== true) {
+        setError(typeof result.data?.error === 'string' ? result.data.error : 'Unable to reset your password. Please try again.');
+        return;
+      }
+
+      setEmailStage('success');
+      setEmailCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setMessage('Your password has been reset. You can now sign in.');
+    } catch {
+      setError('Unable to reset your password. Please try again.');
+    } finally {
+      emailSubmitInFlight.current = false;
+      setIsSubmitting(false);
+    }
   }
 
   async function handlePhoneSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -142,7 +252,7 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
     <div className="mx-auto max-w-2xl rounded-3xl border border-stone-200 bg-white p-8 shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Reset password</p>
       <h1 className="mt-3 text-3xl font-semibold text-stone-900">Forgot your password?</h1>
-      <p className="mt-3 text-sm text-stone-600">{method === 'email' ? 'Enter your email and we will send a one-time reset code.' : 'Enter your registered mobile number and verify it with Firebase SMS OTP.'}</p>
+      <p className="mt-3 text-sm text-stone-600">{method === 'email' ? emailStage === 'request' ? 'Enter your email and we will send a one-time reset code.' : emailStage === 'verify' ? 'Enter the one-time reset code sent to your email.' : emailStage === 'password' ? 'Choose a new password for your account.' : 'Your password reset is complete.' : 'Enter your registered mobile number and verify it with Firebase SMS OTP.'}</p>
 
       {canUseEmail && canUsePhone ? (
         <div className="mt-6 grid grid-cols-2 rounded-xl border border-stone-200 bg-stone-50 p-1">
@@ -151,7 +261,12 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
         </div>
       ) : null}
 
-      {method === 'email' ? <form className="mt-8 space-y-4" onSubmit={handleEmailSubmit}>
+      {method === 'email' ? emailStage === 'success' ? (
+        <div className="mt-8 space-y-4">
+          {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
+          <a href="/login" className="block w-full rounded-full bg-amber-600 px-4 py-3 text-center font-semibold text-white transition hover:bg-amber-700">Sign in</a>
+        </div>
+      ) : emailStage === 'request' ? <form className="mt-8 space-y-4" onSubmit={handleEmailRequestSubmit}>
         <div>
           <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="email">Email</label>
           <input
@@ -160,12 +275,12 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
+            disabled={isSubmitting}
             className="w-full rounded-xl border border-stone-300 px-3 py-2"
           />
         </div>
 
-        {message ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
-        {error ? <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+        {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
 
         <button
           type="submit"
@@ -173,6 +288,75 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
           className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? 'Sending...' : 'Send reset code'}
+        </button>
+      </form> : emailStage === 'verify' ? <form className="mt-8 space-y-4" onSubmit={handleEmailVerificationSubmit}>
+        {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="email-reset-code">Email reset code</label>
+          <input
+            id="email-reset-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={emailCode}
+            onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            required
+            disabled={isSubmitting}
+            className="w-full rounded-xl border border-stone-300 px-3 py-2"
+          />
+        </div>
+        {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? 'Verifying...' : 'Verify OTP'}
+        </button>
+        <button
+          type="button"
+          disabled={isSubmitting}
+          onClick={() => { void sendEmailResetCode(); }}
+          className="w-full rounded-full border border-stone-300 px-4 py-3 font-semibold text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? 'Please wait...' : 'Resend reset code'}
+        </button>
+      </form> : <form className="mt-8 space-y-4" onSubmit={handleEmailPasswordSubmit}>
+        {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="new-password">New password</label>
+          <input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+            disabled={isSubmitting}
+            className="w-full rounded-xl border border-stone-300 px-3 py-2"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-stone-700" htmlFor="confirm-password">Confirm password</label>
+          <input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            disabled={isSubmitting}
+            className="w-full rounded-xl border border-stone-300 px-3 py-2"
+          />
+        </div>
+        {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-full bg-amber-600 px-4 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? 'Resetting...' : 'Reset Password'}
         </button>
       </form> : <form className="mt-8 space-y-4" onSubmit={handlePhoneSubmit}>
         <div>

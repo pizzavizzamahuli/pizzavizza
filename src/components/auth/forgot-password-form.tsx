@@ -99,8 +99,28 @@ export function ForgotPasswordForm({ passwordResetOtpMode = 'EMAIL_ONLY', fireba
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Unable to verify phone reset.');
+      const responseBody = await response.text();
+      let data: { success?: unknown; resetToken?: unknown; error?: unknown } | null = null;
+      if (responseBody) {
+        try {
+          const parsed: unknown = JSON.parse(responseBody);
+          if (parsed && typeof parsed === 'object') {
+            data = parsed as { success?: unknown; resetToken?: unknown; error?: unknown };
+          }
+        } catch {
+          data = null;
+        }
+      }
+      if (!response.ok) {
+        throw new Error(
+          typeof data?.error === 'string'
+            ? data.error
+            : `Phone verification failed (HTTP ${response.status}). Please try again.`,
+        );
+      }
+      if (!data || data.success !== true || (data.resetToken !== null && typeof data.resetToken !== 'string')) {
+        throw new Error('Unable to verify phone reset. The server returned an invalid response; please try again.');
+      }
       if (!data.resetToken) {
         setMessage('If an account exists with that phone number, reset instructions are available.');
         setMobile('');

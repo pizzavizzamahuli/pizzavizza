@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: 'Pizza Vizza',
   description: 'Pizza Vizza online ordering and private dining',
   keywords: ['pizza', 'restaurant', 'delivery', 'admin'],
+  other: {
+    'google-adsense-account': 'ca-pub-9052453172321926',
+  },
   icons: [
     {
       rel: 'icon',

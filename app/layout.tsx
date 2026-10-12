@@ -6,6 +6,7 @@ import { ImageDownloadProtection } from '@/src/components/image-download-protect
 import { ServiceWorkerCleanup } from '@/src/components/pwa/service-worker-cleanup';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import { getSessionUser } from '@/src/auth/session';
+import { SiteAnimationScope } from '@/src/components/site-animation-scope';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +36,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <ServiceWorkerCleanup />
-        <ImageDownloadProtection />
-        <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />
-        {children}
+        <SiteAnimationScope animations={settings?.siteAnimations}>
+          <ServiceWorkerCleanup />
+          <ImageDownloadProtection />
+          <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />
+          {children}
+        </SiteAnimationScope>
       </body>
     </html>
   );

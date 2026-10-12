@@ -68,11 +68,11 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
     : null;
 
   return (
-    <div className="min-h-screen text-stone-900" style={themeStyle}>
+    <div className="customer-site min-h-screen text-stone-900" style={themeStyle}>
       <header className="relative z-50 border-b bg-white/90 md:backdrop-blur" style={{ backgroundColor: appearance.colors.headerBackground, color: appearance.colors.headerText, borderColor: appearance.colors.border }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <Link href="/" className="flex min-w-0 items-center gap-2.5">
+            <Link href="/" data-site-animation-brand="true" className="flex min-w-0 items-center gap-2.5">
               {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border object-cover sm:h-10 sm:w-10" style={{ borderColor: appearance.colors.accent }} /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10" style={{ backgroundColor: appearance.colors.primary, color: appearance.colors.buttonText }}>PV</div>}
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-sm sm:tracking-[0.25em]" style={{ color: appearance.colors.accent }}>{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>

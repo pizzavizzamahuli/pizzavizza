@@ -19,7 +19,7 @@ const navSections: Array<{ label: string; items: Array<{ label: string; href: st
   { label: 'Catalog', items: [{ label: 'Menu', href: '/admin/menu', permission: 'menu.view' }, { label: 'Dining Rooms', href: '/admin/dining', permission: 'bookings.view' }] },
   { label: 'Customers', items: [{ label: 'Customers', href: '/admin/customers', permission: 'customers.view' }, { label: 'Wallet', href: '/admin/wallet', permission: 'wallet.view' }, { label: 'Referrals', href: '/admin/referrals', permission: 'referrals.view' }, { label: 'Coupons', href: '/admin/coupons', permission: 'coupons.view' }] },
   { label: 'Payments', items: [{ label: 'Payments', href: '/admin/payments', permission: 'payments.view' }] },
-  { label: 'System', items: [{ label: 'Reports', href: '/admin/reports', permission: 'orders.view' }, { label: 'Notifications', href: '/admin/notifications' }, { label: 'Telegram', href: '/admin/settings/telegram', mainAdminOnly: true }, { label: 'Settings', href: '/admin/settings', permission: 'settings.view' }] },
+  { label: 'System', items: [{ label: 'Reports', href: '/admin/reports', permission: 'orders.view' }, { label: 'Notifications', href: '/admin/notifications' }, { label: 'Telegram', href: '/admin/settings/telegram', mainAdminOnly: true }, { label: 'Settings', href: '/admin/settings', permission: 'settings.view' }, { label: 'Animation', href: '/admin/animations', permission: 'settings.view' }] },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

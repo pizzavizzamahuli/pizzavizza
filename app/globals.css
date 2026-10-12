@@ -198,3 +198,50 @@ a[href^="tel:"] {
 .mobile-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+@keyframes site-brand-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes site-content-glow {
+  0%, 100% { box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
+  50% { box-shadow: 0 8px 26px rgb(245 158 11 / 0.11); }
+}
+
+@keyframes site-action-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0); }
+  50% { box-shadow: 0 0 0 4px rgb(245 158 11 / 0.12); }
+}
+
+.site-animation-scope {
+  display: contents;
+}
+
+.site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > img,
+.site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > div:first-child,
+.site-animation-scope[data-site-animation-brand="true"] header [data-site-animation-brand="true"] > img,
+.site-animation-scope[data-site-animation-brand="true"] header [data-site-animation-brand="true"] > div:first-child {
+  animation: site-brand-float 4s ease-in-out infinite;
+}
+
+.site-animation-scope[data-site-animation-content="true"] main > :first-child {
+  animation: site-content-glow 7s ease-in-out infinite;
+}
+
+.site-animation-scope[data-site-animation-actions="true"] main a[class*="bg-amber-"],
+.site-animation-scope[data-site-animation-actions="true"] main button[class*="bg-amber-"] {
+  animation: site-action-pulse 3.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > img,
+  .site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > div:first-child,
+  .site-animation-scope[data-site-animation-brand="true"] header [data-site-animation-brand="true"] > img,
+  .site-animation-scope[data-site-animation-brand="true"] header [data-site-animation-brand="true"] > div:first-child,
+  .site-animation-scope[data-site-animation-content="true"] main > :first-child,
+  .site-animation-scope[data-site-animation-actions="true"] main a[class*="bg-amber-"],
+  .site-animation-scope[data-site-animation-actions="true"] main button[class*="bg-amber-"] {
+    animation: none;
+  }
+}

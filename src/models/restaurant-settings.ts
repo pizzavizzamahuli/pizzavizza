@@ -1,6 +1,7 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
 import { defaultWebsiteAppearance, type WebsiteAppearance } from '@/src/types/appearance';
+import type { SiteAnimations } from '@/src/types/site-animations';
 import fs from 'fs';
 import path from 'path';
 
@@ -73,6 +74,7 @@ export interface RestaurantSettingsDocument {
   poweredByUrl?: string | null;
   footerAddress?: string | null;
   appearance?: WebsiteAppearance;
+  siteAnimations?: SiteAnimations;
   homeImage?: string | null;
   homeDescription?: string | null;
   homepageImages?: HomepageImageDocument[];
@@ -213,6 +215,7 @@ export async function getRestaurantSettings() {
       manualAvailabilityReason: null,
       deliveryVerificationRequired: true,
       passwordResetOtpMode: 'EMAIL_ONLY' as PasswordResetOtpMode,
+      siteAnimations: { enabled: true, brandFloat: true, contentGlow: true, actionPulse: true },
       deliveryAssignmentMode: 'MANUAL' as DeliveryAssignmentMode,
       deliveryAssignmentStrategy: 'LOWEST_WORKLOAD' as DeliveryAssignmentStrategy,
       deliveryAssignmentEligibleStaffIds: [],
@@ -294,6 +297,7 @@ export async function getRestaurantSettings() {
     poweredByUrl: null,
     footerAddress: null,
     appearance: defaultWebsiteAppearance,
+    siteAnimations: { enabled: true, brandFloat: true, contentGlow: true, actionPulse: true },
     homeImage: null,
     homeDescription: null,
     homepageImages: [],

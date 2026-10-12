@@ -1,5 +1,6 @@
 import { getAllCategories, getProductsForCustomer } from '@/src/services/menu-service';
 import MenuCatalog from '@/src/components/menu-catalog';
+import AdPlacement from '@/src/components/advertisements/ad-placement';
 
 export default async function MenuPage({
   searchParams,
@@ -37,6 +38,8 @@ export default async function MenuPage({
         <h1 className="mt-3 text-2xl font-semibold leading-tight text-stone-900 sm:text-3xl">Fresh favorites, made for every craving</h1>
         <p className="mt-3 max-w-2xl text-sm leading-5 text-stone-600">Browse our signature pizzas, sides, and comfort favorites designed for quick pickup, express delivery, or a cozy dine-in evening.</p>
       </section>
+
+      {!bookingNumber ? <AdPlacement placement="MENU" /> : null}
 
       <section>
         {bookingNumber ? <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Ordering food for reservation <strong>{bookingNumber}</strong>.</div> : null}

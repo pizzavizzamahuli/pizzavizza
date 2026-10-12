@@ -9,6 +9,7 @@ import BuyNowButton from '@/src/components/buy-now-button';
 import ImageCarousel from '@/src/components/image-carousel';
 import ExpandableDescription from '@/src/components/expandable-description';
 import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
+import AdPlacement from '@/src/components/advertisements/ad-placement';
 
 function restaurantAddress(settings: Awaited<ReturnType<typeof getRestaurantSettings>>) {
   return [settings.addressLine1, settings.addressLine2, settings.landmark, settings.city, settings.state, settings.postalCode].filter(Boolean).join(', ');
@@ -129,6 +130,7 @@ export default async function Home() {
           </div>
         )}
       </section>
+      <AdPlacement placement="HOME" />
     </CustomerShell>
   );
 }

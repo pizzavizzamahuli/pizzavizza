@@ -3,6 +3,7 @@ import { CustomerShell } from '@/src/app-shell';
 import { getAvailableDiningRooms } from '@/src/services/dining-service';
 import { DiningRoomDocument } from '@/src/models/dining-room';
 import ImageCarousel from '@/src/components/image-carousel';
+import AdPlacement from '@/src/components/advertisements/ad-placement';
 
 export default async function DiningHomePage() {
   const rooms: DiningRoomDocument[] = await getAvailableDiningRooms();
@@ -46,6 +47,7 @@ export default async function DiningHomePage() {
             </article>
           ))}
         </section>
+        <AdPlacement placement="CONTENT" />
       </div>
     </CustomerShell>
   );

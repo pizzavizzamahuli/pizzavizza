@@ -6,6 +6,7 @@ import ProductImageGallery from '@/src/components/product-image-gallery';
 import ProductCustomizationForm from '@/src/components/product-customization-form';
 import ProductPurchaseControls from '@/src/components/product-purchase-controls';
 import ReadMoreText from '@/src/components/read-more-text';
+import AdPlacement from '@/src/components/advertisements/ad-placement';
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ bookingNumber?: string }> }) {
   const { slug } = await params;
@@ -81,6 +82,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           />
         </section>
       ) : null}
+      {!bookingNumber ? <AdPlacement placement="PRODUCT" /> : null}
     </div>
   );
 }

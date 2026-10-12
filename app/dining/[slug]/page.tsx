@@ -3,6 +3,7 @@ import { CustomerShell } from '@/src/app-shell';
 import { getDiningRoom } from '@/src/services/dining-service';
 import { DiningBookingForm } from '@/src/components/dining/booking-form';
 import ImageCarousel from '@/src/components/image-carousel';
+import AdPlacement from '@/src/components/advertisements/ad-placement';
 
 export default async function DiningRoomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -69,6 +70,7 @@ export default async function DiningRoomPage({ params }: { params: Promise<{ slu
             />
           </div>
         </section>
+        <AdPlacement placement="CONTENT" />
       </div>
     </CustomerShell>
   );

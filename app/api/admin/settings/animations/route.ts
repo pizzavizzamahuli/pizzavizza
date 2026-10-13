@@ -4,7 +4,7 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { getRestaurantSettings, updateRestaurantSettings } from '@/src/models/restaurant-settings';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
 
-const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse'] as const;
+const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader'] as const;
 
 function isSiteAnimations(value: unknown): value is SiteAnimations {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;

@@ -234,6 +234,127 @@ a[href^="tel:"] {
   animation: site-action-pulse 3.5s ease-in-out infinite;
 }
 
+.food-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 0.94);
+  padding: 1.5rem;
+  backdrop-filter: blur(6px);
+}
+
+.site-animation-scope:not([data-site-animation-loader="true"]) .food-loading-overlay {
+  display: none;
+}
+
+.food-loading-card {
+  width: min(100%, 22rem);
+  border: 1px solid rgb(245 158 11 / 0.18);
+  border-radius: 1.5rem;
+  background: #fff;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgb(120 53 15 / 0.12);
+}
+
+.food-loading-plate {
+  position: relative;
+  display: grid;
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto 1.25rem;
+  place-items: center;
+  border: 5px solid #fff;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 48%, #fff7ed 49%, #ffedd5 100%);
+  box-shadow: 0 0 0 2px #fed7aa, 0 0 32px rgb(245 158 11 / 0.2);
+  animation: food-plate-bob 1.8s ease-in-out infinite;
+}
+
+.food-loading-emoji {
+  display: block;
+  font-size: 3.5rem;
+  line-height: 1;
+  animation: food-item-pop 1.2s ease-in-out infinite;
+}
+
+.food-loading-spark {
+  position: absolute;
+  color: #f59e0b;
+  animation: food-sparkle 1.4s ease-in-out infinite;
+}
+
+.food-loading-spark-one { top: 0.3rem; right: 0.6rem; font-size: 1.1rem; }
+.food-loading-spark-two { bottom: 0.7rem; left: 0.25rem; font-size: 1.35rem; animation-delay: 350ms; }
+.food-loading-burger .food-loading-emoji,
+.food-loading-taco .food-loading-emoji { animation-name: food-item-tilt; }
+.food-loading-fries .food-loading-emoji,
+.food-loading-donut .food-loading-emoji { animation-name: food-item-spin; }
+.food-loading-drink .food-loading-emoji { animation-name: food-item-pop; }
+
+.food-loading-brand {
+  color: #c2410c;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+}
+
+.food-loading-message {
+  margin-top: 0.4rem;
+  color: #292524;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.food-loading-track {
+  height: 0.35rem;
+  overflow: hidden;
+  margin-top: 1.2rem;
+  border-radius: 9999px;
+  background: #ffedd5;
+}
+
+.food-loading-track span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f97316, #f59e0b);
+  animation: food-loading-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes food-plate-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+@keyframes food-item-pop {
+  0%, 100% { transform: scale(0.96) rotate(-5deg); }
+  50% { transform: scale(1.08) rotate(5deg); }
+}
+
+@keyframes food-item-tilt {
+  0%, 100% { transform: rotate(-12deg) translateY(1px); }
+  50% { transform: rotate(12deg) translateY(-3px); }
+}
+
+@keyframes food-item-spin {
+  0%, 100% { transform: rotate(-12deg) scale(0.98); }
+  50% { transform: rotate(12deg) scale(1.06); }
+}
+
+@keyframes food-sparkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes food-loading-progress {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(250%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > img,
   .site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > div:first-child,
@@ -242,6 +363,13 @@ a[href^="tel:"] {
   .site-animation-scope[data-site-animation-content="true"] main > :first-child,
   .site-animation-scope[data-site-animation-actions="true"] main a[class*="bg-amber-"],
   .site-animation-scope[data-site-animation-actions="true"] main button[class*="bg-amber-"] {
+    animation: none;
+  }
+
+  .food-loading-plate,
+  .food-loading-emoji,
+  .food-loading-spark,
+  .food-loading-track span {
     animation: none;
   }
 }

@@ -3,6 +3,7 @@ export interface SiteAnimations {
   brandFloat: boolean;
   contentGlow: boolean;
   actionPulse: boolean;
+  foodLoader: boolean;
 }
 
 export const defaultSiteAnimations: SiteAnimations = {
@@ -10,6 +11,7 @@ export const defaultSiteAnimations: SiteAnimations = {
   brandFloat: true,
   contentGlow: true,
   actionPulse: true,
+  foodLoader: true,
 };
 
 export function normalizeSiteAnimations(value?: Partial<SiteAnimations> | null): SiteAnimations {

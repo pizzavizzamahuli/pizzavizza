@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { defaultSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
 
 const effects: Array<{ key: Exclude<keyof SiteAnimations, 'enabled'>; label: string; description: string }> = [
   { key: 'brandFloat', label: 'Brand mark float', description: 'Adds a gentle floating motion to the logo in the customer header.' },
   { key: 'contentGlow', label: 'Content highlight', description: 'Adds a soft, slow glow to the first content panel on customer pages.' },
   { key: 'actionPulse', label: 'Action button pulse', description: 'Gently highlights primary amber action buttons.' },
+  { key: 'foodLoader', label: 'Food loading animation', description: 'Shows a randomly selected food-themed animation during page loads and navigation.' },
 ];
 
 export default function AnimationSettingsPanel() {
+  const router = useRouter();
   const [settings, setSettings] = useState<SiteAnimations>(defaultSiteAnimations);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,6 +50,7 @@ export default function AnimationSettingsPanel() {
       if (!response.ok || !data.success) throw new Error(data.error || 'Unable to save animation settings.');
       setSettings(data.data as SiteAnimations);
       setMessage('Animation settings saved.');
+      router.refresh();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Unable to save animation settings.');
     } finally {

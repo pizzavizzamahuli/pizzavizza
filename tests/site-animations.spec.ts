@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { defaultSiteAnimations, normalizeSiteAnimations } from '../src/types/site-animations';
+import { chooseFoodLoadingScene, foodLoadingScenes } from '../src/utils/food-loader';
+
+test('food loading animation defaults on and older saved settings remain compatible', () => {
+  expect(defaultSiteAnimations.foodLoader).toBe(true);
+  expect(normalizeSiteAnimations({ enabled: false }).foodLoader).toBe(true);
+  expect(normalizeSiteAnimations({ foodLoader: false }).foodLoader).toBe(false);
+});
 
 test('animation effects loop when enabled and pause for reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -9,9 +17,10 @@ test('animation effects loop when enabled and pause for reduced motion', async (
   expect(animationCssStart).toBeGreaterThanOrEqual(0);
   await page.setContent(`
     <style>${stylesheet.slice(animationCssStart)}</style>
-    <div class="site-animation-scope" data-site-animation-brand="true" data-site-animation-content="true" data-site-animation-actions="true">
+    <div class="site-animation-scope" data-site-animation-brand="true" data-site-animation-content="true" data-site-animation-actions="true" data-site-animation-loader="true">
       <header><a href="/" data-site-animation-brand="true"><img src="#" alt="Brand"></a></header>
       <main><section id="content"></section><a id="action" class="bg-amber-600">Order</a></main>
+      <div class="food-loading-overlay" role="status"><div class="food-loading-plate"><span class="food-loading-emoji">🍕</span></div></div>
     </div>
   `);
 
@@ -19,6 +28,7 @@ test('animation effects loop when enabled and pause for reduced motion', async (
   await expect(scope).toHaveAttribute('data-site-animation-brand', 'true');
   await expect(scope).toHaveAttribute('data-site-animation-content', 'true');
   await expect(scope).toHaveAttribute('data-site-animation-actions', 'true');
+  await expect(scope).toHaveAttribute('data-site-animation-loader', 'true');
   await expect(page.locator('header [data-site-animation-brand="true"] > img')).toHaveCSS('animation-name', 'site-brand-float');
   await expect(page.locator('#content')).toHaveCSS('animation-name', 'site-content-glow');
   await expect(page.locator('#action')).toHaveCSS('animation-name', 'site-action-pulse');
@@ -27,6 +37,31 @@ test('animation effects loop when enabled and pause for reduced motion', async (
   await expect(page.locator('header [data-site-animation-brand="true"] > img')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('#content')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('#action')).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.food-loading-plate')).toHaveCSS('animation-name', 'none');
+});
+
+test('food loader chooses varied scenes and respects the master switch', async ({ page }) => {
+  expect(foodLoadingScenes).toHaveLength(6);
+  for (let index = 0; index < foodLoadingScenes.length; index += 1) {
+    const { scene, index: selectedIndex } = chooseFoodLoadingScene(index, 0);
+    expect(scene.name).not.toBe(foodLoadingScenes[index].name);
+    expect(selectedIndex).not.toBe(index);
+  }
+
+  const stylesheet = await readFile(path.join(process.cwd(), 'app', 'globals.css'), 'utf8');
+  await page.setContent(`
+    <style>${stylesheet}</style>
+    <div class="site-animation-scope" data-site-animation-loader="true">
+      <div class="food-loading-overlay" role="status" aria-label="Loading page">
+        <div class="food-loading-card"><div class="food-loading-plate"><span class="food-loading-emoji">🍕</span></div></div>
+      </div>
+    </div>
+  `);
+  const loader = page.getByRole('status', { name: 'Loading page' });
+  await expect(loader).toBeVisible();
+  const scope = page.locator('.site-animation-scope');
+  await scope.evaluate((element) => element.removeAttribute('data-site-animation-loader'));
+  await expect(loader).toBeHidden();
 });
 
 test('authentication pages do not receive website animations', async ({ page }) => {

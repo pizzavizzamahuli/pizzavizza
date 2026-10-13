@@ -10,11 +10,14 @@ test('food loading animation defaults on and older saved settings remain compati
   expect(defaultSiteAnimations.foodLoaderRandom).toBe(true);
   expect(defaultSiteAnimations.foodLoaderScene).toBe('pizza');
   expect(defaultSiteAnimations.heroSlideshow).toBe(true);
+  expect(defaultSiteAnimations.themeColor).toBe('#f59e0b');
   expect(normalizeSiteAnimations({ enabled: false }).foodLoader).toBe(true);
   expect(normalizeSiteAnimations({ foodLoader: false }).foodLoader).toBe(false);
   expect(normalizeSiteAnimations({ foodLoaderScene: 'invalid' as SiteAnimations['foodLoaderScene'] }).foodLoaderScene).toBe('pizza');
   expect(normalizeSiteAnimations({ heroSlideshow: false }).heroSlideshow).toBe(false);
   expect(normalizeSiteAnimations({ heroSlideshow: 'invalid' as unknown as boolean }).heroSlideshow).toBe(true);
+  expect(normalizeSiteAnimations({ themeColor: '#12abef' }).themeColor).toBe('#12abef');
+  expect(normalizeSiteAnimations({ themeColor: 'red' }).themeColor).toBe(defaultSiteAnimations.themeColor);
   expect(defaultSiteAnimations.bootLoader).toBe(true);
   expect(defaultSiteAnimations.bootLoaderRandom).toBe(true);
   expect(defaultSiteAnimations.bootLoaderStyle).toBe('orbit');

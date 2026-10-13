@@ -63,8 +63,35 @@ export default function AnimationSettingsPanel() {
     }
   }
 
+  async function saveThemeColor(themeColor: string) {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/admin/settings/animations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ themeColor }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Unable to save the website theme color.');
+      setSettings((current) => ({ ...current, themeColor: (data.data as SiteAnimations).themeColor }));
+      setMessage('Website theme color saved.');
+      router.refresh();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save the website theme color.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function update(key: BooleanAnimationKey, checked: boolean) {
     setSettings((current) => ({ ...current, [key]: checked }));
+    setMessage(null);
+  }
+
+  function updateThemeColor(color: string) {
+    setSettings((current) => ({ ...current, themeColor: color }));
     setMessage(null);
   }
 
@@ -86,6 +113,35 @@ export default function AnimationSettingsPanel() {
         <span><span className="block font-semibold text-stone-900">Enable website animations</span><span className="mt-1 block text-sm text-stone-600">Master switch for all effects below.</span></span>
         <input type="checkbox" checked={settings.enabled} disabled={saving} onChange={(event) => update('enabled', event.target.checked)} className="h-5 w-5 accent-amber-600" />
       </label>
+      <fieldset disabled={saving} className="space-y-3 rounded-xl border border-stone-200 p-4 disabled:opacity-60">
+        <legend className="px-1 text-sm font-semibold text-stone-900">Website theme color</legend>
+        <p className="text-sm text-stone-600">Choose the primary color used across customer pages, admin pages, buttons, links, and loading animations.</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="color"
+            aria-label="Choose website theme color"
+            value={settings.themeColor}
+            onChange={(event) => updateThemeColor(event.target.value)}
+            className="h-11 w-14 cursor-pointer rounded-lg border border-stone-300 bg-white p-1"
+          />
+          <code className="rounded bg-stone-100 px-2 py-1 text-sm">{settings.themeColor.toUpperCase()}</code>
+          <button
+            type="button"
+            onClick={() => { void saveThemeColor(settings.themeColor); }}
+            className="min-h-10 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
+          >
+            Save theme color
+          </button>
+          <button
+            type="button"
+            onClick={() => { void saveThemeColor(defaultSiteAnimations.themeColor); }}
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
+          >
+            Restore default saffron
+          </button>
+        </div>
+        <p className="text-xs text-stone-500">The default Pizza Vizza saffron is {defaultSiteAnimations.themeColor.toUpperCase()}. Restoring it applies immediately with one click.</p>
+      </fieldset>
       <div className="divide-y divide-stone-100">
         {effects.map((effect) => (
           <label key={effect.key} className={`flex min-h-14 items-center justify-between gap-4 py-4 ${settings.enabled ? '' : 'opacity-60'}`}>

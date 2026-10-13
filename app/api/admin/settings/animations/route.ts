@@ -7,13 +7,15 @@ import { isFoodLoadingSceneName } from '@/src/utils/food-loader';
 import { isBootLoaderStyle } from '@/src/utils/boot-loader';
 
 const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom', 'heroSlideshow', 'bootLoader', 'bootLoaderRandom'] as const;
+const themeColorPattern = /^#[0-9a-f]{6}$/i;
 
 function isSiteAnimations(value: unknown): value is SiteAnimations {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const settings = value as Record<string, unknown>;
   return animationKeys.every((key) => typeof settings[key] === 'boolean')
     && isFoodLoadingSceneName(settings.foodLoaderScene)
-    && isBootLoaderStyle(settings.bootLoaderStyle);
+    && isBootLoaderStyle(settings.bootLoaderStyle)
+    && (settings.themeColor === undefined || (typeof settings.themeColor === 'string' && themeColorPattern.test(settings.themeColor)));
 }
 
 export async function GET() {
@@ -43,6 +45,27 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, data: normalizeSiteAnimations(updated.siteAnimations) });
   } catch {
     return NextResponse.json({ error: 'Unable to save animation settings.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const user = await getSessionUser();
+  if (!user || !AuthorizationService.canAccess(user.role, 'settings.manage', user.permissions)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  try {
+    const payload = await request.json() as { themeColor?: unknown };
+    if (typeof payload.themeColor !== 'string' || !themeColorPattern.test(payload.themeColor)) {
+      return NextResponse.json({ error: 'Choose a valid six-digit hex color.' }, { status: 400 });
+    }
+
+    const settings = await getRestaurantSettings();
+    const animations = { ...normalizeSiteAnimations(settings.siteAnimations), themeColor: payload.themeColor };
+    const updated = await updateRestaurantSettings({ siteAnimations: animations });
+    return NextResponse.json({ success: true, data: normalizeSiteAnimations(updated.siteAnimations) });
+  } catch {
+    return NextResponse.json({ error: 'Unable to save the website theme color.' }, { status: 500 });
   }
 }
 

@@ -8,6 +8,7 @@ import { generateMapLink } from '@/src/services/map-provider';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
 import GlobalFooter from '@/src/components/global-footer';
 import { mergeWebsiteAppearance } from '@/src/types/appearance';
+import { defaultSiteAnimations, normalizeSiteAnimations } from '@/src/types/site-animations';
 import type { CSSProperties } from 'react';
 
 const navItems = [
@@ -42,17 +43,21 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
 
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const appearance = mergeWebsiteAppearance(restaurantSettings?.appearance);
+  const themeColor = normalizeSiteAnimations(restaurantSettings?.siteAnimations).themeColor;
+  const hasCustomThemeColor = themeColor.toLowerCase() !== defaultSiteAnimations.themeColor;
+  const accentColor = hasCustomThemeColor ? themeColor : appearance.colors.accent;
+  const linkColor = hasCustomThemeColor ? themeColor : appearance.colors.link;
   const radius = appearance.radius === 'sharp' ? '0.25rem' : appearance.radius === 'soft' ? '0.5rem' : appearance.radius === 'extra-rounded' ? '1.5rem' : '1rem';
   const shadow = appearance.shadow === 'none' ? 'none' : appearance.shadow === 'medium' ? '0 8px 24px rgb(0 0 0 / 0.12)' : appearance.shadow === 'strong' ? '0 16px 36px rgb(0 0 0 / 0.18)' : '0 1px 2px rgb(0 0 0 / 0.05)';
   const themeStyle = {
     '--background': appearance.colors.background,
     '--foreground': appearance.colors.body,
-    '--theme-primary': appearance.colors.primary,
+    '--theme-primary': hasCustomThemeColor ? themeColor : appearance.colors.primary,
     '--theme-secondary': appearance.colors.secondary,
-    '--theme-accent': appearance.colors.accent,
+    '--theme-accent': accentColor,
     '--theme-surface': appearance.colors.surface,
     '--theme-border': appearance.colors.border,
-    '--theme-link': appearance.colors.link,
+    '--theme-link': linkColor,
     '--theme-button': appearance.colors.buttonBackground,
     '--theme-button-text': appearance.colors.buttonText,
     '--theme-button-hover': appearance.colors.buttonHover,
@@ -69,9 +74,9 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <Link href="/" data-site-animation-brand="true" className="flex min-w-0 items-center gap-2.5">
-              {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border object-cover sm:h-10 sm:w-10" style={{ borderColor: appearance.colors.accent }} /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10" style={{ backgroundColor: appearance.colors.primary, color: appearance.colors.buttonText }}>PV</div>}
+              {restaurantSettings?.logo ? <img src={restaurantSettings.logo} alt={`${restaurantSettings.restaurantName} logo`} className="h-9 w-9 shrink-0 rounded-full border object-cover sm:h-10 sm:w-10" style={{ borderColor: accentColor }} /> : <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-10 sm:w-10" style={{ backgroundColor: hasCustomThemeColor ? themeColor : appearance.colors.primary, color: appearance.colors.buttonText }}>PV</div>}
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-sm sm:tracking-[0.25em]" style={{ color: appearance.colors.accent }}>{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] sm:text-sm sm:tracking-[0.25em]" style={{ color: accentColor }}>{restaurantSettings?.restaurantName || 'Pizza Vizza'}</p>
                 <h1 className="truncate text-xs font-semibold sm:text-lg">Order online <span className="hidden sm:inline">• Dine • Pickup</span></h1>
               </div>
             </Link>

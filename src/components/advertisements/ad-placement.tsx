@@ -162,7 +162,7 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
     return () => clearTimeout(timeout);
   }, [refresh]);
 
-  if (loading) return null;
+  if (loading) return <div hidden data-site-boot-pending="true" />;
   if (!data || (!data.localAdsEnabled && !data.adsense)) return error ? <p role="status" className="my-3 text-xs text-stone-500">{error}</p> : null;
 
   return (

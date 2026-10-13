@@ -1,4 +1,5 @@
 import { isFoodLoadingSceneName, type FoodLoadingSceneName } from '@/src/utils/food-loader';
+import { isBootLoaderStyle, type BootLoaderStyle } from '@/src/utils/boot-loader';
 
 export interface SiteAnimations {
   enabled: boolean;
@@ -8,6 +9,9 @@ export interface SiteAnimations {
   foodLoader: boolean;
   foodLoaderRandom: boolean;
   foodLoaderScene: FoodLoadingSceneName;
+  bootLoader: boolean;
+  bootLoaderRandom: boolean;
+  bootLoaderStyle: BootLoaderStyle;
 }
 
 export const defaultSiteAnimations: SiteAnimations = {
@@ -18,6 +22,9 @@ export const defaultSiteAnimations: SiteAnimations = {
   foodLoader: true,
   foodLoaderRandom: true,
   foodLoaderScene: 'pizza',
+  bootLoader: true,
+  bootLoaderRandom: true,
+  bootLoaderStyle: 'orbit',
 };
 
 export function normalizeSiteAnimations(value?: Partial<SiteAnimations> | null): SiteAnimations {
@@ -30,6 +37,15 @@ export function normalizeSiteAnimations(value?: Partial<SiteAnimations> | null):
   }
   if (value?.foodLoaderScene !== undefined && !isFoodLoadingSceneName(value.foodLoaderScene)) {
     normalized.foodLoaderScene = defaultSiteAnimations.foodLoaderScene;
+  }
+  if (value?.bootLoader !== undefined && typeof value.bootLoader !== 'boolean') {
+    normalized.bootLoader = defaultSiteAnimations.bootLoader;
+  }
+  if (value?.bootLoaderRandom !== undefined && typeof value.bootLoaderRandom !== 'boolean') {
+    normalized.bootLoaderRandom = defaultSiteAnimations.bootLoaderRandom;
+  }
+  if (value?.bootLoaderStyle !== undefined && !isBootLoaderStyle(value.bootLoaderStyle)) {
+    normalized.bootLoaderStyle = defaultSiteAnimations.bootLoaderStyle;
   }
   return normalized;
 }

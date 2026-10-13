@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { defaultSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
 import { foodLoadingScenes } from '@/src/utils/food-loader';
+import { bootLoaderStyles } from '@/src/utils/boot-loader';
 
-const effects: Array<{ key: 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader'; label: string; description: string }> = [
+const effects: Array<{ key: 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'bootLoader'; label: string; description: string }> = [
   { key: 'brandFloat', label: 'Brand mark float', description: 'Adds a gentle floating motion to the logo in the customer header.' },
   { key: 'contentGlow', label: 'Content highlight', description: 'Adds a soft, slow glow to the first content panel on customer pages.' },
   { key: 'actionPulse', label: 'Action button pulse', description: 'Gently highlights primary amber action buttons.' },
   { key: 'foodLoader', label: 'Food loading animation', description: 'Shows your selected food animation during page loads and navigation.' },
+  { key: 'bootLoader', label: 'Website boot animation', description: 'Shows only on a fresh page open or refresh while the current page finishes loading.' },
 ];
-type BooleanAnimationKey = 'enabled' | 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'foodLoaderRandom';
+type BooleanAnimationKey = 'enabled' | 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'foodLoaderRandom' | 'bootLoader' | 'bootLoaderRandom';
 
 export default function AnimationSettingsPanel() {
   const router = useRouter();
@@ -70,6 +72,11 @@ export default function AnimationSettingsPanel() {
     setMessage(null);
   }
 
+  function updateBootStyle(style: SiteAnimations['bootLoaderStyle']) {
+    setSettings((current) => ({ ...current, bootLoaderStyle: style }));
+    setMessage(null);
+  }
+
   if (loading) return <p className="text-sm text-stone-500">Loading animation settings...</p>;
 
   return (
@@ -119,6 +126,40 @@ export default function AnimationSettingsPanel() {
           </select>
         </label>
         <p className="text-xs text-stone-500">{foodLoadingScenes.length} food animations are available. Your mode and selection are applied after saving.</p>
+      </fieldset>
+      <fieldset disabled={saving || !settings.enabled || !settings.bootLoader} className="space-y-3 rounded-xl border border-stone-200 p-4 disabled:opacity-60">
+        <legend className="px-1 text-sm font-semibold text-stone-900">Website boot animation</legend>
+        <p className="text-sm text-stone-600">This is separate from the food loader. It runs on a fresh browser load or refresh and leaves as soon as the current page assets and advertisement placements are ready.</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={settings.bootLoaderRandom}
+            onClick={() => update('bootLoaderRandom', true)}
+            className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${settings.bootLoaderRandom ? 'bg-amber-600 text-white' : 'border border-stone-300 text-stone-700'}`}
+          >
+            Play randomly
+          </button>
+          <button
+            type="button"
+            aria-pressed={!settings.bootLoaderRandom}
+            onClick={() => update('bootLoaderRandom', false)}
+            className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${!settings.bootLoaderRandom ? 'bg-amber-600 text-white' : 'border border-stone-300 text-stone-700'}`}
+          >
+            Choose one
+          </button>
+        </div>
+        <label className="block text-sm font-medium text-stone-700">
+          Selected boot animation
+          <select
+            value={settings.bootLoaderStyle}
+            disabled={settings.bootLoaderRandom || saving || !settings.enabled || !settings.bootLoader}
+            onChange={(event) => updateBootStyle(event.target.value as SiteAnimations['bootLoaderStyle'])}
+            className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm disabled:bg-stone-100 sm:max-w-sm"
+          >
+            {bootLoaderStyles.map((style) => <option key={style.name} value={style.name}>{style.label}</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-stone-500">{bootLoaderStyles.length} boot animations. This setting is independent of the food animation selection.</p>
       </fieldset>
       <p className="text-xs text-stone-500">Animations automatically pause for visitors who have enabled reduced motion in their device accessibility settings.</p>
       {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}

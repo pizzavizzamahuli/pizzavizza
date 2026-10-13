@@ -4,14 +4,16 @@ import { AuthorizationService } from '@/src/config/permissions';
 import { getRestaurantSettings, updateRestaurantSettings } from '@/src/models/restaurant-settings';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
 import { isFoodLoadingSceneName } from '@/src/utils/food-loader';
+import { isBootLoaderStyle } from '@/src/utils/boot-loader';
 
-const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom'] as const;
+const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom', 'bootLoader', 'bootLoaderRandom'] as const;
 
 function isSiteAnimations(value: unknown): value is SiteAnimations {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const settings = value as Record<string, unknown>;
   return animationKeys.every((key) => typeof settings[key] === 'boolean')
-    && isFoodLoadingSceneName(settings.foodLoaderScene);
+    && isFoodLoadingSceneName(settings.foodLoaderScene)
+    && isBootLoaderStyle(settings.bootLoaderStyle);
 }
 
 export async function GET() {

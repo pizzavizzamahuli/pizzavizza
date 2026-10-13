@@ -1,0 +1,35 @@
+export const bootLoaderStyles = [
+  { name: 'orbit', label: 'Orbiting rings' },
+  { name: 'pulse', label: 'Soft pulse' },
+  { name: 'dual-arc', label: 'Dual arcs' },
+  { name: 'orbit-dots', label: 'Orbiting dots' },
+  { name: 'equalizer', label: 'Equalizer bars' },
+  { name: 'shimmer', label: 'Shimmer sweep' },
+  { name: 'ripple', label: 'Ripple rings' },
+  { name: 'spinner', label: 'Precision spinner' },
+  { name: 'squares', label: 'Rotating squares' },
+  { name: 'bounce', label: 'Bouncing dots' },
+  { name: 'breathing', label: 'Breathing mark' },
+  { name: 'progress', label: 'Progress sweep' },
+  { name: 'spark', label: 'Orbiting spark' },
+  { name: 'stacked', label: 'Stacked bars' },
+  { name: 'wave', label: 'Wave rings' },
+  { name: 'constellation', label: 'Constellation' },
+  { name: 'compass', label: 'Compass spin' },
+  { name: 'diamond', label: 'Glow diamond' },
+] as const;
+
+export type BootLoaderStyle = (typeof bootLoaderStyles)[number]['name'];
+
+export function isBootLoaderStyle(value: unknown): value is BootLoaderStyle {
+  return typeof value === 'string' && bootLoaderStyles.some((style) => style.name === value);
+}
+
+export function getBootLoaderStyle(value: unknown): BootLoaderStyle {
+  return isBootLoaderStyle(value) ? value : bootLoaderStyles[0].name;
+}
+
+export function chooseBootLoaderStyle(randomValue = Math.random()): BootLoaderStyle {
+  const index = Math.min(Math.floor(randomValue * bootLoaderStyles.length), bootLoaderStyles.length - 1);
+  return bootLoaderStyles[index].name;
+}

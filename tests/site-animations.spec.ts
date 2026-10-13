@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '../src/types/site-animations';
 import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '../src/utils/food-loader';
+import { bootLoaderStyles, chooseBootLoaderStyle, getBootLoaderStyle } from '../src/utils/boot-loader';
 
 test('food loading animation defaults on and older saved settings remain compatible', () => {
   expect(defaultSiteAnimations.foodLoader).toBe(true);
@@ -11,6 +12,20 @@ test('food loading animation defaults on and older saved settings remain compati
   expect(normalizeSiteAnimations({ enabled: false }).foodLoader).toBe(true);
   expect(normalizeSiteAnimations({ foodLoader: false }).foodLoader).toBe(false);
   expect(normalizeSiteAnimations({ foodLoaderScene: 'invalid' as SiteAnimations['foodLoaderScene'] }).foodLoaderScene).toBe('pizza');
+  expect(defaultSiteAnimations.bootLoader).toBe(true);
+  expect(defaultSiteAnimations.bootLoaderRandom).toBe(true);
+  expect(defaultSiteAnimations.bootLoaderStyle).toBe('orbit');
+  expect(normalizeSiteAnimations({ enabled: false }).bootLoader).toBe(true);
+  expect(normalizeSiteAnimations({ bootLoader: false }).bootLoader).toBe(false);
+  expect(normalizeSiteAnimations({ bootLoaderStyle: 'unknown' as SiteAnimations['bootLoaderStyle'] }).bootLoaderStyle).toBe('orbit');
+});
+
+test('boot loader offers 18 selectable styles and random style selection stays in range', () => {
+  expect(bootLoaderStyles).toHaveLength(18);
+  expect(getBootLoaderStyle('compass')).toBe('compass');
+  expect(getBootLoaderStyle('unknown')).toBe('orbit');
+  expect(chooseBootLoaderStyle(0)).toBe('orbit');
+  expect(chooseBootLoaderStyle(0.999)).toBe('diamond');
 });
 
 test('animation effects loop when enabled and pause for reduced motion', async ({ page }) => {
@@ -24,6 +39,9 @@ test('animation effects loop when enabled and pause for reduced motion', async (
       <header><a href="/" data-site-animation-brand="true"><img src="#" alt="Brand"></a></header>
       <main><section id="content"></section><a id="action" class="bg-amber-600">Order</a></main>
       <div class="food-loading-overlay" role="status"><div class="food-loading-plate"><span class="food-loading-emoji">🍕</span></div></div>
+      <div class="boot-loading-overlay" role="status">
+        <div class="boot-loader-visual boot-loader-pulse"><span class="boot-loader-ring"></span></div>
+      </div>
     </div>
   `);
 
@@ -42,6 +60,7 @@ test('animation effects loop when enabled and pause for reduced motion', async (
   await expect(page.locator('#action')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('.food-loading-plate')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('.food-loading-emoji')).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.boot-loader-pulse .boot-loader-ring')).toHaveCSS('animation-name', 'none');
 });
 
 test('food loader chooses varied scenes and respects the master switch', async ({ page }) => {
@@ -95,4 +114,46 @@ test('authentication pages do not receive website animations', async ({ page }) 
   await expect(scope).not.toHaveAttribute('data-site-animation-brand', 'true');
   await expect(scope).not.toHaveAttribute('data-site-animation-content', 'true');
   await expect(scope).not.toHaveAttribute('data-site-animation-actions', 'true');
+});
+
+test('boot animation waits for initial ad placements, skips client navigation, and returns on refresh', async ({ page }) => {
+  let holdPlacement = true;
+  let releasePlacement: (() => void) | undefined;
+  let signalPlacementRequest: (() => void) | undefined;
+  let placementRequest = new Promise<void>((resolve) => { signalPlacementRequest = resolve; });
+  let placementGate = new Promise<void>((resolve) => { releasePlacement = resolve; });
+  const placementResponse = {
+    success: true,
+    data: { localAdsEnabled: false, campaigns: [], adsense: null },
+  };
+
+  await page.route('**/api/advertisements?placement=*', async (route) => {
+    if (holdPlacement) {
+      holdPlacement = false;
+      signalPlacementRequest?.();
+      await placementGate;
+    }
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(placementResponse) });
+  });
+
+  await page.goto('/');
+  await placementRequest;
+  const bootLoader = page.getByRole('status', { name: 'Loading Pizza Vizza' });
+  await expect(bootLoader).toBeVisible();
+  releasePlacement?.();
+  await expect(bootLoader).toBeHidden({ timeout: 15_000 });
+
+  await page.locator('a[href="/menu"]:visible').first().click();
+  await expect(page).toHaveURL(/\/menu$/);
+  await expect(bootLoader).toBeHidden();
+
+  holdPlacement = true;
+  placementRequest = new Promise<void>((resolve) => { signalPlacementRequest = resolve; });
+  placementGate = new Promise<void>((resolve) => { releasePlacement = resolve; });
+  const reload = page.reload();
+  await placementRequest;
+  await reload;
+  await expect(bootLoader).toBeVisible();
+  releasePlacement?.();
+  await expect(bootLoader).toBeHidden({ timeout: 15_000 });
 });

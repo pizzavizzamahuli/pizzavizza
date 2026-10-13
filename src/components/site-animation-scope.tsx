@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { normalizeSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
+import BootLoadingAnimation from '@/src/components/boot-loading-animation';
 
 const excludedPaths = [
   '/admin',
@@ -35,7 +36,16 @@ export function SiteAnimationScope({ animations: value, children }: { animations
       data-site-animation-loader={enabled && animations.foodLoader ? 'true' : undefined}
       data-food-loader-random={animations.foodLoaderRandom ? 'true' : 'false'}
       data-food-loader-scene={animations.foodLoaderScene}
+      data-site-animation-boot-loader={enabled && animations.bootLoader ? 'true' : undefined}
+      data-boot-loader-random={animations.bootLoaderRandom ? 'true' : 'false'}
+      data-boot-loader-style={animations.bootLoaderStyle}
     >
+      <BootLoadingAnimation
+        enabled={enabled && animations.bootLoader}
+        initiallyEnabled={enabled && animations.bootLoader}
+        random={animations.bootLoaderRandom}
+        selectedStyle={animations.bootLoaderStyle}
+      />
       {children}
     </div>
   );

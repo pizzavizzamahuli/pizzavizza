@@ -93,7 +93,7 @@ test('ads are off by default and campaign approval dates determine serving eligi
   expect(parseAdCampaign({ ...payload, imageUrl: 'https://res.cloudinary.com/other/image/upload/banner.webp' }, true, 'pizzavizza')).toBeNull();
 });
 
-test('advertisement endpoints require admin authorization and consent choices are explicit', async ({ request }) => {
+test('advertisement endpoints require admin authorization and visitor measurement is disabled', async ({ request }) => {
   test.skip(test.info().project.name === 'mobile', 'Server authorization contract does not depend on viewport.');
   test.setTimeout(90_000);
   const settings = await request.get('/api/admin/advertisements/settings');
@@ -101,18 +101,11 @@ test('advertisement endpoints require admin authorization and consent choices ar
   expect(settings.status()).toBe(403);
   expect(campaigns.status()).toBe(403);
 
-  const accepted = await request.post('/api/advertisements/consent', { data: { choice: 'accepted' } });
-  expect(accepted.ok()).toBeTruthy();
-  expect(accepted.headers()['set-cookie']).toContain('pv_local_ads_consent=accepted');
-  expect(accepted.headers()['set-cookie']).toContain('HttpOnly');
-
-  const rejected = await request.post('/api/advertisements/consent', { data: { choice: 'rejected' } });
-  expect(rejected.ok()).toBeTruthy();
-  expect(rejected.headers()['set-cookie']).toContain('pv_local_ads_consent=rejected');
+  const measurement = await request.post('/api/advertisements/events', { data: {} });
+  expect(measurement.status()).toBe(410);
 });
 
-test('local sponsored placements require opt-in, deduplicate tracking, and fit mobile width', async ({ page }) => {
-  let choice: 'accepted' | 'rejected' | null = null;
+test('local sponsored placements display without opt-in, skip measurement, and fit mobile width', async ({ page }) => {
   const events: Array<{ campaignId: string; kind: string }> = [];
 
   await page.route('**/api/advertisements?placement=HOME', (route) => route.fulfill({
@@ -121,23 +114,17 @@ test('local sponsored placements require opt-in, deduplicate tracking, and fit m
       success: true,
       data: {
         localAdsEnabled: true,
-        localAdsConsent: choice === 'accepted',
-        localAdsChoice: choice,
-        campaigns: choice === 'accepted' ? [{
+        campaigns: [{
           _id: '507f1f77bcf86cd799439011',
           businessName: 'Sample Local Bakery',
           imageUrl: 'https://res.cloudinary.com/sample/image/upload/banner.webp',
           destinationUrl: 'https://business.example/',
           placement: 'HOME',
-        }] : [],
+        }],
         adsense: null,
       },
     }),
   }));
-  await page.route('**/api/advertisements/consent', async (route) => {
-    choice = (route.request().postDataJSON() as { choice: 'accepted' | 'rejected' }).choice;
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true }) });
-  });
   await page.route('**/api/advertisements/events', async (route) => {
     events.push(route.request().postDataJSON() as { campaignId: string; kind: string });
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true }) });
@@ -145,25 +132,16 @@ test('local sponsored placements require opt-in, deduplicate tracking, and fit m
   await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ status: 200, contentType: 'image/webp', body: '' }));
   await page.goto('/');
 
-  await expect(page.getByText('Local business advertisements')).toBeVisible();
-  await expect(page.getByText('Sample Local Bakery')).toHaveCount(0);
-  expect(events).toHaveLength(0);
-  await page.getByRole('button', { name: 'Allow local sponsored ads' }).click();
   await expect(page.getByText('Sample Local Bakery')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Allow local sponsored ads' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Decline' })).toHaveCount(0);
   await expect(page.locator('#pizzavizza-adsense-script')).toHaveCount(0);
-  const card = page.locator('[data-local-ad-id="507f1f77bcf86cd799439011"]');
+  const card = page.locator('section[aria-label="Sponsored advertisements"] article').first();
   const bounds = await card.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.width).toBeLessThanOrEqual(await page.evaluate(() => document.documentElement.clientWidth));
-
-  const clickEvent = page.waitForRequest('**/api/advertisements/events');
-  await card.getByRole('link').click();
-  await clickEvent;
-  expect(events.filter((event) => event.kind === 'click')).toHaveLength(1);
-  expect(events.filter((event) => event.kind === 'impression').length).toBeLessThanOrEqual(1);
-  await page.getByRole('button', { name: 'Ad preferences' }).click();
-  await page.getByRole('button', { name: 'Decline' }).click();
-  await expect(page.getByText('Sample Local Bakery')).toHaveCount(0);
+  expect((await page.context().cookies()).some((cookie) => cookie.name === 'pv_local_ads_consent')).toBe(false);
+  await expect.poll(() => events).toHaveLength(0);
 });
 
 test('AdSense waits for TCF consent before injecting one script', async ({ page }) => {

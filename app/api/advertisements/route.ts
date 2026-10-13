@@ -15,10 +15,7 @@ export async function GET(request: Request) {
   } catch {
     return NextResponse.json({ error: 'Advertisement settings are unavailable.' }, { status: 503 });
   }
-  const consentCookie = request.headers.get('cookie')?.split(';').map((item) => item.trim().split('=')) ?? [];
-  const consentValue = consentCookie.find(([name]) => name === 'pv_local_ads_consent')?.[1];
-  const consent = consentValue === 'accepted';
-  const campaigns = settings.localAdsEnabled && consent
+  const campaigns = settings.localAdsEnabled
     ? await (await getAdCampaignsCollection()).find({
       status: 'APPROVED',
       placement,
@@ -39,8 +36,6 @@ export async function GET(request: Request) {
     success: true,
     data: {
       localAdsEnabled: settings.localAdsEnabled,
-      localAdsConsent: consent,
-      localAdsChoice: consentValue === 'accepted' || consentValue === 'rejected' ? consentValue : null,
       campaigns: campaigns.map((campaign) => ({
         _id: campaign._id?.toHexString(),
         businessName: campaign.businessName,

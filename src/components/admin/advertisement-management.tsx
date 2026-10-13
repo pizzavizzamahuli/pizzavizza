@@ -256,8 +256,8 @@ export default function AdvertisementManagement({ canManage }: { canManage: bool
       </section>
 
       <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
-        <div><h2 className="text-lg font-semibold">Local business advertisements</h2><p className="mt-1 text-sm text-stone-600">Campaigns require approval and explicit visitor consent before display or anonymous measurement. Do not click your own ads or encourage customers to click them.</p></div>
-        {toggle('Enable local advertisements', settings.localAdsEnabled, (value) => setSettings({ ...settings, localAdsEnabled: value }), 'Global OFF stops new local campaign rendering and measurement. Existing campaign records remain stored.')}
+        <div><h2 className="text-lg font-semibold">Local business advertisements</h2><p className="mt-1 text-sm text-stone-600">Approved, active campaigns display to all visitors. Visitor impression and click measurement is disabled. Do not click your own ads or encourage customers to click them.</p></div>
+        {toggle('Enable local advertisements', settings.localAdsEnabled, (value) => setSettings({ ...settings, localAdsEnabled: value }), 'Global OFF stops local campaign rendering. Existing campaign records remain stored.')}
         {canManage ? <button type="button" disabled={busy} onClick={() => void saveSettings(settings, 'local')} className="min-h-11 rounded-full border border-amber-600 px-5 py-2 font-semibold text-amber-800 disabled:opacity-50">{busy ? 'Saving...' : 'Save local ad settings'}</button> : null}
       </section>
 
@@ -288,7 +288,7 @@ export default function AdvertisementManagement({ canManage }: { canManage: bool
       </section> : null}
 
       <section className="space-y-4">
-        <div><h2 className="text-lg font-semibold">Campaigns and reporting</h2><p className="mt-1 text-sm text-stone-600">Approximate local-ad events are deduplicated per campaign and anonymous browser session per UTC day, then automatically deleted after 60 days. This is not fraud-proof billing data. Google click reporting is not provided here.</p></div>
+        <div><h2 className="text-lg font-semibold">Campaigns and reporting</h2><p className="mt-1 text-sm text-stone-600">Visitor impression and click measurement is disabled. Any existing approximate event totals expire within 60 days; they are not billing data. Google click reporting is not provided here.</p></div>
         {campaigns.length ? campaigns.map((campaign) => <article key={campaign._id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row">
             <img src={campaign.imageUrl} alt={`${campaign.businessName} advertisement preview`} className="h-32 w-full rounded-xl bg-stone-100 object-cover sm:w-48" />

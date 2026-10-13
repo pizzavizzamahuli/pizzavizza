@@ -20,8 +20,6 @@ interface AdSenseConfig {
 
 interface PlacementData {
   localAdsEnabled: boolean;
-  localAdsConsent: boolean;
-  localAdsChoice: 'accepted' | 'rejected' | null;
   campaigns: LocalCampaign[];
   adsense: AdSenseConfig | null;
 }
@@ -51,16 +49,6 @@ async function parseResponse(response: Response) {
   } catch {
     throw new Error('Advertisement settings could not be read.');
   }
-}
-
-function getSessionId() {
-  const key = 'pv-local-ad-session:v1';
-  let sessionId = sessionStorage.getItem(key);
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    sessionStorage.setItem(key, sessionId);
-  }
-  return sessionId;
 }
 
 function loadAdSenseScript(publisherId: string) {
@@ -150,13 +138,8 @@ function AdSensePlacement({ config }: { config: AdSenseConfig }) {
 
 export default function AdPlacement({ placement }: { placement: AdPlacement }) {
   const [data, setData] = useState<PlacementData | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [preferenceOpen, setPreferenceOpen] = useState(false);
-  const [savingChoice, setSavingChoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const reported = useRef(new Set<string>());
-  const placementRef = useRef<HTMLElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -167,7 +150,6 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
       if (!response.ok || !result.success) throw new Error(result.error || 'Unable to load advertisements.');
       const nextData = result.data as PlacementData;
       setData(nextData);
-      setSessionId(nextData.localAdsEnabled && nextData.localAdsConsent ? getSessionId() : null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load advertisements.');
     } finally {
@@ -180,99 +162,18 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
     return () => clearTimeout(timeout);
   }, [refresh]);
 
-  async function chooseConsent(choice: 'accepted' | 'rejected') {
-    setSavingChoice(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/advertisements/consent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ choice, sessionId: choice === 'rejected' ? sessionId : null }),
-      });
-      const result = await parseResponse(response);
-      if (!response.ok || !result.success) throw new Error(result.error || 'Unable to save your advertising preference.');
-      const warning = typeof result.warning === 'string' ? result.warning : null;
-      if (choice === 'rejected') {
-        sessionStorage.removeItem('pv-local-ad-session:v1');
-        setSessionId(null);
-      }
-      setPreferenceOpen(false);
-      await refresh();
-      if (warning) setError(warning);
-    } catch (choiceError) {
-      if (choice === 'rejected') {
-        sessionStorage.removeItem('pv-local-ad-session:v1');
-        setSessionId(null);
-        setData((current) => current ? { ...current, localAdsConsent: false, localAdsChoice: 'rejected', campaigns: [] } : current);
-        setPreferenceOpen(false);
-      }
-      setError(choiceError instanceof Error ? choiceError.message : 'Unable to save your advertising preference.');
-    } finally {
-      setSavingChoice(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!data?.localAdsConsent || !data.localAdsEnabled || !sessionId) return;
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) continue;
-        const campaignId = entry.target.getAttribute('data-local-ad-id');
-        if (!campaignId || reported.current.has(campaignId)) continue;
-        reported.current.add(campaignId);
-        void fetch('/api/advertisements/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ campaignId, kind: 'impression', sessionId }),
-          keepalive: true,
-        }).catch(() => undefined);
-      }
-    }, { threshold: 0.5 });
-    placementRef.current?.querySelectorAll('[data-local-ad-id]').forEach((element) => observer.observe(element));
-    return () => observer.disconnect();
-  }, [data, sessionId]);
-
-  async function reportClick(campaignId: string) {
-    if (!sessionId || !data?.localAdsConsent) return;
-    await fetch('/api/advertisements/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ campaignId, kind: 'click', sessionId }),
-      keepalive: true,
-    }).catch(() => undefined);
-  }
-
   if (loading) return null;
   if (!data || (!data.localAdsEnabled && !data.adsense)) return error ? <p role="status" className="my-3 text-xs text-stone-500">{error}</p> : null;
 
-  const needsLocalConsent = data.localAdsEnabled && (!data.localAdsChoice || preferenceOpen);
   return (
-    <section ref={placementRef} aria-label="Sponsored advertisements" className="my-5 space-y-3">
-      {needsLocalConsent ? (
-        <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-5">
-          <p className="font-semibold text-stone-900">Local business advertisements</p>
-          <p className="mt-1 text-sm leading-5 text-stone-600">Choose whether to view sponsored local business offers. If allowed, we store a random session identifier and count approximate impressions and clicks once per campaign per day. No measurement runs before you opt in. You can change this choice here at any time.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={savingChoice} onClick={() => void chooseConsent('accepted')} className="min-h-11 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Allow local sponsored ads</button>
-            <button type="button" disabled={savingChoice} onClick={() => void chooseConsent('rejected')} className="min-h-11 rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 disabled:opacity-50">Decline</button>
-          </div>
-        </div>
-      ) : null}
-
-      {data.localAdsEnabled && data.localAdsConsent && !preferenceOpen ? (
-        <div className="flex justify-end"><button type="button" onClick={() => setPreferenceOpen(true)} className="text-xs text-stone-500 underline underline-offset-2">Ad preferences</button></div>
-      ) : null}
-      {data.localAdsEnabled && data.localAdsChoice === 'rejected' && !preferenceOpen ? (
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-stone-50 px-3 py-2 text-xs text-stone-600"><span>Local advertisements are hidden by your preference.</span><button type="button" onClick={() => setPreferenceOpen(true)} className="shrink-0 underline underline-offset-2">Change preference</button></div>
-      ) : null}
-      {data.localAdsEnabled && data.localAdsConsent && sessionId && !preferenceOpen
+    <section aria-label="Sponsored advertisements" className="my-5 space-y-3">
+      {data.localAdsEnabled
         ? data.campaigns.map((campaign) => (
-          <article key={campaign._id} data-local-ad-id={campaign._id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <article key={campaign._id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <a
               href={campaign.destinationUrl}
               target="_blank"
               rel="sponsored nofollow noopener noreferrer"
-              onClick={() => { void reportClick(campaign._id); }}
               className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
             >
               <div className="grid sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.55fr)]">

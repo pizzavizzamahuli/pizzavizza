@@ -1,8 +1,9 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useState } from 'react';
-import { chooseBootLoaderStyle, type BootLoaderStyle } from '@/src/utils/boot-loader';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { bootBackgroundPalettes, chooseBootBackgroundPalette, chooseBootLoaderStyle, type BootLoaderStyle } from '@/src/utils/boot-loader';
+import { foodLoadingScenes } from '@/src/utils/food-loader';
 
 function waitForWindowLoad(signal: AbortSignal) {
   if (document.readyState === 'complete' || signal.aborted) return Promise.resolve();
@@ -102,10 +103,27 @@ export default function BootLoadingAnimation({
   const [shouldRun] = useState(initiallyEnabled);
   const [visible, setVisible] = useState(initiallyEnabled);
   const [style, setStyle] = useState(selectedStyle);
+  const [palette, setPalette] = useState(0);
 
   useEffect(() => {
     if (!shouldRun) return;
+    let previousPalette = -1;
+    try {
+      previousPalette = Number(sessionStorage.getItem('pv-boot-background-palette'));
+      if (!Number.isInteger(previousPalette) || previousPalette < 0 || previousPalette >= bootBackgroundPalettes.length) {
+        previousPalette = -1;
+      }
+    } catch {
+      previousPalette = -1;
+    }
+    const nextPalette = chooseBootBackgroundPalette(previousPalette);
+    try {
+      sessionStorage.setItem('pv-boot-background-palette', String(nextPalette.index));
+    } catch {
+      // Background colors still animate when browser storage is unavailable.
+    }
     const selectionFrame = window.requestAnimationFrame(() => {
+      setPalette(nextPalette.index);
       setStyle(random ? chooseBootLoaderStyle() : selectedStyle);
     });
     const controller = new AbortController();
@@ -133,14 +151,33 @@ export default function BootLoadingAnimation({
   if (!enabled || !visible) return null;
 
   return (
-    <div className="boot-loading-overlay" role="status" aria-live="polite" aria-label="Loading Pizza Vizza">
+    <div
+      className="boot-loading-overlay"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading Pizza Vizza"
+      data-boot-background-palette={palette}
+      style={{ '--boot-hue-shift': `${bootBackgroundPalettes[palette]}deg` } as CSSProperties}
+    >
       <div className="boot-loading-backdrop" aria-hidden="true">
+        <span className="boot-color-clouds">
+          {bootBackgroundPalettes.map((hue, index) => (
+            <span className="boot-color-cloud" key={hue} data-boot-color={index} />
+          ))}
+        </span>
         <span className="boot-backdrop-orbit boot-backdrop-orbit-one" />
         <span className="boot-backdrop-orbit boot-backdrop-orbit-two" />
         <span className="boot-backdrop-orbit boot-backdrop-orbit-three" />
         <span className="boot-backdrop-glow boot-backdrop-glow-one" />
         <span className="boot-backdrop-glow boot-backdrop-glow-two" />
         <span className="boot-backdrop-specks" />
+        <span className="boot-food-particles">
+          {foodLoadingScenes.map((food) => (
+            <span className="boot-food-particle" key={food.name} data-food-particle={food.name}>
+              {food.emoji}
+            </span>
+          ))}
+        </span>
       </div>
       <div className="boot-loading-content">
         <div className={`boot-loader-visual boot-loader-${style}`} aria-hidden="true">

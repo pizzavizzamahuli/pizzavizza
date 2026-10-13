@@ -345,7 +345,7 @@ a[href^="tel:"] {
   place-items: center;
   overflow: hidden;
   isolation: isolate;
-  background: #fffaf5;
+  background: #fff8f2;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
@@ -354,21 +354,63 @@ a[href^="tel:"] {
   z-index: -1;
   inset: 0;
   overflow: hidden;
+  background: #fff8f2;
+}
+
+.boot-loading-backdrop::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
   background-image:
-    linear-gradient(rgb(194 65 12 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(194 65 12 / 0.035) 1px, transparent 1px);
+    linear-gradient(rgb(194 65 12 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(194 65 12 / 0.045) 1px, transparent 1px);
   background-position: center;
   background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 78%);
+  content: "";
+  mask-image: radial-gradient(ellipse at center, #000 12%, transparent 88%);
+  pointer-events: none;
 }
 
 .boot-backdrop-orbit,
-.boot-backdrop-glow {
+.boot-backdrop-glow,
+.boot-color-clouds {
   position: absolute;
   display: block;
   border-radius: 50%;
   pointer-events: none;
 }
+
+.boot-color-clouds {
+  inset: -12%;
+  overflow: hidden;
+  filter: hue-rotate(var(--boot-hue-shift, 0deg)) saturate(1.3);
+  transition: filter 900ms ease;
+}
+
+.boot-color-cloud {
+  position: absolute;
+  display: block;
+  width: clamp(13rem, 31vw, 31rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.36;
+  filter: blur(clamp(24px, 5vw, 68px));
+  mix-blend-mode: multiply;
+  will-change: transform;
+}
+
+.boot-color-cloud[data-boot-color="0"] { top: -10%; left: -3%; background: radial-gradient(circle, #fb7185 0, rgb(251 113 133 / 0.72) 30%, transparent 72%); animation: boot-color-drift-one 34s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="1"] { top: 5%; left: 29%; background: radial-gradient(circle, #fb923c 0, rgb(251 146 60 / 0.72) 30%, transparent 72%); animation: boot-color-drift-two 39s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="2"] { top: -13%; right: -6%; background: radial-gradient(circle, #facc15 0, rgb(250 204 21 / 0.68) 30%, transparent 72%); animation: boot-color-drift-three 36s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="3"] { top: 30%; left: 8%; background: radial-gradient(circle, #a3e635 0, rgb(163 230 53 / 0.62) 30%, transparent 72%); animation: boot-color-drift-four 42s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="4"] { top: 28%; left: 37%; background: radial-gradient(circle, #4ade80 0, rgb(74 222 128 / 0.64) 30%, transparent 72%); animation: boot-color-drift-five 37s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="5"] { top: 28%; right: -8%; background: radial-gradient(circle, #2dd4bf 0, rgb(45 212 191 / 0.66) 30%, transparent 72%); animation: boot-color-drift-six 41s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="6"] { bottom: -17%; left: -6%; background: radial-gradient(circle, #38bdf8 0, rgb(56 189 248 / 0.68) 30%, transparent 72%); animation: boot-color-drift-seven 38s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="7"] { bottom: -18%; left: 23%; background: radial-gradient(circle, #60a5fa 0, rgb(96 165 250 / 0.68) 30%, transparent 72%); animation: boot-color-drift-eight 43s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="8"] { bottom: -12%; left: 47%; background: radial-gradient(circle, #818cf8 0, rgb(129 140 248 / 0.64) 30%, transparent 72%); animation: boot-color-drift-nine 35s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="9"] { right: -9%; bottom: 1%; background: radial-gradient(circle, #c084fc 0, rgb(192 132 252 / 0.68) 30%, transparent 72%); animation: boot-color-drift-ten 40s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="10"] { top: 6%; left: 11%; background: radial-gradient(circle, #f472b6 0, rgb(244 114 182 / 0.64) 30%, transparent 72%); animation: boot-color-drift-eleven 44s ease-in-out infinite alternate; }
+.boot-color-cloud[data-boot-color="11"] { top: 22%; right: 18%; background: radial-gradient(circle, #fda4af 0, rgb(253 164 175 / 0.66) 30%, transparent 72%); animation: boot-color-drift-twelve 37s ease-in-out infinite alternate; }
 
 .boot-backdrop-orbit {
   top: 50%;
@@ -422,15 +464,55 @@ a[href^="tel:"] {
 .boot-backdrop-specks {
   position: absolute;
   inset: 0;
-  opacity: 0.45;
+  z-index: 2;
+  opacity: 0.6;
   background-image: radial-gradient(circle, #fb923c 1px, transparent 1.5px), radial-gradient(circle, #fbbf24 1px, transparent 1.5px);
   background-position: 11% 22%, 78% 68%;
   background-size: 173px 191px, 227px 211px;
   animation: boot-backdrop-specks 18s linear infinite;
 }
 
+.boot-food-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.boot-food-particle {
+  position: absolute;
+  display: block;
+  color: #c2410c;
+  font-size: clamp(1.5rem, 3.2vw, 3rem);
+  line-height: 1;
+  opacity: 0.3;
+  filter: drop-shadow(0 5px 9px rgb(124 45 18 / 0.12));
+  will-change: transform;
+}
+
+.boot-food-particle:nth-child(1) { top: 13%; left: 12%; animation: boot-food-pizza 8s ease-in-out infinite; }
+.boot-food-particle:nth-child(2) { top: 19%; right: 17%; animation: boot-food-burger 9s ease-in-out infinite -2s; }
+.boot-food-particle:nth-child(3) { top: 42%; left: 6%; animation: boot-food-fries 7s ease-in-out infinite -1s; }
+.boot-food-particle:nth-child(4) { top: 68%; right: 8%; animation: boot-food-drink 10s ease-in-out infinite -4s; }
+.boot-food-particle:nth-child(5) { top: 79%; left: 19%; animation: boot-food-donut 8.5s ease-in-out infinite -3s; }
+.boot-food-particle:nth-child(6) { top: 31%; right: 7%; animation: boot-food-taco 7.5s ease-in-out infinite -2s; }
+.boot-food-particle:nth-child(7) { top: 56%; left: 15%; animation: boot-food-pasta 9.5s ease-in-out infinite -5s; }
+.boot-food-particle:nth-child(8) { top: 11%; right: 34%; animation: boot-food-sushi 8s ease-in-out infinite -1.5s; }
+.boot-food-particle:nth-child(9) { top: 83%; right: 27%; animation: boot-food-icecream 7s ease-in-out infinite -3.5s; }
+.boot-food-particle:nth-child(10) { top: 25%; left: 27%; animation: boot-food-sandwich 10s ease-in-out infinite -6s; }
+.boot-food-particle:nth-child(11) { top: 63%; right: 19%; animation: boot-food-coffee 8s ease-in-out infinite -2.5s; }
+.boot-food-particle:nth-child(12) { top: 88%; left: 45%; animation: boot-food-cake 9s ease-in-out infinite -4s; }
+.boot-food-particle:nth-child(13) { top: 39%; right: 25%; animation: boot-food-waffle 7.5s ease-in-out infinite -1s; }
+.boot-food-particle:nth-child(14) { top: 72%; left: 5%; animation: boot-food-dumplings 8.5s ease-in-out infinite -5s; }
+.boot-food-particle:nth-child(15) { top: 47%; right: 12%; animation: boot-food-salad 9s ease-in-out infinite -3s; }
+.boot-food-particle:nth-child(16) { top: 9%; left: 42%; animation: boot-food-milkshake 7s ease-in-out infinite -2s; }
+.boot-food-particle:nth-child(17) { top: 91%; right: 45%; animation: boot-food-croissant 8s ease-in-out infinite -4.5s; }
+.boot-food-particle:nth-child(18) { top: 52%; left: 30%; animation: boot-food-ramen 9.5s ease-in-out infinite -6s; }
+
 .boot-loading-content {
   position: relative;
+  z-index: 1;
   width: min(100%, 26rem);
   padding: clamp(1rem, 4vw, 2.25rem);
   border: 1px solid rgb(255 255 255 / 0.8);
@@ -655,6 +737,37 @@ a[href^="tel:"] {
   .boot-backdrop-orbit-one { width: 94vw; }
   .boot-backdrop-orbit-two { width: 78vw; }
   .boot-backdrop-orbit-three { width: 62vw; }
+
+  .boot-color-clouds { inset: -24%; }
+  .boot-color-cloud {
+    width: clamp(12rem, 56vw, 20rem);
+    opacity: 0.31;
+    filter: blur(32px);
+  }
+
+  .boot-food-particle {
+    font-size: clamp(1.25rem, 6vw, 2rem);
+    opacity: 0.2;
+  }
+
+  .boot-food-particle:nth-child(1) { top: 10%; left: 7%; }
+  .boot-food-particle:nth-child(2) { top: 14%; right: 8%; }
+  .boot-food-particle:nth-child(3) { top: 35%; left: 3%; }
+  .boot-food-particle:nth-child(4) { top: 39%; right: 3%; }
+  .boot-food-particle:nth-child(5) { top: 62%; left: 6%; }
+  .boot-food-particle:nth-child(6) { top: 65%; right: 5%; }
+  .boot-food-particle:nth-child(7) { top: 82%; left: 10%; }
+  .boot-food-particle:nth-child(8) { top: 9%; right: 31%; }
+  .boot-food-particle:nth-child(9) { top: 84%; right: 10%; }
+  .boot-food-particle:nth-child(10) { top: 25%; left: 17%; }
+  .boot-food-particle:nth-child(11) { top: 53%; right: 8%; }
+  .boot-food-particle:nth-child(12) { top: 91%; left: 43%; }
+  .boot-food-particle:nth-child(13) { top: 29%; right: 14%; }
+  .boot-food-particle:nth-child(14) { top: 73%; left: 2%; }
+  .boot-food-particle:nth-child(15) { top: 48%; right: 3%; }
+  .boot-food-particle:nth-child(16) { top: 7%; left: 42%; }
+  .boot-food-particle:nth-child(17) { top: 94%; right: 40%; }
+  .boot-food-particle:nth-child(18) { top: 51%; left: 3%; }
 }
 
 @keyframes food-plate-bob {
@@ -773,6 +886,36 @@ a[href^="tel:"] {
 @keyframes boot-backdrop-rotate { to { rotate: 360deg; } }
 @keyframes boot-backdrop-drift { from { transform: translate3d(-4%, -2%, 0) scale(0.92); } to { transform: translate3d(8%, 6%, 0) scale(1.08); } }
 @keyframes boot-backdrop-specks { to { background-position: 35% 8%, 53% 88%; } }
+@keyframes boot-color-drift-one { 0% { transform: translate(-8vw, -3vh) scale(0.88); } 100% { transform: translate(18vw, 12vh) scale(1.18); } }
+@keyframes boot-color-drift-two { 0% { transform: translate(-12vw, 8vh) scale(1.12); } 100% { transform: translate(14vw, -10vh) scale(0.9); } }
+@keyframes boot-color-drift-three { 0% { transform: translate(5vw, -12vh) scale(0.94); } 100% { transform: translate(-22vw, 18vh) scale(1.16); } }
+@keyframes boot-color-drift-four { 0% { transform: translate(-10vw, 12vh) scale(1.08); } 100% { transform: translate(20vw, -8vh) scale(0.9); } }
+@keyframes boot-color-drift-five { 0% { transform: translate(12vw, -10vh) scale(0.9); } 100% { transform: translate(-14vw, 14vh) scale(1.2); } }
+@keyframes boot-color-drift-six { 0% { transform: translate(8vw, 10vh) scale(1.12); } 100% { transform: translate(-20vw, -12vh) scale(0.88); } }
+@keyframes boot-color-drift-seven { 0% { transform: translate(-12vw, 8vh) scale(0.9); } 100% { transform: translate(18vw, -14vh) scale(1.18); } }
+@keyframes boot-color-drift-eight { 0% { transform: translate(14vw, 12vh) scale(1.14); } 100% { transform: translate(-12vw, -16vh) scale(0.9); } }
+@keyframes boot-color-drift-nine { 0% { transform: translate(10vw, -12vh) scale(0.92); } 100% { transform: translate(-18vw, 12vh) scale(1.16); } }
+@keyframes boot-color-drift-ten { 0% { transform: translate(12vw, -8vh) scale(1.1); } 100% { transform: translate(-22vw, 10vh) scale(0.9); } }
+@keyframes boot-color-drift-eleven { 0% { transform: translate(-16vw, 6vh) scale(0.92); } 100% { transform: translate(14vw, 14vh) scale(1.16); } }
+@keyframes boot-color-drift-twelve { 0% { transform: translate(8vw, 16vh) scale(1.12); } 100% { transform: translate(-16vw, -12vh) scale(0.9); } }
+@keyframes boot-food-pizza { 0%, 100% { transform: translate(0, 0) rotate(-12deg); } 50% { transform: translate(24px, -30px) rotate(16deg); } }
+@keyframes boot-food-burger { 0%, 100% { transform: translate(0, 0) rotate(8deg); } 50% { transform: translate(-26px, 22px) rotate(-12deg); } }
+@keyframes boot-food-fries { 0%, 100% { transform: translate(0, 0) rotate(-8deg); } 50% { transform: translate(18px, -34px) rotate(14deg); } }
+@keyframes boot-food-drink { 0%, 100% { transform: translate(0, 0) rotate(10deg) scale(0.96); } 50% { transform: translate(-20px, -28px) rotate(-10deg) scale(1.08); } }
+@keyframes boot-food-donut { 0%, 100% { transform: translate(0, 0) rotate(-15deg); } 50% { transform: translate(25px, -22px) rotate(35deg); } }
+@keyframes boot-food-taco { 0%, 100% { transform: translate(0, 0) rotate(14deg); } 50% { transform: translate(-25px, 30px) rotate(-16deg); } }
+@keyframes boot-food-pasta { 0%, 100% { transform: translate(0, 0) rotate(-10deg) scale(1); } 50% { transform: translate(28px, 18px) rotate(18deg) scale(1.12); } }
+@keyframes boot-food-sushi { 0%, 100% { transform: translate(0, 0) rotate(10deg); } 50% { transform: translate(-18px, 34px) rotate(-20deg); } }
+@keyframes boot-food-icecream { 0%, 100% { transform: translate(0, 0) rotate(-8deg); } 50% { transform: translate(-30px, -25px) rotate(12deg); } }
+@keyframes boot-food-sandwich { 0%, 100% { transform: translate(0, 0) rotate(12deg) scale(0.94); } 50% { transform: translate(24px, 24px) rotate(-10deg) scale(1.08); } }
+@keyframes boot-food-coffee { 0%, 100% { transform: translate(0, 0) rotate(-12deg); } 50% { transform: translate(-28px, -20px) rotate(16deg); } }
+@keyframes boot-food-cake { 0%, 100% { transform: translate(0, 0) rotate(8deg); } 50% { transform: translate(-22px, -30px) rotate(-12deg); } }
+@keyframes boot-food-waffle { 0%, 100% { transform: translate(0, 0) rotateY(0) rotate(-8deg); } 50% { transform: translate(24px, -18px) rotateY(180deg) rotate(10deg); } }
+@keyframes boot-food-dumplings { 0%, 100% { transform: translate(0, 0) scale(0.92); } 40% { transform: translate(18px, -34px) scale(1.12); } 70% { transform: translate(26px, 2px) scale(0.98); } }
+@keyframes boot-food-salad { 0%, 100% { transform: translate(0, 0) rotate(-15deg); } 35% { transform: translate(-18px, 22px) rotate(18deg); } 70% { transform: translate(14px, -20px) rotate(5deg); } }
+@keyframes boot-food-milkshake { 0%, 100% { transform: translate(0, 0) rotate(0); } 25%, 75% { transform: translate(-14px, 20px) rotate(-18deg); } 50% { transform: translate(18px, -16px) rotate(18deg); } }
+@keyframes boot-food-croissant { 0%, 100% { transform: translate(0, 0) rotate(14deg) scale(1); } 50% { transform: translate(-28px, -24px) rotate(-18deg) scale(1.12); } }
+@keyframes boot-food-ramen { 0%, 100% { transform: translate(0, 0) rotate(-8deg); } 30% { transform: translate(20px, -28px) rotate(12deg); } 65% { transform: translate(-18px, 18px) rotate(-18deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   .site-animation-scope[data-site-animation-brand="true"] header a[href="/"] > img,
@@ -805,7 +948,9 @@ a[href^="tel:"] {
 
   .boot-backdrop-orbit,
   .boot-backdrop-glow,
-  .boot-backdrop-specks {
+  .boot-backdrop-specks,
+  .boot-color-cloud,
+  .boot-food-particle {
     animation: none !important;
   }
 }

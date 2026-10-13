@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '../src/types/site-animations';
 import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '../src/utils/food-loader';
-import { bootLoaderStyles, chooseBootLoaderStyle, getBootLoaderStyle } from '../src/utils/boot-loader';
+import { bootBackgroundPalettes, bootLoaderStyles, chooseBootBackgroundPalette, chooseBootLoaderStyle, getBootLoaderStyle } from '../src/utils/boot-loader';
 
 test('food loading animation defaults on and older saved settings remain compatible', () => {
   expect(defaultSiteAnimations.foodLoader).toBe(true);
@@ -22,10 +22,15 @@ test('food loading animation defaults on and older saved settings remain compati
 
 test('boot loader offers 18 selectable styles and random style selection stays in range', () => {
   expect(bootLoaderStyles).toHaveLength(18);
+  expect(bootBackgroundPalettes).toHaveLength(12);
   expect(getBootLoaderStyle('compass')).toBe('compass');
   expect(getBootLoaderStyle('unknown')).toBe('orbit');
   expect(chooseBootLoaderStyle(0)).toBe('orbit');
   expect(chooseBootLoaderStyle(0.999)).toBe('diamond');
+  for (let previous = 0; previous < bootBackgroundPalettes.length; previous += 1) {
+    expect(chooseBootBackgroundPalette(previous, 0).index).not.toBe(previous);
+    expect(chooseBootBackgroundPalette(previous, 0.999).index).not.toBe(previous);
+  }
 });
 
 test('animation effects loop when enabled and pause for reduced motion', async ({ page }) => {
@@ -141,10 +146,29 @@ test('boot animation waits for initial ad placements, skips client navigation, a
   const bootLoader = page.getByRole('status', { name: 'Loading Pizza Vizza' });
   await expect(bootLoader).toBeVisible();
   await expect(bootLoader.locator('.boot-loading-backdrop')).toBeVisible();
+  const colorClouds = bootLoader.locator('[data-boot-color]');
+  await expect(colorClouds).toHaveCount(12);
+  const backgroundMotionNames = await colorClouds.evaluateAll((clouds) => (
+    clouds.map((cloud) => getComputedStyle(cloud).animationName)
+  ));
+  expect(new Set(backgroundMotionNames).size).toBe(12);
+  const colorCloudStyles = await colorClouds.evaluateAll((clouds) => clouds.map((cloud) => {
+    const style = getComputedStyle(cloud);
+    return { color: style.backgroundImage, duration: Number.parseFloat(style.animationDuration) };
+  }));
+  expect(new Set(colorCloudStyles.map((cloud) => cloud.color)).size).toBe(12);
+  expect(colorCloudStyles.every((cloud) => cloud.duration >= 34)).toBe(true);
+  const foodParticles = bootLoader.locator('[data-food-particle]');
+  await expect(foodParticles).toHaveCount(18);
+  const motionNames = await foodParticles.evaluateAll((particles) => (
+    particles.map((particle) => getComputedStyle(particle).animationName)
+  ));
+  expect(new Set(motionNames).size).toBe(18);
   const viewport = page.viewportSize();
   const overlayBounds = await bootLoader.boundingBox();
   expect(overlayBounds?.width).toBe(viewport?.width);
   expect(overlayBounds?.height).toBe(viewport?.height);
+  const firstPalette = await bootLoader.getAttribute('data-boot-background-palette');
   const bootLogo = bootLoader.locator('.boot-loader-logo');
   if (await bootLogo.count()) {
     await expect(bootLogo).toHaveCSS('border-radius', '50%');
@@ -168,6 +192,7 @@ test('boot animation waits for initial ad placements, skips client navigation, a
   await placementRequest;
   await reload;
   await expect(bootLoader).toBeVisible();
+  await expect(bootLoader).not.toHaveAttribute('data-boot-background-palette', firstPalette || '');
   releasePlacement?.();
   await expect(bootLoader).toBeHidden({ timeout: 15_000 });
 });

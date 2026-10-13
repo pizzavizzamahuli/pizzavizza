@@ -19,6 +19,8 @@ export const bootLoaderStyles = [
   { name: 'diamond', label: 'Glow diamond' },
 ] as const;
 
+export const bootBackgroundPalettes = Array.from({ length: 12 }, (_, index) => index * 30);
+
 export type BootLoaderStyle = (typeof bootLoaderStyles)[number]['name'];
 
 export function isBootLoaderStyle(value: unknown): value is BootLoaderStyle {
@@ -32,4 +34,12 @@ export function getBootLoaderStyle(value: unknown): BootLoaderStyle {
 export function chooseBootLoaderStyle(randomValue = Math.random()): BootLoaderStyle {
   const index = Math.min(Math.floor(randomValue * bootLoaderStyles.length), bootLoaderStyles.length - 1);
   return bootLoaderStyles[index].name;
+}
+
+export function chooseBootBackgroundPalette(previousIndex: number, randomValue = Math.random()) {
+  const available = bootBackgroundPalettes
+    .map((hue, index) => ({ hue, index }))
+    .filter(({ index }) => index !== previousIndex);
+  const selection = available[Math.min(Math.floor(randomValue * available.length), available.length - 1)];
+  return selection || { hue: bootBackgroundPalettes[0], index: 0 };
 }

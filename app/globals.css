@@ -293,6 +293,12 @@ a[href^="tel:"] {
 .food-loading-fries .food-loading-emoji,
 .food-loading-donut .food-loading-emoji { animation-name: food-item-spin; }
 .food-loading-drink .food-loading-emoji { animation-name: food-item-pop; }
+.food-loading-pasta .food-loading-emoji { animation-name: food-pasta-toss; }
+.food-loading-sushi .food-loading-emoji { animation-name: food-sushi-roll; }
+.food-loading-icecream .food-loading-emoji { animation-name: food-icecream-scoop; }
+.food-loading-sandwich .food-loading-emoji { animation-name: food-sandwich-stack; }
+.food-loading-coffee .food-loading-emoji { animation-name: food-coffee-steam; }
+.food-loading-cake .food-loading-emoji { animation-name: food-cake-celebrate; }
 
 .food-loading-brand {
   color: #c2410c;
@@ -345,6 +351,38 @@ a[href^="tel:"] {
   50% { transform: rotate(12deg) scale(1.06); }
 }
 
+@keyframes food-pasta-toss {
+  0%, 100% { transform: rotate(-16deg) translateY(2px); }
+  50% { transform: rotate(16deg) translateY(-5px); }
+}
+
+@keyframes food-sushi-roll {
+  0%, 100% { transform: translateX(-5px) rotate(-8deg); }
+  50% { transform: translateX(5px) rotate(8deg); }
+}
+
+@keyframes food-icecream-scoop {
+  0%, 100% { transform: translateY(3px) scale(0.94); }
+  50% { transform: translateY(-5px) scale(1.08); }
+}
+
+@keyframes food-sandwich-stack {
+  0%, 100% { transform: translateY(3px) rotate(5deg); }
+  50% { transform: translateY(-5px) rotate(-5deg); }
+}
+
+@keyframes food-coffee-steam {
+  0%, 100% { transform: translateY(3px) scale(0.97); }
+  50% { transform: translateY(-5px) scale(1.06); }
+}
+
+@keyframes food-cake-celebrate {
+  0%, 100% { transform: rotate(-7deg) scale(0.98); }
+  25% { transform: rotate(7deg) scale(1.05); }
+  50% { transform: rotate(-5deg) scale(1.08); }
+  75% { transform: rotate(5deg) scale(1.02); }
+}
+
 @keyframes food-sparkle {
   0%, 100% { opacity: 0.35; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
@@ -370,6 +408,10 @@ a[href^="tel:"] {
   .food-loading-emoji,
   .food-loading-spark,
   .food-loading-track span {
+    animation: none;
+  }
+
+  .food-loading-plate .food-loading-emoji {
     animation: none;
   }
 }

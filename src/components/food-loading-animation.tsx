@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { chooseFoodLoadingScene, foodLoadingScenes } from '@/src/utils/food-loader';
+import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '@/src/utils/food-loader';
 
 function chooseFoodScene() {
+  const scope = document.querySelector('.site-animation-scope');
+  const randomMode = scope?.getAttribute('data-food-loader-random') !== 'false';
+  if (!randomMode) {
+    return getFoodLoadingScene(scope?.getAttribute('data-food-loader-scene'));
+  }
   let previousIndex = -1;
   try {
     const storedIndex = sessionStorage.getItem('pv-food-loader-scene');

@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { defaultSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
+import { foodLoadingScenes } from '@/src/utils/food-loader';
 
-const effects: Array<{ key: Exclude<keyof SiteAnimations, 'enabled'>; label: string; description: string }> = [
+const effects: Array<{ key: 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader'; label: string; description: string }> = [
   { key: 'brandFloat', label: 'Brand mark float', description: 'Adds a gentle floating motion to the logo in the customer header.' },
   { key: 'contentGlow', label: 'Content highlight', description: 'Adds a soft, slow glow to the first content panel on customer pages.' },
   { key: 'actionPulse', label: 'Action button pulse', description: 'Gently highlights primary amber action buttons.' },
   { key: 'foodLoader', label: 'Food loading animation', description: 'Shows a randomly selected food-themed animation during page loads and navigation.' },
 ];
+type BooleanAnimationKey = 'enabled' | 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'foodLoaderRandom';
 
 export default function AnimationSettingsPanel() {
   const router = useRouter();
@@ -58,8 +60,13 @@ export default function AnimationSettingsPanel() {
     }
   }
 
-  function update(key: keyof SiteAnimations, checked: boolean) {
+  function update(key: BooleanAnimationKey, checked: boolean) {
     setSettings((current) => ({ ...current, [key]: checked }));
+    setMessage(null);
+  }
+
+  function updateFoodScene(scene: SiteAnimations['foodLoaderScene']) {
+    setSettings((current) => ({ ...current, foodLoaderScene: scene }));
     setMessage(null);
   }
 
@@ -79,6 +86,40 @@ export default function AnimationSettingsPanel() {
           </label>
         ))}
       </div>
+      <fieldset disabled={saving || !settings.enabled || !settings.foodLoader} className="space-y-3 rounded-xl border border-stone-200 p-4 disabled:opacity-60">
+        <legend className="px-1 text-sm font-semibold text-stone-900">Food loading style</legend>
+        <p className="text-sm text-stone-600">Choose one food scene or let the loader pick a different random food each time.</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={settings.foodLoaderRandom}
+            onClick={() => update('foodLoaderRandom', true)}
+            className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${settings.foodLoaderRandom ? 'bg-amber-600 text-white' : 'border border-stone-300 text-stone-700'}`}
+          >
+            Play randomly
+          </button>
+          <button
+            type="button"
+            aria-pressed={!settings.foodLoaderRandom}
+            onClick={() => update('foodLoaderRandom', false)}
+            className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ${!settings.foodLoaderRandom ? 'bg-amber-600 text-white' : 'border border-stone-300 text-stone-700'}`}
+          >
+            Choose one
+          </button>
+        </div>
+        <label className="block text-sm font-medium text-stone-700">
+          Selected food animation
+          <select
+            value={settings.foodLoaderScene}
+            disabled={settings.foodLoaderRandom || saving || !settings.enabled || !settings.foodLoader}
+            onChange={(event) => updateFoodScene(event.target.value as SiteAnimations['foodLoaderScene'])}
+            className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm disabled:bg-stone-100 sm:max-w-sm"
+          >
+            {foodLoadingScenes.map((scene) => <option key={scene.name} value={scene.name}>{scene.emoji} {scene.name[0].toUpperCase() + scene.name.slice(1)}</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-stone-500">{foodLoadingScenes.length} food scenes are available. Your mode and selection are applied after saving.</p>
+      </fieldset>
       <p className="text-xs text-stone-500">Animations automatically pause for visitors who have enabled reduced motion in their device accessibility settings.</p>
       {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
       {message ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}

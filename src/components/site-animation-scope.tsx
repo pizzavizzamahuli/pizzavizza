@@ -33,6 +33,8 @@ export function SiteAnimationScope({ animations: value, children }: { animations
       data-site-animation-content={enabled && animations.contentGlow ? 'true' : undefined}
       data-site-animation-actions={enabled && animations.actionPulse ? 'true' : undefined}
       data-site-animation-loader={enabled && animations.foodLoader ? 'true' : undefined}
+      data-food-loader-random={animations.foodLoaderRandom ? 'true' : 'false'}
+      data-food-loader-scene={animations.foodLoaderScene}
     >
       {children}
     </div>

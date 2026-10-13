@@ -3,13 +3,15 @@ import { getSessionUser } from '@/src/auth/session';
 import { AuthorizationService } from '@/src/config/permissions';
 import { getRestaurantSettings, updateRestaurantSettings } from '@/src/models/restaurant-settings';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '@/src/types/site-animations';
+import { isFoodLoadingSceneName } from '@/src/utils/food-loader';
 
-const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader'] as const;
+const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom'] as const;
 
 function isSiteAnimations(value: unknown): value is SiteAnimations {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const settings = value as Record<string, unknown>;
-  return animationKeys.every((key) => typeof settings[key] === 'boolean');
+  return animationKeys.every((key) => typeof settings[key] === 'boolean')
+    && isFoodLoadingSceneName(settings.foodLoaderScene);
 }
 
 export async function GET() {

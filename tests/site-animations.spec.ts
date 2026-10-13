@@ -1,13 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { defaultSiteAnimations, normalizeSiteAnimations } from '../src/types/site-animations';
-import { chooseFoodLoadingScene, foodLoadingScenes } from '../src/utils/food-loader';
+import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '../src/types/site-animations';
+import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '../src/utils/food-loader';
 
 test('food loading animation defaults on and older saved settings remain compatible', () => {
   expect(defaultSiteAnimations.foodLoader).toBe(true);
+  expect(defaultSiteAnimations.foodLoaderRandom).toBe(true);
+  expect(defaultSiteAnimations.foodLoaderScene).toBe('pizza');
   expect(normalizeSiteAnimations({ enabled: false }).foodLoader).toBe(true);
   expect(normalizeSiteAnimations({ foodLoader: false }).foodLoader).toBe(false);
+  expect(normalizeSiteAnimations({ foodLoaderScene: 'invalid' as SiteAnimations['foodLoaderScene'] }).foodLoaderScene).toBe('pizza');
 });
 
 test('animation effects loop when enabled and pause for reduced motion', async ({ page }) => {
@@ -38,10 +41,13 @@ test('animation effects loop when enabled and pause for reduced motion', async (
   await expect(page.locator('#content')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('#action')).toHaveCSS('animation-name', 'none');
   await expect(page.locator('.food-loading-plate')).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.food-loading-emoji')).toHaveCSS('animation-name', 'none');
 });
 
 test('food loader chooses varied scenes and respects the master switch', async ({ page }) => {
-  expect(foodLoadingScenes).toHaveLength(6);
+  expect(foodLoadingScenes).toHaveLength(12);
+  expect(getFoodLoadingScene('sushi').emoji).toBe('🍣');
+  expect(getFoodLoadingScene('missing').name).toBe('pizza');
   for (let index = 0; index < foodLoadingScenes.length; index += 1) {
     const { scene, index: selectedIndex } = chooseFoodLoadingScene(index, 0);
     expect(scene.name).not.toBe(foodLoadingScenes[index].name);

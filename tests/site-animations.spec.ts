@@ -140,6 +140,20 @@ test('boot animation waits for initial ad placements, skips client navigation, a
   await placementRequest;
   const bootLoader = page.getByRole('status', { name: 'Loading Pizza Vizza' });
   await expect(bootLoader).toBeVisible();
+  await expect(bootLoader.locator('.boot-loading-backdrop')).toBeVisible();
+  const viewport = page.viewportSize();
+  const overlayBounds = await bootLoader.boundingBox();
+  expect(overlayBounds?.width).toBe(viewport?.width);
+  expect(overlayBounds?.height).toBe(viewport?.height);
+  const bootLogo = bootLoader.locator('.boot-loader-logo');
+  if (await bootLogo.count()) {
+    await expect(bootLogo).toHaveCSS('border-radius', '50%');
+    await expect(bootLogo).toHaveCSS('object-fit', 'cover');
+    const headerLogo = page.locator('header img').first();
+    if (await headerLogo.count()) {
+      await expect(bootLogo).toHaveAttribute('src', await headerLogo.getAttribute('src') || '');
+    }
+  }
   releasePlacement?.();
   await expect(bootLoader).toBeHidden({ timeout: 15_000 });
 

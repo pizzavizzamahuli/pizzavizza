@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <SiteAnimationScope animations={settings?.siteAnimations}>
+        <SiteAnimationScope animations={settings?.siteAnimations} restaurantLogo={settings?.logo}>
           <ServiceWorkerCleanup />
           <ImageDownloadProtection />
           <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />

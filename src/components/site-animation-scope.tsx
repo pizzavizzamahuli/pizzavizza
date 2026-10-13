@@ -20,7 +20,15 @@ const excludedPaths = [
   '/manager',
 ];
 
-export function SiteAnimationScope({ animations: value, children }: { animations?: Partial<SiteAnimations> | null; children: ReactNode }) {
+export function SiteAnimationScope({
+  animations: value,
+  restaurantLogo,
+  children,
+}: {
+  animations?: Partial<SiteAnimations> | null;
+  restaurantLogo?: string | null;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const animations = normalizeSiteAnimations(value);
   const excluded = excludedPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
@@ -45,6 +53,7 @@ export function SiteAnimationScope({ animations: value, children }: { animations
         initiallyEnabled={enabled && animations.bootLoader}
         random={animations.bootLoaderRandom}
         selectedStyle={animations.bootLoaderStyle}
+        logo={restaurantLogo}
       />
       {children}
     </div>

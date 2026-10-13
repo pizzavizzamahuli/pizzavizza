@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from 'react';
 import { chooseBootLoaderStyle, type BootLoaderStyle } from '@/src/utils/boot-loader';
 
@@ -90,11 +91,13 @@ export default function BootLoadingAnimation({
   initiallyEnabled,
   random,
   selectedStyle,
+  logo,
 }: {
   enabled: boolean;
   initiallyEnabled: boolean;
   random: boolean;
   selectedStyle: BootLoaderStyle;
+  logo?: string | null;
 }) {
   const [shouldRun] = useState(initiallyEnabled);
   const [visible, setVisible] = useState(initiallyEnabled);
@@ -131,12 +134,24 @@ export default function BootLoadingAnimation({
 
   return (
     <div className="boot-loading-overlay" role="status" aria-live="polite" aria-label="Loading Pizza Vizza">
+      <div className="boot-loading-backdrop" aria-hidden="true">
+        <span className="boot-backdrop-orbit boot-backdrop-orbit-one" />
+        <span className="boot-backdrop-orbit boot-backdrop-orbit-two" />
+        <span className="boot-backdrop-orbit boot-backdrop-orbit-three" />
+        <span className="boot-backdrop-glow boot-backdrop-glow-one" />
+        <span className="boot-backdrop-glow boot-backdrop-glow-two" />
+        <span className="boot-backdrop-specks" />
+      </div>
       <div className="boot-loading-content">
         <div className={`boot-loader-visual boot-loader-${style}`} aria-hidden="true">
           <span className="boot-loader-orbit"><i /><i /><i /></span>
           <span className="boot-loader-ring" />
           <span className="boot-loader-sweep" />
-          <span className="boot-loader-core">PV</span>
+          <span className="boot-loader-core">
+            {logo
+              ? <img src={logo} alt="" className="boot-loader-logo" />
+              : <span className="boot-loader-monogram">PV</span>}
+          </span>
           <span className="boot-loader-bars"><i /><i /><i /><i /><i /></span>
           <span className="boot-loader-dots"><i /><i /><i /></span>
           <span className="boot-loader-diamond" />

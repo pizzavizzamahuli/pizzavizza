@@ -4,8 +4,8 @@ import './globals.css';
 import { ChatbotToggle } from '@/src/components/chatbot/chatbot-toggle';
 import { ImageDownloadProtection } from '@/src/components/image-download-protection';
 import { ServiceWorkerCleanup } from '@/src/components/pwa/service-worker-cleanup';
-import { getRestaurantSettings } from '@/src/models/restaurant-settings';
-import { getSessionUser } from '@/src/auth/session';
+import { getRestaurantSettingsForRender } from '@/src/models/restaurant-settings';
+import { getSessionUserForRender } from '@/src/auth/session';
 import { SiteAnimationScope } from '@/src/components/site-animation-scope';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [settings, user] = await Promise.all([getRestaurantSettings().catch(() => null), getSessionUser().catch(() => null)]);
+  const [settings, user] = await Promise.all([getRestaurantSettingsForRender().catch(() => null), getSessionUserForRender().catch(() => null)]);
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">

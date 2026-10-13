@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState, type CSSProperties } from 'react';
-import { bootBackgroundPalettes, chooseBootBackgroundPalette, chooseBootLoaderStyle, type BootLoaderStyle } from '@/src/utils/boot-loader';
+import { bootBackgroundPalettes, chooseBootBackgroundPalette, chooseBootLoaderStyle, shouldWaitForBootImage, type BootLoaderStyle } from '@/src/utils/boot-loader';
 import { foodLoadingScenes } from '@/src/utils/food-loader';
 
 function waitForWindowLoad(signal: AbortSignal) {
@@ -38,11 +38,15 @@ function waitForImage(image: HTMLImageElement, signal: AbortSignal) {
 }
 
 function isRelevantImage(image: HTMLImageElement) {
-  if (image.loading !== 'lazy' || image.currentSrc) return true;
   const bounds = image.getBoundingClientRect();
-  const nearViewport = bounds.top < window.innerHeight * 1.5 && bounds.bottom > -window.innerHeight * 0.5;
-  if (nearViewport) image.loading = 'eager';
-  return nearViewport;
+  const shouldWait = shouldWaitForBootImage({
+    loading: image.loading,
+    top: bounds.top,
+    bottom: bounds.bottom,
+    viewportHeight: window.innerHeight,
+  });
+  if (shouldWait && image.loading === 'lazy') image.loading = 'eager';
+  return shouldWait;
 }
 
 function waitForPendingPlacements(signal: AbortSignal) {

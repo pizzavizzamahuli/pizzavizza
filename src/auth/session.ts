@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { cache } from 'react';
 import { UserDocument } from '@/src/models/user';
 import { getUserById, isUserEligibleForSession } from '@/src/services/user-service';
 
@@ -172,3 +173,5 @@ export async function getSessionUser(request?: Request): Promise<UserDocument | 
     return null;
   }
 }
+
+export const getSessionUserForRender = cache(async () => getSessionUser());

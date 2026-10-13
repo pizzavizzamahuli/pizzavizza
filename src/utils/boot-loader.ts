@@ -43,3 +43,18 @@ export function chooseBootBackgroundPalette(previousIndex: number, randomValue =
   const selection = available[Math.min(Math.floor(randomValue * available.length), available.length - 1)];
   return selection || { hue: bootBackgroundPalettes[0], index: 0 };
 }
+
+export function shouldWaitForBootImage({
+  loading,
+  top,
+  bottom,
+  viewportHeight,
+}: {
+  loading: string;
+  top: number;
+  bottom: number;
+  viewportHeight: number;
+}) {
+  if (loading !== 'lazy') return true;
+  return top < viewportHeight * 1.5 && bottom > -viewportHeight * 0.5;
+}

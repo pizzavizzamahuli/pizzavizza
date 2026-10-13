@@ -1,5 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
+import { cache } from 'react';
 import { defaultWebsiteAppearance, type WebsiteAppearance } from '@/src/types/appearance';
 import type { SiteAnimations } from '@/src/types/site-animations';
 import { defaultAdvertisementSettings, type AdvertisementSettings } from '@/src/types/advertisements';
@@ -289,6 +290,7 @@ export async function getRestaurantSettings() {
     if (Object.keys(recoveredFields).length || !Array.isArray(settings.homepageImages)) {
       await col.updateOne({ _id: settings._id }, { $set: { ...recoveredFields, updatedAt: now } });
     }
+
     return { ...defaults, ...settings, ...missingDefaults, homeImage: cleanImageUrl(settings.homeImage), homepageImages: recoveredHomepageImages, menuImage: recoveredMenuImage, logo: cleanImageUrl(settings.logo), weeklySchedule, specialDates: settings.specialDates || [], restaurantTimezone: settings.restaurantTimezone || 'Asia/Kolkata' } as RestaurantSettingsDocument;
   }
 
@@ -369,6 +371,8 @@ export async function getRestaurantSettings() {
   const res = await col.insertOne(defaultSettings as RestaurantSettingsDocument);
   return { ...defaultSettings, _id: res.insertedId, id: res.insertedId.toHexString() } as RestaurantSettingsDocument;
 }
+
+export const getRestaurantSettingsForRender = cache(getRestaurantSettings);
 
 export async function updateRestaurantSettings(updates: Partial<RestaurantSettingsDocument>) {
   const col = await getRestaurantSettingsCollection();

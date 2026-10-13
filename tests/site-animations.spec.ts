@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } from '../src/types/site-animations';
 import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '../src/utils/food-loader';
-import { bootBackgroundPalettes, bootLoaderStyles, chooseBootBackgroundPalette, chooseBootLoaderStyle, getBootLoaderStyle } from '../src/utils/boot-loader';
+import { bootBackgroundPalettes, bootLoaderStyles, chooseBootBackgroundPalette, chooseBootLoaderStyle, getBootLoaderStyle, shouldWaitForBootImage } from '../src/utils/boot-loader';
 
 test('food loading animation defaults on and older saved settings remain compatible', () => {
   expect(defaultSiteAnimations.foodLoader).toBe(true);
@@ -31,6 +31,12 @@ test('boot loader offers 18 selectable styles and random style selection stays i
     expect(chooseBootBackgroundPalette(previous, 0).index).not.toBe(previous);
     expect(chooseBootBackgroundPalette(previous, 0.999).index).not.toBe(previous);
   }
+});
+
+test('boot loader waits only for eager and initially visible lazy images', () => {
+  expect(shouldWaitForBootImage({ loading: 'eager', top: 3000, bottom: 3400, viewportHeight: 800 })).toBe(true);
+  expect(shouldWaitForBootImage({ loading: 'lazy', top: 1000, bottom: 1400, viewportHeight: 800 })).toBe(true);
+  expect(shouldWaitForBootImage({ loading: 'lazy', top: 1500, bottom: 1900, viewportHeight: 800 })).toBe(false);
 });
 
 test('animation effects loop when enabled and pause for reduced motion', async ({ page }) => {

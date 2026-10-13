@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
 import { CustomerShell } from '@/src/app-shell';
-import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getRestaurantSettingsForRender } from '@/src/models/restaurant-settings';
 import { generateMapLink } from '@/src/services/map-provider';
 import { getProductsForCustomer } from '@/src/services/menu-service';
 import { getAvailableDiningRooms } from '@/src/services/dining-service';
@@ -11,13 +11,13 @@ import ExpandableDescription from '@/src/components/expandable-description';
 import { getRestaurantAvailability } from '@/src/services/restaurant-availability';
 import AdPlacement from '@/src/components/advertisements/ad-placement';
 
-function restaurantAddress(settings: Awaited<ReturnType<typeof getRestaurantSettings>>) {
+function restaurantAddress(settings: Awaited<ReturnType<typeof getRestaurantSettingsForRender>>) {
   return [settings.addressLine1, settings.addressLine2, settings.landmark, settings.city, settings.state, settings.postalCode].filter(Boolean).join(', ');
 }
 
 export default async function Home() {
-  const restaurantSettings = await getRestaurantSettings();
-  const [products, diningRooms] = await Promise.all([
+  const [restaurantSettings, products, diningRooms] = await Promise.all([
+    getRestaurantSettingsForRender(),
     getProductsForCustomer().catch(() => []),
     getAvailableDiningRooms().catch(() => []),
   ]);
@@ -48,7 +48,7 @@ export default async function Home() {
           </div>
         </div>
         <div className="min-h-56 bg-stone-100 lg:min-h-full">
-          {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} expandableCaptions title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
+          {restaurantSettings.homepageImages?.length ? <ImageCarousel images={restaurantSettings.homepageImages.map((image) => image.imageUrl)} captions={restaurantSettings.homepageImages.map((image) => image.description)} expandableCaptions title={`${restaurantSettings.restaurantName} homepage`} aspectClassName="aspect-[4/3] h-full" imageClassName="object-contain" priority /> : restaurantSettings.homeImage || restaurantSettings.menuImage ? <img src={restaurantSettings.homeImage || restaurantSettings.menuImage || ''} alt={`${restaurantSettings.restaurantName} homepage`} className="block h-auto max-h-[28rem] min-h-56 w-full object-contain lg:max-h-none" /> : <div className="flex min-h-56 items-center justify-center p-8 text-center text-sm text-stone-500">Fresh food and warm hospitality await.</div>}
         </div>
       </section>
 

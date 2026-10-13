@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import { getSessionUser } from '@/src/auth/session';
+import { getSessionUserForRender } from '@/src/auth/session';
 import { getCartForUser } from '@/src/services/cart-service';
-import { getRestaurantSettings } from '@/src/models/restaurant-settings';
+import { getRestaurantSettingsForRender } from '@/src/models/restaurant-settings';
 import MobileNavigation from '@/src/components/mobile-navigation';
 import { generateMapLink } from '@/src/services/map-provider';
 import { NotificationBell } from '@/src/components/notifications/notification-bell';
@@ -23,11 +23,11 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
   let cart = null;
   let restaurantSettings = null;
 
-  try {
-    user = await getSessionUser();
-  } catch {
-    user = null;
-  }
+  const [sessionUser, settings] = await Promise.all([
+    getSessionUserForRender().catch(() => null),
+    getRestaurantSettingsForRender().catch(() => null),
+  ]);
+  user = sessionUser;
 
   const isAdminUser = !!user && ['MAIN_ADMIN', 'ADMIN', 'MANAGER', 'KITCHEN_STAFF', 'DELIVERY_STAFF'].includes(user.role);
   const userId = user?._id?.toHexString() || user?.id || null;
@@ -38,11 +38,7 @@ export async function CustomerShell({ children }: { children: React.ReactNode })
     cart = null;
   }
 
-  try {
-    restaurantSettings = await getRestaurantSettings();
-  } catch {
-    restaurantSettings = null;
-  }
+  restaurantSettings = settings;
 
   const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const appearance = mergeWebsiteAppearance(restaurantSettings?.appearance);

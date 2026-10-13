@@ -127,6 +127,38 @@ test('authentication pages do not receive website animations', async ({ page }) 
   await expect(scope).not.toHaveAttribute('data-site-animation-actions', 'true');
 });
 
+test('boot animation uses the current restaurant name and logo', async ({ page }) => {
+  let releasePlacement: (() => void) | undefined;
+  const placementGate = new Promise<void>((resolve) => { releasePlacement = resolve; });
+  await page.route('**/api/advertisements?placement=*', async (route) => {
+    await placementGate;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, data: { localAdsEnabled: false, campaigns: [], adsense: null } }),
+    });
+  });
+
+  const placementRequest = page.waitForRequest('**/api/advertisements?placement=*');
+  await page.goto('/');
+  await placementRequest;
+  const bootLoader = page.locator('.boot-loading-overlay');
+  await expect(bootLoader).toBeVisible();
+  const headerBrand = (await page.locator('.customer-site header p').first().textContent() || '').trim();
+  await expect(bootLoader).toHaveAttribute('aria-label', `Loading ${headerBrand}`);
+  await expect(bootLoader.locator('.boot-loading-brand')).toHaveText(headerBrand);
+
+  const headerLogo = page.locator('header img').first();
+  const bootLogo = bootLoader.locator('.boot-loader-logo');
+  if (await headerLogo.count()) {
+    await expect(bootLogo).toHaveAttribute('src', await headerLogo.getAttribute('src') || '');
+  } else {
+    await expect(bootLogo).toHaveCount(0);
+  }
+
+  releasePlacement?.();
+  await expect(bootLoader).toBeHidden({ timeout: 15_000 });
+});
+
 test('boot animation waits for initial ad placements, skips client navigation, and returns on refresh', async ({ page }) => {
   let holdPlacement = true;
   let releasePlacement: (() => void) | undefined;
@@ -149,8 +181,11 @@ test('boot animation waits for initial ad placements, skips client navigation, a
 
   await page.goto('/');
   await placementRequest;
-  const bootLoader = page.getByRole('status', { name: 'Loading Pizza Vizza' });
+  const bootLoader = page.locator('.boot-loading-overlay');
   await expect(bootLoader).toBeVisible();
+  const headerBrand = (await page.locator('.customer-site header p').first().textContent() || '').trim();
+  await expect(bootLoader).toHaveAttribute('aria-label', `Loading ${headerBrand}`);
+  await expect(bootLoader.locator('.boot-loading-brand')).toHaveText(headerBrand);
   await expect(bootLoader.locator('.boot-loading-backdrop')).toBeVisible();
   const colorClouds = bootLoader.locator('[data-boot-color]');
   await expect(colorClouds).toHaveCount(12);
@@ -176,13 +211,14 @@ test('boot animation waits for initial ad placements, skips client navigation, a
   expect(overlayBounds?.height).toBe(viewport?.height);
   const firstPalette = await bootLoader.getAttribute('data-boot-background-palette');
   const bootLogo = bootLoader.locator('.boot-loader-logo');
-  if (await bootLogo.count()) {
+  const headerLogo = page.locator('header img').first();
+  if (await headerLogo.count()) {
+    await expect(bootLogo).toHaveCount(1);
     await expect(bootLogo).toHaveCSS('border-radius', '50%');
     await expect(bootLogo).toHaveCSS('object-fit', 'cover');
-    const headerLogo = page.locator('header img').first();
-    if (await headerLogo.count()) {
-      await expect(bootLogo).toHaveAttribute('src', await headerLogo.getAttribute('src') || '');
-    }
+    await expect(bootLogo).toHaveAttribute('src', await headerLogo.getAttribute('src') || '');
+  } else {
+    await expect(bootLogo).toHaveCount(0);
   }
   releasePlacement?.();
   await expect(bootLoader).toBeHidden({ timeout: 15_000 });

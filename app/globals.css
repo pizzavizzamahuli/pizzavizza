@@ -259,6 +259,17 @@ a[href^="tel:"] {
   box-shadow: 0 20px 60px rgb(120 53 15 / 0.12);
 }
 
+.food-loading-logo {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 0.8rem;
+  border: 2px solid #fed7aa;
+  border-radius: 50%;
+  background: #fff7ed;
+  object-fit: cover;
+}
+
 .food-loading-plate {
   position: relative;
   display: grid;

@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import LocationMap from '@/src/components/map/location-map';
 import { geocodeAddress } from '@/src/services/map-provider';
 
@@ -33,6 +34,7 @@ function parseWorkingHours(value?: string | null) {
 }
 
 export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMainAdmin?: boolean }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [poweredBySaving, setPoweredBySaving] = useState(false);
@@ -284,6 +286,7 @@ export default function RestaurantSettingsForm({ isMainAdmin = false }: { isMain
         }
       }
       setSaveFeedback({ tone: 'success', message: 'Restaurant settings saved successfully.' });
+      router.refresh();
     } catch (e: unknown) {
       const err = e as Record<string, unknown>;
       setSaveFeedback({ tone: 'error', message: 'Save failed: ' + ((err?.message as string) || String(e)) });

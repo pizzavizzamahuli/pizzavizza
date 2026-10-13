@@ -22,10 +22,12 @@ const excludedPaths = [
 
 export function SiteAnimationScope({
   animations: value,
+  restaurantName,
   restaurantLogo,
   children,
 }: {
   animations?: Partial<SiteAnimations> | null;
+  restaurantName?: string | null;
   restaurantLogo?: string | null;
   children: ReactNode;
 }) {
@@ -53,6 +55,7 @@ export function SiteAnimationScope({
         initiallyEnabled={enabled && animations.bootLoader}
         random={animations.bootLoaderRandom}
         selectedStyle={animations.bootLoaderStyle}
+        restaurantName={restaurantName}
         logo={restaurantLogo}
       />
       {children}

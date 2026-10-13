@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from 'react';
 import { chooseFoodLoadingScene, foodLoadingScenes, getFoodLoadingScene } from '@/src/utils/food-loader';
 
@@ -25,7 +26,13 @@ function chooseFoodScene() {
   return scene;
 }
 
-export default function FoodLoadingAnimation() {
+export default function FoodLoadingAnimation({
+  restaurantName,
+  logo,
+}: {
+  restaurantName?: string | null;
+  logo?: string | null;
+}) {
   const [scene, setScene] = useState<(typeof foodLoadingScenes)[number] | null>(null);
 
   useEffect(() => {
@@ -37,12 +44,13 @@ export default function FoodLoadingAnimation() {
   return (
     <div className="food-loading-overlay" role="status" aria-live="polite" aria-label="Loading page">
       <div className="food-loading-card">
+        {logo ? <img src={logo} alt={`${restaurantName || 'Restaurant'} logo`} className="food-loading-logo" /> : null}
         <div className={`food-loading-plate food-loading-${activeScene.name}`} data-food-scene={activeScene.name} aria-hidden="true">
           <span className="food-loading-spark food-loading-spark-one">✦</span>
           <span className="food-loading-spark food-loading-spark-two">✧</span>
           <span className="food-loading-emoji">{activeScene.emoji}</span>
         </div>
-        <p className="food-loading-brand">PIZZA VIZZA</p>
+        <p className="food-loading-brand">{restaurantName || 'Pizza Vizza'}</p>
         <p className="food-loading-message">{activeScene.message}</p>
         <div className="food-loading-track" aria-hidden="true"><span /></div>
         <span className="sr-only">Please wait while the page loads.</span>

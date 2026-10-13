@@ -96,12 +96,14 @@ export default function BootLoadingAnimation({
   initiallyEnabled,
   random,
   selectedStyle,
+  restaurantName,
   logo,
 }: {
   enabled: boolean;
   initiallyEnabled: boolean;
   random: boolean;
   selectedStyle: BootLoaderStyle;
+  restaurantName?: string | null;
   logo?: string | null;
 }) {
   const [shouldRun] = useState(initiallyEnabled);
@@ -159,7 +161,7 @@ export default function BootLoadingAnimation({
       className="boot-loading-overlay"
       role="status"
       aria-live="polite"
-      aria-label="Loading Pizza Vizza"
+      aria-label={`Loading ${restaurantName || 'Pizza Vizza'}`}
       data-boot-background-palette={palette}
       style={{ '--boot-hue-shift': `${bootBackgroundPalettes[palette]}deg` } as CSSProperties}
     >
@@ -191,13 +193,13 @@ export default function BootLoadingAnimation({
           <span className="boot-loader-core">
             {logo
               ? <img src={logo} alt="" className="boot-loader-logo" />
-              : <span className="boot-loader-monogram">PV</span>}
+              : <span className="boot-loader-monogram">{(restaurantName || 'Pizza Vizza').trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase()}</span>}
           </span>
           <span className="boot-loader-bars"><i /><i /><i /><i /><i /></span>
           <span className="boot-loader-dots"><i /><i /><i /></span>
           <span className="boot-loader-diamond" />
         </div>
-        <p className="boot-loading-brand">PIZZA VIZZA</p>
+        <p className="boot-loading-brand">{restaurantName || 'Pizza Vizza'}</p>
         <p className="boot-loading-message">Preparing your experience</p>
         <span className="boot-loading-caption">Fresh food. Warm welcome.</span>
       </div>

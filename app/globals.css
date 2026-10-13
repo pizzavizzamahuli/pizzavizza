@@ -249,6 +249,14 @@ a[href^="tel:"] {
   display: none;
 }
 
+.site-animation-scope[data-site-initial-boot-pending="true"] .food-loading-overlay {
+  display: none;
+}
+
+.site-animation-scope:has(.boot-loading-overlay) .food-loading-overlay {
+  display: none;
+}
+
 .food-loading-card {
   width: min(100%, 22rem);
   border: 1px solid rgb(245 158 11 / 0.18);
@@ -257,17 +265,6 @@ a[href^="tel:"] {
   padding: 2rem 1.5rem;
   text-align: center;
   box-shadow: 0 20px 60px rgb(120 53 15 / 0.12);
-}
-
-.food-loading-logo {
-  display: block;
-  width: 3.5rem;
-  height: 3.5rem;
-  margin: 0 auto 0.8rem;
-  border: 2px solid #fed7aa;
-  border-radius: 50%;
-  background: #fff7ed;
-  object-fit: cover;
 }
 
 .food-loading-plate {
@@ -346,6 +343,15 @@ a[href^="tel:"] {
   border-radius: inherit;
   background: linear-gradient(90deg, #f97316, #f59e0b);
   animation: food-loading-progress 1.1s ease-in-out infinite;
+}
+
+@keyframes hero-carousel-fade {
+  from { opacity: 0.25; transform: scale(1.025); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.hero-carousel-image {
+  animation: hero-carousel-fade 700ms ease-out both;
 }
 
 .boot-loading-overlay {
@@ -947,6 +953,10 @@ a[href^="tel:"] {
   }
 
   .food-loading-plate .food-loading-emoji {
+    animation: none;
+  }
+
+  .hero-carousel-image {
     animation: none;
   }
 

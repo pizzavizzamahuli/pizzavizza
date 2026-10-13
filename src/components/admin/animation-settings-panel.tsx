@@ -6,14 +6,15 @@ import { defaultSiteAnimations, type SiteAnimations } from '@/src/types/site-ani
 import { foodLoadingScenes } from '@/src/utils/food-loader';
 import { bootLoaderStyles } from '@/src/utils/boot-loader';
 
-const effects: Array<{ key: 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'bootLoader'; label: string; description: string }> = [
+const effects: Array<{ key: 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'heroSlideshow' | 'bootLoader'; label: string; description: string }> = [
   { key: 'brandFloat', label: 'Brand mark float', description: 'Adds a gentle floating motion to the logo in the customer header.' },
   { key: 'contentGlow', label: 'Content highlight', description: 'Adds a soft, slow glow to the first content panel on customer pages.' },
   { key: 'actionPulse', label: 'Action button pulse', description: 'Gently highlights primary amber action buttons.' },
   { key: 'foodLoader', label: 'Food loading animation', description: 'Shows your selected food animation during page loads and navigation.' },
+  { key: 'heroSlideshow', label: 'Homepage hero slideshow', description: 'Automatically advances the homepage hero images with a smooth fade transition.' },
   { key: 'bootLoader', label: 'Website boot animation', description: 'Shows only on a fresh page open or refresh while the current page finishes loading.' },
 ];
-type BooleanAnimationKey = 'enabled' | 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'foodLoaderRandom' | 'bootLoader' | 'bootLoaderRandom';
+type BooleanAnimationKey = 'enabled' | 'brandFloat' | 'contentGlow' | 'actionPulse' | 'foodLoader' | 'foodLoaderRandom' | 'heroSlideshow' | 'bootLoader' | 'bootLoaderRandom';
 
 export default function AnimationSettingsPanel() {
   const router = useRouter();

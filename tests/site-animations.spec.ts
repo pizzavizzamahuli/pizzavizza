@@ -9,9 +9,12 @@ test('food loading animation defaults on and older saved settings remain compati
   expect(defaultSiteAnimations.foodLoader).toBe(true);
   expect(defaultSiteAnimations.foodLoaderRandom).toBe(true);
   expect(defaultSiteAnimations.foodLoaderScene).toBe('pizza');
+  expect(defaultSiteAnimations.heroSlideshow).toBe(true);
   expect(normalizeSiteAnimations({ enabled: false }).foodLoader).toBe(true);
   expect(normalizeSiteAnimations({ foodLoader: false }).foodLoader).toBe(false);
   expect(normalizeSiteAnimations({ foodLoaderScene: 'invalid' as SiteAnimations['foodLoaderScene'] }).foodLoaderScene).toBe('pizza');
+  expect(normalizeSiteAnimations({ heroSlideshow: false }).heroSlideshow).toBe(false);
+  expect(normalizeSiteAnimations({ heroSlideshow: 'invalid' as unknown as boolean }).heroSlideshow).toBe(true);
   expect(defaultSiteAnimations.bootLoader).toBe(true);
   expect(defaultSiteAnimations.bootLoaderRandom).toBe(true);
   expect(defaultSiteAnimations.bootLoaderStyle).toBe('orbit');
@@ -89,7 +92,7 @@ test('food loader chooses varied scenes and respects the master switch', async (
   const stylesheet = await readFile(path.join(process.cwd(), 'app', 'globals.css'), 'utf8');
   await page.setContent(`
     <style>${stylesheet}</style>
-    <div class="site-animation-scope" data-site-animation-loader="true">
+    <div class="site-animation-scope" data-site-animation-loader="true" data-site-initial-boot-pending="true">
       <div class="food-loading-overlay" role="status" aria-label="Loading page">
         <div class="food-loading-card"><div class="food-loading-plate"><span class="food-loading-emoji">🍕</span></div></div>
       </div>
@@ -102,6 +105,14 @@ test('food loader chooses varied scenes and respects the master switch', async (
     </div>
   `);
   const loader = page.getByRole('status', { name: 'Loading page' });
+  await expect(loader).toBeHidden();
+  await page.locator('.site-animation-scope').evaluate((scope) => scope.removeAttribute('data-site-initial-boot-pending'));
+  await expect(loader).toBeVisible();
+  await page.locator('.site-animation-scope').evaluate((scope) => {
+    scope.insertAdjacentHTML('beforeend', '<div class="boot-loading-overlay" role="status"></div>');
+  });
+  await expect(loader).toBeHidden();
+  await page.locator('.boot-loading-overlay').evaluate((bootLoader) => bootLoader.remove());
   await expect(loader).toBeVisible();
   for (const [scene, animation] of [
     ['waffle', 'food-waffle-flip'],
@@ -116,6 +127,23 @@ test('food loader chooses varied scenes and respects the master switch', async (
   const scope = page.locator('.site-animation-scope');
   await scope.evaluate((element) => element.removeAttribute('data-site-animation-loader'));
   await expect(loader).toBeHidden();
+});
+
+test('homepage hero carousel advances automatically with a fade', async ({ page }) => {
+  await page.goto('/');
+  const heroSelector = page.locator('.customer-site main [aria-label$="homepage image selector"]');
+  await expect(heroSelector).toBeVisible();
+  const imageButtons = heroSelector.getByRole('button');
+  expect(await imageButtons.count()).toBeGreaterThan(1);
+  const initiallyActive = await heroSelector.locator('[aria-current="true"]').getAttribute('aria-label');
+
+  await expect.poll(
+    () => heroSelector.locator('[aria-current="true"]').getAttribute('aria-label'),
+    { timeout: 8000 },
+  ).not.toBe(initiallyActive);
+  const heroImage = page.locator('.customer-site main img.hero-carousel-image');
+  await expect(heroImage).toBeVisible();
+  await expect(heroImage).toHaveCSS('animation-name', 'hero-carousel-fade');
 });
 
 test('authentication pages do not receive website animations', async ({ page }) => {

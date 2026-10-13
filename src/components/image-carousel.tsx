@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 
 type ImageCarouselProps = {
   images: Array<string | null | undefined>;
@@ -12,6 +12,7 @@ type ImageCarouselProps = {
   captions?: Array<string | null | undefined>;
   expandableCaptions?: boolean;
   priority?: boolean;
+  autoAdvance?: boolean;
 };
 
 function normalizeImages(images: ImageCarouselProps['images']) {
@@ -35,7 +36,7 @@ function optimizeImageUrl(image: string) {
   }
 }
 
-export default function ImageCarousel({ images, title, aspectClassName = 'aspect-[4/3]', imageClassName = 'object-cover', thumbnails = false, captions, expandableCaptions = false, priority = false }: ImageCarouselProps) {
+export default function ImageCarousel({ images, title, aspectClassName = 'aspect-[4/3]', imageClassName = 'object-cover', thumbnails = false, captions, expandableCaptions = false, priority = false, autoAdvance = false }: ImageCarouselProps) {
   const gallery = useMemo(() => normalizeImages(images), [images]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
@@ -43,6 +44,16 @@ export default function ImageCarousel({ images, title, aspectClassName = 'aspect
   const captionRef = useRef<HTMLParagraphElement>(null);
   const touchStartX = useRef<number | null>(null);
   const hasMultiple = gallery.length > 1;
+
+  useEffect(() => {
+    if (!autoAdvance || !hasMultiple) return;
+    const interval = window.setInterval(() => {
+      setExpandedCaptionIndex(null);
+      setActiveIndex((index) => (index + 1) % gallery.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [autoAdvance, gallery.length, hasMultiple]);
+
   if (!gallery.length) return <div className={`flex w-full items-center justify-center bg-stone-100 text-sm text-stone-500 ${aspectClassName}`}>Image unavailable</div>;
   const currentIndex = Math.min(activeIndex, gallery.length - 1);
   const currentImage = gallery[currentIndex];
@@ -83,7 +94,7 @@ export default function ImageCarousel({ images, title, aspectClassName = 'aspect
   return (
     <div className={`relative w-full overflow-hidden ${expandableCaptions ? 'bg-[#fff8ed]' : ''}`} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <div className={`relative w-full overflow-hidden ${expandableCaptions ? 'bg-[#fffaf2]' : 'bg-stone-100'} ${aspectClassName}`}>
-        {currentImageFailed ? <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-stone-500">Image unavailable</div> : <img src={optimizeImageUrl(currentImage)} alt={`${title}, image ${currentIndex + 1} of ${gallery.length}`} className={`h-full w-full ${imageClassName}`} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" onError={() => handleImageError(gallery[currentIndex])} />}
+        {currentImageFailed ? <div className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-stone-500">Image unavailable</div> : <img key={currentImage} src={optimizeImageUrl(currentImage)} alt={`${title}, image ${currentIndex + 1} of ${gallery.length}`} className={`h-full w-full ${imageClassName} ${autoAdvance ? 'hero-carousel-image' : ''}`} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" onError={() => handleImageError(gallery[currentIndex])} />}
         {hasMultiple ? <>
           <button type="button" aria-label={`Previous ${title} image`} onClick={(event) => handleControlClick(event, () => move(-1))} className="absolute left-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-xl text-white shadow-md transition hover:bg-black/75">‹</button>
           <button type="button" aria-label={`Next ${title} image`} onClick={(event) => handleControlClick(event, () => move(1))} className="absolute right-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-xl text-white shadow-md transition hover:bg-black/75">›</button>

@@ -3,5 +3,5 @@ import { getRestaurantSettingsForRender } from '@/src/models/restaurant-settings
 
 export default async function Loading() {
   const settings = await getRestaurantSettingsForRender().catch(() => null);
-  return <FoodLoadingAnimation restaurantName={settings?.restaurantName} logo={settings?.logo} />;
+  return <FoodLoadingAnimation restaurantName={settings?.restaurantName} />;
 }

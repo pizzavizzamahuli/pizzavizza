@@ -9,6 +9,7 @@ export interface SiteAnimations {
   foodLoader: boolean;
   foodLoaderRandom: boolean;
   foodLoaderScene: FoodLoadingSceneName;
+  heroSlideshow: boolean;
   bootLoader: boolean;
   bootLoaderRandom: boolean;
   bootLoaderStyle: BootLoaderStyle;
@@ -22,6 +23,7 @@ export const defaultSiteAnimations: SiteAnimations = {
   foodLoader: true,
   foodLoaderRandom: true,
   foodLoaderScene: 'pizza',
+  heroSlideshow: true,
   bootLoader: true,
   bootLoaderRandom: true,
   bootLoaderStyle: 'orbit',
@@ -37,6 +39,9 @@ export function normalizeSiteAnimations(value?: Partial<SiteAnimations> | null):
   }
   if (value?.foodLoaderScene !== undefined && !isFoodLoadingSceneName(value.foodLoaderScene)) {
     normalized.foodLoaderScene = defaultSiteAnimations.foodLoaderScene;
+  }
+  if (value?.heroSlideshow !== undefined && typeof value.heroSlideshow !== 'boolean') {
+    normalized.heroSlideshow = defaultSiteAnimations.heroSlideshow;
   }
   if (value?.bootLoader !== undefined && typeof value.bootLoader !== 'boolean') {
     normalized.bootLoader = defaultSiteAnimations.bootLoader;

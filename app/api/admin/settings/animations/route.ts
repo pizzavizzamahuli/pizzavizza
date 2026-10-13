@@ -6,7 +6,7 @@ import { defaultSiteAnimations, normalizeSiteAnimations, type SiteAnimations } f
 import { isFoodLoadingSceneName } from '@/src/utils/food-loader';
 import { isBootLoaderStyle } from '@/src/utils/boot-loader';
 
-const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom', 'bootLoader', 'bootLoaderRandom'] as const;
+const animationKeys = ['enabled', 'brandFloat', 'contentGlow', 'actionPulse', 'foodLoader', 'foodLoaderRandom', 'heroSlideshow', 'bootLoader', 'bootLoaderRandom'] as const;
 
 function isSiteAnimations(value: unknown): value is SiteAnimations {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;

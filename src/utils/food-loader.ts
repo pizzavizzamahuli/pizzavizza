@@ -11,6 +11,12 @@ export const foodLoadingScenes = [
   { emoji: '🥪', name: 'sandwich', message: 'Stacking fresh ingredients' },
   { emoji: '☕', name: 'coffee', message: 'Brewing a little pick-me-up' },
   { emoji: '🍰', name: 'cake', message: 'Finishing a lovely dessert' },
+  { emoji: '🧇', name: 'waffle', message: 'Making it golden and crisp' },
+  { emoji: '🥟', name: 'dumplings', message: 'Folding in something delicious' },
+  { emoji: '🥗', name: 'salad', message: 'Tossing together fresh greens' },
+  { emoji: '🥤', name: 'milkshake', message: 'Blending a cool treat' },
+  { emoji: '🥐', name: 'croissant', message: 'Warming up a flaky favorite' },
+  { emoji: '🍜', name: 'ramen', message: 'Simmering a comforting bowl' },
 ] as const;
 
 export type FoodLoadingSceneName = (typeof foodLoadingScenes)[number]['name'];

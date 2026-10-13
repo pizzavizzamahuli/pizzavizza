@@ -45,8 +45,10 @@ test('animation effects loop when enabled and pause for reduced motion', async (
 });
 
 test('food loader chooses varied scenes and respects the master switch', async ({ page }) => {
-  expect(foodLoadingScenes).toHaveLength(12);
+  expect(foodLoadingScenes).toHaveLength(18);
   expect(getFoodLoadingScene('sushi').emoji).toBe('🍣');
+  expect(getFoodLoadingScene('waffle').message).toBe('Making it golden and crisp');
+  expect(getFoodLoadingScene('ramen').emoji).toBe('🍜');
   expect(getFoodLoadingScene('missing').name).toBe('pizza');
   for (let index = 0; index < foodLoadingScenes.length; index += 1) {
     const { scene, index: selectedIndex } = chooseFoodLoadingScene(index, 0);
@@ -61,10 +63,26 @@ test('food loader chooses varied scenes and respects the master switch', async (
       <div class="food-loading-overlay" role="status" aria-label="Loading page">
         <div class="food-loading-card"><div class="food-loading-plate"><span class="food-loading-emoji">🍕</span></div></div>
       </div>
+      <div class="food-loading-waffle"><span class="food-loading-emoji"></span></div>
+      <div class="food-loading-dumplings"><span class="food-loading-emoji"></span></div>
+      <div class="food-loading-salad"><span class="food-loading-emoji"></span></div>
+      <div class="food-loading-milkshake"><span class="food-loading-emoji"></span></div>
+      <div class="food-loading-croissant"><span class="food-loading-emoji"></span></div>
+      <div class="food-loading-ramen"><span class="food-loading-emoji"></span></div>
     </div>
   `);
   const loader = page.getByRole('status', { name: 'Loading page' });
   await expect(loader).toBeVisible();
+  for (const [scene, animation] of [
+    ['waffle', 'food-waffle-flip'],
+    ['dumplings', 'food-dumplings-bounce'],
+    ['salad', 'food-salad-toss'],
+    ['milkshake', 'food-milkshake-shake'],
+    ['croissant', 'food-croissant-rise'],
+    ['ramen', 'food-ramen-steam'],
+  ]) {
+    await expect(page.locator(`.food-loading-${scene} .food-loading-emoji`)).toHaveCSS('animation-name', animation);
+  }
   const scope = page.locator('.site-animation-scope');
   await scope.evaluate((element) => element.removeAttribute('data-site-animation-loader'));
   await expect(loader).toBeHidden();

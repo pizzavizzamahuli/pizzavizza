@@ -299,6 +299,12 @@ a[href^="tel:"] {
 .food-loading-sandwich .food-loading-emoji { animation-name: food-sandwich-stack; }
 .food-loading-coffee .food-loading-emoji { animation-name: food-coffee-steam; }
 .food-loading-cake .food-loading-emoji { animation-name: food-cake-celebrate; }
+.food-loading-waffle .food-loading-emoji { animation-name: food-waffle-flip; }
+.food-loading-dumplings .food-loading-emoji { animation-name: food-dumplings-bounce; }
+.food-loading-salad .food-loading-emoji { animation-name: food-salad-toss; }
+.food-loading-milkshake .food-loading-emoji { animation-name: food-milkshake-shake; }
+.food-loading-croissant .food-loading-emoji { animation-name: food-croissant-rise; }
+.food-loading-ramen .food-loading-emoji { animation-name: food-ramen-steam; }
 
 .food-loading-brand {
   color: #c2410c;
@@ -381,6 +387,39 @@ a[href^="tel:"] {
   25% { transform: rotate(7deg) scale(1.05); }
   50% { transform: rotate(-5deg) scale(1.08); }
   75% { transform: rotate(5deg) scale(1.02); }
+}
+
+@keyframes food-waffle-flip {
+  0%, 100% { transform: perspective(100px) rotateY(-18deg) translateY(2px); }
+  50% { transform: perspective(100px) rotateY(18deg) translateY(-4px); }
+}
+
+@keyframes food-dumplings-bounce {
+  0%, 100% { transform: translateY(2px) scale(0.98); }
+  35% { transform: translateY(-6px) scale(1.04); }
+  65% { transform: translateY(0) scale(1.02); }
+}
+
+@keyframes food-salad-toss {
+  0%, 100% { transform: rotate(-10deg) translateY(2px); }
+  35% { transform: rotate(8deg) translateY(-5px); }
+  65% { transform: rotate(-4deg) translateY(1px); }
+}
+
+@keyframes food-milkshake-shake {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  20%, 60% { transform: rotate(-8deg) translateY(-2px); }
+  40%, 80% { transform: rotate(8deg) translateY(1px); }
+}
+
+@keyframes food-croissant-rise {
+  0%, 100% { transform: translateY(3px) scale(0.96); }
+  55% { transform: translateY(-5px) scale(1.08); }
+}
+
+@keyframes food-ramen-steam {
+  0%, 100% { transform: translateY(3px) rotate(-5deg); }
+  50% { transform: translateY(-5px) rotate(5deg); }
 }
 
 @keyframes food-sparkle {

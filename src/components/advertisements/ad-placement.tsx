@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdPlacement } from '@/src/types/advertisements';
+import { trackLocalAdEvent } from './local-ad-popup';
 
 interface LocalCampaign {
   _id: string;
@@ -10,6 +11,47 @@ interface LocalCampaign {
   imageUrl: string;
   destinationUrl: string;
   placement: AdPlacement;
+}
+
+function LocalCampaignCard({ campaign }: { campaign: LocalCampaign }) {
+  const cardRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    if (!('IntersectionObserver' in window)) {
+      void trackLocalAdEvent(campaign._id, 'impression');
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return;
+      void trackLocalAdEvent(campaign._id, 'impression');
+      observer.disconnect();
+    }, { threshold: 0.5 });
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [campaign._id]);
+
+  return (
+    <article ref={cardRef} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <a
+        href={campaign.destinationUrl}
+        target="_blank"
+        rel="sponsored nofollow noopener noreferrer"
+        onClick={() => { void trackLocalAdEvent(campaign._id, 'click'); }}
+        className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+      >
+        <div className="grid sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.55fr)]">
+          <div className="p-4 sm:p-5">
+            <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">Sponsored Advertisement · विज्ञापन</span>
+            <h2 className="mt-3 text-lg font-semibold text-stone-900">{campaign.businessName}</h2>
+            <p className="mt-1 text-sm text-amber-800">Visit advertiser</p>
+          </div>
+          <img src={campaign.imageUrl} alt={`${campaign.businessName} sponsored advertisement`} loading="lazy" className="aspect-[16/7] h-full min-h-36 w-full bg-stone-100 object-cover sm:aspect-auto" />
+        </div>
+      </a>
+    </article>
+  );
 }
 
 interface AdSenseConfig {
@@ -168,25 +210,7 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
   return (
     <section aria-label="Sponsored advertisements" className="my-5 space-y-3">
       {data.localAdsEnabled
-        ? data.campaigns.map((campaign) => (
-          <article key={campaign._id} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-            <a
-              href={campaign.destinationUrl}
-              target="_blank"
-              rel="sponsored nofollow noopener noreferrer"
-              className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-            >
-              <div className="grid sm:grid-cols-[minmax(0,1fr)_minmax(12rem,0.55fr)]">
-                <div className="p-4 sm:p-5">
-                  <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-stone-600">Sponsored</span>
-                  <h2 className="mt-3 text-lg font-semibold text-stone-900">{campaign.businessName}</h2>
-                  <p className="mt-1 text-sm text-amber-800">Visit advertiser</p>
-                </div>
-                <img src={campaign.imageUrl} alt={`${campaign.businessName} sponsored advertisement`} loading="lazy" className="aspect-[16/7] h-full min-h-36 w-full bg-stone-100 object-cover sm:aspect-auto" />
-              </div>
-            </a>
-          </article>
-        ))
+        ? data.campaigns.map((campaign) => <LocalCampaignCard key={campaign._id} campaign={campaign} />)
         : null}
       {data.adsense ? <AdSensePlacement config={data.adsense} /> : null}
       {error ? <p role="status" className="text-xs text-stone-500">{error}</p> : null}

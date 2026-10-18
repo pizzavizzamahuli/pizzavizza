@@ -1,19 +1,33 @@
 import { Collection, ObjectId } from 'mongodb';
 import { createHash } from 'node:crypto';
 import { getDatabaseClient, getDatabaseName } from '@/src/config/database';
-import type { AdPlacement } from '@/src/types/advertisements';
+import type { AdCampaignPlacement, AdPopupFrequency, AdPopupPage } from '@/src/types/advertisements';
+import { getDateInTimeZone } from '@/src/utils/advertisements';
 
-export type AdCampaignStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'PAUSED' | 'REJECTED';
+export type AdCampaignStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'ACTIVE' | 'PAUSED' | 'REJECTED';
 export type AdEventKind = 'impression' | 'click';
 
 export interface AdCampaignDocument {
   _id?: ObjectId;
+  title?: string;
   businessName: string;
   imageUrl: string;
+  description?: string | null;
   destinationUrl: string;
-  placement: AdPlacement;
+  contactWhatsApp?: string | null;
+  placement: AdCampaignPlacement;
   startsAt: Date;
   endsAt: Date;
+  startsOn?: string | null;
+  endsOn?: string | null;
+  dailyStartTime?: string | null;
+  dailyEndTime?: string | null;
+  enabled?: boolean;
+  popupEnabled?: boolean;
+  popupPages?: AdPopupPage[];
+  popupDurationSeconds?: number;
+  closeDelaySeconds?: number;
+  frequency?: AdPopupFrequency;
   price: number;
   status: AdCampaignStatus;
   contactEmail: string | null;
@@ -69,12 +83,25 @@ export async function getAdCampaignEventsCollection() {
 export function toAdCampaignDto(campaign: AdCampaignDocument) {
   return {
     _id: campaign._id?.toHexString(),
+    title: campaign.title || campaign.businessName,
     businessName: campaign.businessName,
     imageUrl: campaign.imageUrl,
+    description: campaign.description || null,
     destinationUrl: campaign.destinationUrl,
+    contactWhatsApp: campaign.contactWhatsApp || null,
     placement: campaign.placement,
     startsAt: campaign.startsAt.toISOString(),
     endsAt: campaign.endsAt.toISOString(),
+    startsOn: campaign.startsOn || null,
+    endsOn: campaign.endsOn || null,
+    dailyStartTime: campaign.dailyStartTime || null,
+    dailyEndTime: campaign.dailyEndTime || null,
+    enabled: campaign.enabled ?? true,
+    popupEnabled: campaign.popupEnabled ?? false,
+    popupPages: campaign.popupPages || [],
+    popupDurationSeconds: campaign.popupDurationSeconds ?? 0,
+    closeDelaySeconds: campaign.closeDelaySeconds ?? 0,
+    frequency: campaign.frequency || 'SESSION',
     price: campaign.price,
     status: campaign.status,
     contactEmail: campaign.contactEmail,
@@ -84,9 +111,9 @@ export function toAdCampaignDto(campaign: AdCampaignDocument) {
   };
 }
 
-export async function recordAdEvent(campaignId: string, kind: AdEventKind, sessionId: string, now = new Date()) {
+export async function recordAdEvent(campaignId: string, kind: AdEventKind, sessionId: string, now = new Date(), timeZone = 'Asia/Kolkata') {
   if (!ObjectId.isValid(campaignId) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) return false;
-  const day = now.toISOString().slice(0, 10);
+  const day = getDateInTimeZone(now, timeZone);
   const sessionHash = createHash('sha256').update(sessionId).digest('hex');
   const events = await getAdCampaignEventsCollection();
   try {

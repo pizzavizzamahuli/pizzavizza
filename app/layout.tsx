@@ -7,6 +7,7 @@ import { ServiceWorkerCleanup } from '@/src/components/pwa/service-worker-cleanu
 import { getRestaurantSettingsForRender } from '@/src/models/restaurant-settings';
 import { getSessionUserForRender } from '@/src/auth/session';
 import { SiteAnimationScope } from '@/src/components/site-animation-scope';
+import { LocalAdPopup } from '@/src/components/advertisements/local-ad-popup';
 import { defaultSiteAnimations, normalizeSiteAnimations } from '@/src/types/site-animations';
 import type { CSSProperties } from 'react';
 
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <ServiceWorkerCleanup />
           <ImageDownloadProtection />
           <ChatbotToggle enabled={settings?.chatbotEnabled ?? true} user={user ? { name: user.name, role: user.role } : null} restaurantName={settings?.restaurantName || 'Pizza Vizza'} />
+          <LocalAdPopup />
           {children}
         </SiteAnimationScope>
       </body>

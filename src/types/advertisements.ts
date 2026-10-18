@@ -1,5 +1,9 @@
 export const AD_PLACEMENTS = ['HOME', 'MENU', 'PRODUCT', 'CONTENT'] as const;
 export type AdPlacement = (typeof AD_PLACEMENTS)[number];
+export type AdCampaignPlacement = AdPlacement | 'NONE';
+export const AD_POPUP_PAGES = ['HOME', 'MENU', 'PRODUCT', 'DINING'] as const;
+export type AdPopupPage = (typeof AD_POPUP_PAGES)[number];
+export type AdPopupFrequency = 'SESSION' | 'DAILY' | 'EVERY_VISIT';
 
 export interface AdSlotSettings {
   HOME: string;
@@ -30,14 +34,27 @@ export const defaultAdvertisementSettings: AdvertisementSettings = {
 
 export interface LocalAdCampaign {
   _id?: string;
+  title?: string;
   businessName: string;
   imageUrl: string;
+  description?: string | null;
   destinationUrl: string;
-  placement: AdPlacement;
+  contactWhatsApp?: string | null;
+  placement: AdCampaignPlacement;
   startsAt: string;
   endsAt: string;
+  startsOn?: string | null;
+  endsOn?: string | null;
+  dailyStartTime?: string | null;
+  dailyEndTime?: string | null;
+  enabled?: boolean;
+  popupEnabled?: boolean;
+  popupPages?: AdPopupPage[];
+  popupDurationSeconds?: number;
+  closeDelaySeconds?: number;
+  frequency?: AdPopupFrequency;
   price: number;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'PAUSED' | 'REJECTED';
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'ACTIVE' | 'PAUSED' | 'REJECTED';
   effectiveStatus?: string;
   contactEmail: string | null;
   contactPhone: string | null;

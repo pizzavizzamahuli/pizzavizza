@@ -185,6 +185,11 @@ export async function getRestaurantSettingsCollection() {
     return collection;
   })();
 
+  restaurantSettingsCollectionPromise = restaurantSettingsCollectionPromise.catch((error) => {
+    restaurantSettingsCollectionPromise = null;
+    throw error;
+  });
+
   return restaurantSettingsCollectionPromise;
 }
 

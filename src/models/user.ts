@@ -96,5 +96,10 @@ export async function getUsersCollection() {
     return collection;
   })();
 
+  usersCollectionPromise = usersCollectionPromise.catch((error) => {
+    usersCollectionPromise = null;
+    throw error;
+  });
+
   return usersCollectionPromise;
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAdCampaignsCollection } from '@/src/models/advertisement';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
-import { isAdSenseReady, normalizeAdvertisementSettings, isAdPlacement } from '@/src/utils/advertisements';
+import {
+  isAdSenseReady,
+  isEligibleAdCampaign,
+  isAdPlacement,
+  normalizeAdvertisementSettings,
+} from '@/src/utils/advertisements';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,19 +14,21 @@ export async function GET(request: Request) {
   const placement = new URL(request.url).searchParams.get('placement');
   if (!isAdPlacement(placement)) return NextResponse.json({ error: 'Invalid placement.' }, { status: 400 });
 
-  let settings;
+  let restaurant;
   try {
-    settings = normalizeAdvertisementSettings((await getRestaurantSettings()).advertisements);
+    restaurant = await getRestaurantSettings();
   } catch {
     return NextResponse.json({ error: 'Advertisement settings are unavailable.' }, { status: 503 });
   }
+  const settings = normalizeAdvertisementSettings(restaurant.advertisements);
+  const timeZone = restaurant.restaurantTimezone || 'Asia/Kolkata';
   const campaigns = settings.localAdsEnabled
-    ? await (await getAdCampaignsCollection()).find({
-      status: 'APPROVED',
+    ? (await (await getAdCampaignsCollection()).find({
+      status: { $in: ['APPROVED', 'ACTIVE'] },
       placement,
-      startsAt: { $lte: new Date() },
-      endsAt: { $gte: new Date() },
-    }).sort({ createdAt: -1 }).limit(3).toArray()
+    }).sort({ createdAt: -1 }).limit(100).toArray())
+      .filter((campaign) => campaign.enabled !== false && isEligibleAdCampaign(campaign, new Date(), timeZone))
+      .slice(0, 3)
     : [];
   const slot = settings.adsenseSlots[placement];
   const adsense = isAdSenseReady(settings) && (settings.adsenseAutoAds || Boolean(slot))
@@ -39,8 +46,11 @@ export async function GET(request: Request) {
       campaigns: campaigns.map((campaign) => ({
         _id: campaign._id?.toHexString(),
         businessName: campaign.businessName,
+        title: campaign.title || campaign.businessName,
         imageUrl: campaign.imageUrl,
+        description: campaign.description || null,
         destinationUrl: campaign.destinationUrl,
+        contactWhatsApp: campaign.contactWhatsApp || null,
         placement: campaign.placement,
       })),
       adsense,

@@ -47,7 +47,9 @@ function LocalCampaignCard({ campaign }: { campaign: LocalCampaign }) {
             <h2 className="mt-3 text-lg font-semibold text-stone-900">{campaign.businessName}</h2>
             <p className="mt-1 text-sm text-amber-800">Visit advertiser</p>
           </div>
-          <img src={campaign.imageUrl} alt={`${campaign.businessName} sponsored advertisement`} loading="lazy" className="aspect-[16/7] h-full min-h-36 w-full bg-stone-100 object-cover sm:aspect-auto" />
+          <div className="flex max-h-[32rem] min-h-36 items-center justify-center overflow-hidden bg-stone-100">
+            <img src={campaign.imageUrl} alt={`${campaign.businessName} sponsored advertisement`} loading="lazy" className="max-h-[65vh] w-full object-contain sm:max-h-[32rem]" />
+          </div>
         </div>
       </a>
     </article>

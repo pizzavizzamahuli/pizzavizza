@@ -192,9 +192,9 @@ export function AdPopupDialog({
               }
               onClick?.();
             }}
-            className="block bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-amber-600"
+            className="flex items-center justify-center bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-amber-600"
           >
-            <img src={campaign.imageUrl} alt={`${campaign.businessName} advertisement`} className="max-h-[38vh] min-h-40 w-full object-cover sm:max-h-[48vh]" />
+            <img src={campaign.imageUrl} alt={`${campaign.businessName} advertisement`} className="max-h-[42dvh] w-full object-contain sm:max-h-[48dvh]" />
           </a>
         ) : <div className="flex min-h-40 items-center justify-center bg-stone-100 text-sm text-stone-500">Advertisement banner preview</div>}
         <div className="space-y-3 p-4 sm:p-6">

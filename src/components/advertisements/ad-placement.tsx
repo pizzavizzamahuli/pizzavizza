@@ -2,7 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AdPlacement } from '@/src/types/advertisements';
+import type { AdPlacement, AdsterraUnitKey } from '@/src/types/advertisements';
+import { AdsterraUnitRenderer } from './adsterra-unit';
 import { trackLocalAdEvent } from './local-ad-popup';
 
 interface LocalCampaign {
@@ -66,6 +67,10 @@ interface PlacementData {
   localAdsEnabled: boolean;
   campaigns: LocalCampaign[];
   adsense: AdSenseConfig | null;
+  adsterra: {
+    enabled: boolean;
+    units: Array<{ key: AdsterraUnitKey; config: { enabled: boolean; placement: AdPlacement } }>;
+  } | null;
 }
 
 interface TcfData {
@@ -207,7 +212,7 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
   }, [refresh]);
 
   if (loading) return <div hidden data-site-boot-pending="true" />;
-  if (!data || (!data.localAdsEnabled && !data.adsense)) return error ? <p role="status" className="my-3 text-xs text-stone-500">{error}</p> : null;
+  if (!data || (!data.localAdsEnabled && !data.adsense && !data.adsterra?.enabled)) return error ? <p role="status" className="my-3 text-xs text-stone-500">{error}</p> : null;
 
   return (
     <section aria-label="Sponsored advertisements" className="my-5 space-y-3">
@@ -215,6 +220,9 @@ export default function AdPlacement({ placement }: { placement: AdPlacement }) {
         ? data.campaigns.map((campaign) => <LocalCampaignCard key={campaign._id} campaign={campaign} />)
         : null}
       {data.adsense ? <AdSensePlacement config={data.adsense} /> : null}
+      {data.adsterra?.units.map((unit) => (
+        <AdsterraUnitRenderer key={unit.key} unitKey={unit.key} placement={placement} />
+      ))}
       {error ? <p role="status" className="text-xs text-stone-500">{error}</p> : null}
     </section>
   );

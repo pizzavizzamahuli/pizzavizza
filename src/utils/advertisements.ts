@@ -1,10 +1,15 @@
 import {
   AD_PLACEMENTS,
+  ADSTERRA_UNIT_KEYS,
   defaultAdvertisementSettings,
+  type AdPlacement,
   type AdPopupFrequency,
   type AdPopupPage,
   type AdvertisementSettings,
+  type AdsterraUnitKey,
 } from '../types/advertisements';
+
+export { ADSTERRA_UNIT_KEYS };
 
 export interface DatedAdCampaign {
   status: string;
@@ -124,15 +129,37 @@ export function shouldShowPopupForFrequency(
 const publisherPattern = /^ca-pub-\d{16}$/;
 const slotPattern = /^\d{4,20}$/;
 
-export function normalizeAdvertisementSettings(value?: Partial<AdvertisementSettings> | null): AdvertisementSettings {
+function normalizeAdsterraSettings(value?: Partial<AdvertisementSettings>['adsterra'] | null): AdvertisementSettings['adsterra'] {
+  const base = defaultAdvertisementSettings.adsterra;
+  const incoming = (value ?? {}) as Partial<AdvertisementSettings['adsterra']>;
+  const incomingUnits = (incoming.units ?? {}) as Partial<Record<AdsterraUnitKey, { enabled?: boolean; placement?: AdPlacement }>>;
+  const normalizedUnits = {} as Record<AdsterraUnitKey, { enabled: boolean; placement: AdPlacement }>;
+
+  for (const key of ADSTERRA_UNIT_KEYS) {
+    const unit = incomingUnits[key] ?? base.units[key];
+    normalizedUnits[key] = {
+      enabled: typeof unit?.enabled === 'boolean' ? unit.enabled : false,
+      placement: isAdPlacement(unit?.placement) ? unit.placement : base.units[key].placement,
+    };
+  }
+
   return {
+    enabled: typeof incoming.enabled === 'boolean' ? incoming.enabled : false,
+    units: normalizedUnits,
+  };
+}
+
+export function normalizeAdvertisementSettings(value?: Partial<AdvertisementSettings> | null): AdvertisementSettings {
+  const next = {
     ...defaultAdvertisementSettings,
     ...value,
     adsenseSlots: {
       ...defaultAdvertisementSettings.adsenseSlots,
       ...(value?.adsenseSlots || {}),
     },
-  };
+  } as AdvertisementSettings;
+  next.adsterra = normalizeAdsterraSettings(value?.adsterra ?? next.adsterra);
+  return next;
 }
 
 export function isValidAdvertisementSettings(value: unknown): value is AdvertisementSettings {
@@ -141,6 +168,21 @@ export function isValidAdvertisementSettings(value: unknown): value is Advertise
   const slots = settings.adsenseSlots;
   if (!slots || typeof slots !== 'object' || Array.isArray(slots)) return false;
   const slotSettings = slots as Record<string, unknown>;
+  const adsterra = settings.adsterra;
+  const validAdsterra = !adsterra || (
+    typeof adsterra === 'object'
+    && !Array.isArray(adsterra)
+    && typeof (adsterra as Record<string, unknown>).enabled === 'boolean'
+    && typeof (adsterra as Record<string, unknown>).units === 'object'
+    && !Array.isArray((adsterra as Record<string, unknown>).units)
+    && ADSTERRA_UNIT_KEYS.every((key) => {
+      const unit = (adsterra as Record<string, unknown>).units as Record<string, unknown>;
+      return unit && unit[key] && typeof unit[key] === 'object' && !Array.isArray(unit[key])
+        && typeof (unit[key] as Record<string, unknown>).enabled === 'boolean'
+        && typeof (unit[key] as Record<string, unknown>).placement === 'string'
+        && AD_PLACEMENTS.includes((unit[key] as Record<string, unknown>).placement as (typeof AD_PLACEMENTS)[number]);
+    })
+  );
   return typeof settings.adsenseEnabled === 'boolean'
     && typeof settings.adsenseSiteApproved === 'boolean'
     && typeof settings.adsenseCmpConfigured === 'boolean'
@@ -148,6 +190,7 @@ export function isValidAdvertisementSettings(value: unknown): value is Advertise
     && typeof settings.localAdsEnabled === 'boolean'
     && typeof settings.adsensePublisherId === 'string'
     && publisherPattern.test(settings.adsensePublisherId)
+    && validAdsterra
     && AD_PLACEMENTS.every((placement) =>
       typeof slotSettings[placement] === 'string'
       && (slotSettings[placement] === '' || slotPattern.test(slotSettings[placement] as string)),

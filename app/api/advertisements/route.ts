@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { getAdCampaignsCollection } from '@/src/models/advertisement';
 import { getRestaurantSettings } from '@/src/models/restaurant-settings';
 import {
+  ADSTERRA_UNIT_KEYS,
   isAdSenseReady,
   isEligibleAdCampaign,
   isAdPlacement,
   normalizeAdvertisementSettings,
 } from '@/src/utils/advertisements';
+import type { AdsterraUnitKey } from '@/src/types/advertisements';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +41,14 @@ export async function GET(request: Request) {
     }
     : null;
 
+  const adsterra = settings.adsterra;
+  const activeAdsterraUnits = (ADSTERRA_UNIT_KEYS as readonly AdsterraUnitKey[])
+    .filter((key: AdsterraUnitKey) => adsterra.enabled && adsterra.units[key].enabled && adsterra.units[key].placement === placement)
+    .map((key: AdsterraUnitKey) => ({
+      key,
+      config: adsterra.units[key],
+    }));
+
   return NextResponse.json({
     success: true,
     data: {
@@ -54,6 +64,10 @@ export async function GET(request: Request) {
         placement: campaign.placement,
       })),
       adsense,
+      adsterra: {
+        enabled: adsterra.enabled,
+        units: activeAdsterraUnits,
+      },
     },
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }

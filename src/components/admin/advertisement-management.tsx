@@ -112,14 +112,16 @@ export default function AdvertisementManagement({ canManage }: { canManage: bool
     return () => clearTimeout(timeout);
   }, []);
 
-  async function saveSettings(next: AdvertisementSettings, section: 'adsense' | 'local') {
+  async function saveSettings(next: AdvertisementSettings, section: 'adsense' | 'local' | 'adsterra') {
     setBusy(true);
     setError(null);
     setMessage(null);
     try {
       const payload = section === 'adsense'
         ? { ...next, localAdsEnabled: savedSettings.localAdsEnabled }
-        : { ...savedSettings, localAdsEnabled: next.localAdsEnabled };
+        : section === 'local'
+          ? { ...savedSettings, localAdsEnabled: next.localAdsEnabled }
+          : { ...savedSettings, adsterra: next.adsterra };
       const response = await fetch('/api/admin/advertisements/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -308,6 +310,47 @@ export default function AdvertisementManagement({ canManage }: { canManage: bool
         <div><h2 className="text-lg font-semibold">Local business advertisements</h2><p className="mt-1 text-sm text-stone-600">Inline placements continue to work as before. Timed popups are opt-in per campaign and never appear by default. Anonymous impression and real-click counts are deduplicated per browser session and day.</p></div>
         {toggle('Enable local advertisements', settings.localAdsEnabled, (value) => setSettings({ ...settings, localAdsEnabled: value }), 'Global OFF stops local campaign rendering. Existing campaign records remain stored.')}
         {canManage ? <button type="button" disabled={busy} onClick={() => void saveSettings(settings, 'local')} className="min-h-11 rounded-full border border-amber-600 px-5 py-2 font-semibold text-amber-800 disabled:opacity-50">{busy ? 'Saving...' : 'Save local ad settings'}</button> : null}
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">
+        <div><h2 className="text-lg font-semibold">Adsterra</h2><p className="mt-1 text-sm text-stone-600">Provider-level controls remain independent from Google and local ads. The Adsterra master switch defaults to off and each unit starts disabled.</p></div>
+        {toggle('Enable Adsterra', settings.adsterra.enabled, (value) => setSettings({ ...settings, adsterra: { ...settings.adsterra, enabled: value } }), 'Turns the entire Adsterra provider on or off without changing Google AdSense or local ad settings.')}
+        <div className="grid gap-3 md:grid-cols-2">
+          {Object.entries(settings.adsterra.units).map(([key, value]) => {
+            const labelMap: Record<string, string> = {
+              nativeBanner: 'Native Banner',
+              popunder: 'Popunder',
+              smartlink: 'Smartlink',
+              socialBar: 'Social Bar',
+              'banner300x250': 'Banner 300 × 250',
+              'banner160x300': 'Banner 160 × 300',
+              'banner468x60': 'Banner 468 × 60',
+              'banner160x600': 'Banner 160 × 600',
+              'banner320x50': 'Banner 320 × 50',
+              'banner728x90': 'Banner 728 × 90',
+            };
+            const placementLabel = value.placement;
+            return (
+              <label key={key} className="flex min-h-14 items-center justify-between gap-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <span>
+                  <span className="block font-semibold text-stone-900">{labelMap[key] ?? key}</span>
+                  <span className="mt-1 block text-xs text-stone-600">Placement: {placementLabel}</span>
+                </span>
+                <input type="checkbox" checked={value.enabled} disabled={!canManage || busy || !settings.adsterra.enabled} onChange={(event) => setSettings({
+                  ...settings,
+                  adsterra: {
+                    ...settings.adsterra,
+                    units: {
+                      ...settings.adsterra.units,
+                      [key]: { ...value, enabled: event.target.checked },
+                    },
+                  },
+                })} className="h-5 w-5 shrink-0 accent-amber-600" />
+              </label>
+            );
+          })}
+        </div>
+        {canManage ? <button type="button" disabled={busy} onClick={() => void saveSettings(settings, 'adsterra')} className="min-h-11 rounded-full border border-amber-600 px-5 py-2 font-semibold text-amber-800 disabled:opacity-50">{busy ? 'Saving...' : 'Save Adsterra settings'}</button> : null}
       </section>
 
       {canManage ? <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-6">

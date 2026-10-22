@@ -24,6 +24,7 @@ export interface AdCampaignDocument {
   dailyEndTime?: string | null;
   enabled?: boolean;
   popupEnabled?: boolean;
+  popupFullScreen?: boolean;
   popupPages?: AdPopupPage[];
   popupDurationSeconds?: number;
   closeDelaySeconds?: number;
@@ -98,6 +99,7 @@ export function toAdCampaignDto(campaign: AdCampaignDocument) {
     dailyEndTime: campaign.dailyEndTime || null,
     enabled: campaign.enabled ?? true,
     popupEnabled: campaign.popupEnabled ?? false,
+    popupFullScreen: campaign.popupFullScreen ?? false,
     popupPages: campaign.popupPages || [],
     popupDurationSeconds: campaign.popupDurationSeconds ?? 0,
     closeDelaySeconds: campaign.closeDelaySeconds ?? 0,

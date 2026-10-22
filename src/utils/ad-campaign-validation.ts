@@ -46,6 +46,7 @@ export function parseAdCampaign(value: unknown, statusAllowed: boolean, cloudNam
   const frequency = input.frequency;
   const enabled = input.enabled;
   const popupEnabled = input.popupEnabled;
+  const popupFullScreen = input.popupFullScreen;
   const expectedImagePath = `/${cloudName}/image/upload/`;
   const pageListValid = popupPages === undefined
     || (Array.isArray(popupPages) && popupPages.every((page) => AD_POPUP_PAGES.includes(page as (typeof AD_POPUP_PAGES)[number])));
@@ -76,6 +77,7 @@ export function parseAdCampaign(value: unknown, statusAllowed: boolean, cloudNam
     || !validPopupDuration || !validCloseDelay || !validFrequency
     || (enabled !== undefined && typeof enabled !== 'boolean')
     || (popupEnabled !== undefined && typeof popupEnabled !== 'boolean')
+    || (popupFullScreen !== undefined && typeof popupFullScreen !== 'boolean')
     || !validWhatsapp
     || typeof price !== 'number' || !Number.isFinite(price) || price < 0 || price > 100_000_000
     || (email !== null && email !== undefined && (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))
@@ -98,6 +100,7 @@ export function parseAdCampaign(value: unknown, statusAllowed: boolean, cloudNam
     dailyEndTime: typeof dailyEndTime === 'string' && dailyEndTime ? dailyEndTime : null,
     enabled: typeof enabled === 'boolean' ? enabled : true,
     popupEnabled: typeof popupEnabled === 'boolean' ? popupEnabled : false,
+    popupFullScreen: typeof popupFullScreen === 'boolean' ? popupFullScreen : false,
     popupPages: Array.isArray(popupPages) ? [...new Set(popupPages)] as (typeof AD_POPUP_PAGES)[number][] : [],
     popupDurationSeconds: typeof popupDurationSeconds === 'number' ? popupDurationSeconds : 0,
     closeDelaySeconds: typeof closeDelaySeconds === 'number' ? closeDelaySeconds : 0,

@@ -44,6 +44,7 @@ const blankCampaign = (): CampaignDraft => {
     dailyEndTime: '',
     enabled: true,
     popupEnabled: false,
+    popupFullScreen: false,
     popupPages: ['HOME'],
     popupDurationSeconds: 0,
     closeDelaySeconds: 0,
@@ -338,6 +339,7 @@ export default function AdvertisementManagement({ canManage }: { canManage: bool
           <fieldset disabled={!draft.popupEnabled} className="space-y-3 rounded-xl border border-stone-200 p-4 disabled:opacity-60 sm:col-span-2">
             <legend className="px-1 text-sm font-semibold text-stone-800">Popup behavior</legend>
             <div className="grid gap-3 sm:grid-cols-2">
+              {toggle('Show popup full screen', draft.popupFullScreen ?? false, (value) => setDraft({ ...draft, popupFullScreen: value }), 'Uses the full browser viewport. The image remains contained so its full contents are visible.')}
               <label className="text-sm font-medium text-stone-700">Close-button delay (0–60 seconds)<input type="number" min="0" max="60" step="1" value={draft.closeDelaySeconds ?? 0} onChange={(event) => setDraft({ ...draft, closeDelaySeconds: Number(event.target.value) })} className={fieldClass} /><span className="mt-1 block text-xs font-normal text-stone-500">Visitors see a countdown. Zero allows immediate dismissal.</span></label>
               <label className="text-sm font-medium text-stone-700">Auto-close after (0–3600 seconds)<input type="number" min="0" max="3600" step="1" value={draft.popupDurationSeconds ?? 0} onChange={(event) => setDraft({ ...draft, popupDurationSeconds: Number(event.target.value) })} className={fieldClass} /><span className="mt-1 block text-xs font-normal text-stone-500">Zero keeps it open until dismissed. Auto-close waits at least until the close button is enabled.</span></label>
               <label className="text-sm font-medium text-stone-700">Display frequency<select value={draft.frequency || 'SESSION'} onChange={(event) => setDraft({ ...draft, frequency: event.target.value as AdPopupFrequency })} className={fieldClass}><option value="SESSION">Once per tab session</option><option value="DAILY">Once per day (restaurant time zone)</option><option value="EVERY_VISIT">Every new page visit</option></select></label>

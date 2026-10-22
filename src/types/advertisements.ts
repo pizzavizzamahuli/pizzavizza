@@ -49,6 +49,7 @@ export interface LocalAdCampaign {
   dailyEndTime?: string | null;
   enabled?: boolean;
   popupEnabled?: boolean;
+  popupFullScreen?: boolean;
   popupPages?: AdPopupPage[];
   popupDurationSeconds?: number;
   closeDelaySeconds?: number;

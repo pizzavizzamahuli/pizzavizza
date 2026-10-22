@@ -15,6 +15,7 @@ type PopupCampaign = Pick<
   | 'description'
   | 'destinationUrl'
   | 'contactWhatsApp'
+  | 'popupFullScreen'
   | 'popupDurationSeconds'
   | 'closeDelaySeconds'
   | 'frequency'
@@ -165,14 +166,15 @@ export function AdPopupDialog({
 
   const closeLabel = remaining > 0 ? `Close available in ${remaining}s` : 'Close advertisement';
   const contactUrl = whatsappUrl(campaign.contactWhatsApp);
+  const fullScreen = campaign.popupFullScreen === true;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto bg-black/65 p-3 sm:p-6" data-testid="local-ad-popup">
+    <div className={`fixed inset-0 z-[150] flex overflow-y-auto bg-black/65 ${fullScreen ? 'items-start' : 'items-center justify-center p-3 sm:p-6'}`} data-testid="local-ad-popup">
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="local-ad-popup-title"
-        className="relative my-auto w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:rounded-3xl"
+        className={`relative flex w-full flex-col bg-white shadow-2xl ${fullScreen ? 'min-h-full max-w-none overflow-y-auto rounded-none' : 'my-auto max-w-xl overflow-hidden rounded-2xl sm:rounded-3xl'}`}
       >
         <div className="flex items-center justify-between gap-3 border-b border-stone-200 px-4 py-3 sm:px-6">
           <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-stone-700">Sponsored Advertisement · विज्ञापन</span>
@@ -194,7 +196,7 @@ export function AdPopupDialog({
             }}
             className="flex items-center justify-center bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-amber-600"
           >
-            <img src={campaign.imageUrl} alt={`${campaign.businessName} advertisement`} className="max-h-[42dvh] w-full object-contain sm:max-h-[48dvh]" />
+            <img src={campaign.imageUrl} alt={`${campaign.businessName} advertisement`} className={`${fullScreen ? 'max-h-[60dvh]' : 'max-h-[42dvh] sm:max-h-[48dvh]'} w-full object-contain`} />
           </a>
         ) : <div className="flex min-h-40 items-center justify-center bg-stone-100 text-sm text-stone-500">Advertisement banner preview</div>}
         <div className="space-y-3 p-4 sm:p-6">

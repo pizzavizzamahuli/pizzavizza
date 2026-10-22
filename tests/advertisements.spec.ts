@@ -120,12 +120,15 @@ test('ads are off by default and campaign approval dates determine serving eligi
     dailyEndTime: '20:00',
     enabled: true,
     popupEnabled: true,
+    popupFullScreen: true,
     popupPages: ['HOME', 'MENU'],
     popupDurationSeconds: 0,
     closeDelaySeconds: 10,
     frequency: 'DAILY',
   };
   expect(parseAdCampaign(popupPayload, true, 'pizzavizza')?.closeDelaySeconds).toBe(10);
+  expect(parseAdCampaign(popupPayload, true, 'pizzavizza')?.popupFullScreen).toBe(true);
+  expect(parseAdCampaign({ ...popupPayload, popupFullScreen: 'yes' }, true, 'pizzavizza')).toBeNull();
   for (const closeDelaySeconds of [0, 5, 10, 60]) {
     expect(parseAdCampaign({ ...popupPayload, closeDelaySeconds }, true, 'pizzavizza')?.closeDelaySeconds).toBe(closeDelaySeconds);
   }
